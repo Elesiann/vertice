@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/context/SessionContext";
-import { loadCatalog } from "@/data/catalog";
+import { catalog } from "@/data/catalog";
 import { ROUTES } from "@/routes";
 import type { ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
 
@@ -34,8 +34,6 @@ const parseRedemption = (raw: string): RedemptionPreference => {
   }
   return { kind: "any" };
 };
-
-const catalog = loadCatalog();
 
 export const InputForm = (): JSX.Element => {
   const { setProfile } = useSession();

@@ -1,11 +1,9 @@
 import { useMemo } from "react";
-import { loadCatalog } from "@/data/catalog";
+import { catalog } from "@/data/catalog";
 import { useSession } from "@/context/SessionContext";
 import { recommend } from "@/lib/solver";
-import type { Catalog, Recommendation, SolverError, SpendingProfile } from "@/types";
+import type { Recommendation, SolverError, SpendingProfile } from "@/types";
 import type { Result } from "@/lib/result";
-
-const cachedCatalog: Catalog = loadCatalog();
 
 interface RecommendationState {
   profile: SpendingProfile | null;
@@ -17,7 +15,7 @@ export const useRecommendation = (): RecommendationState => {
 
   const result = useMemo<Result<Recommendation, SolverError> | null>(() => {
     if (profile === null) return null;
-    return recommend(profile, cachedCatalog, {
+    return recommend(profile, catalog, {
       ...(ptaxOverride !== null ? { ptaxRate: ptaxOverride } : {}),
     });
   }, [profile, ptaxOverride]);
