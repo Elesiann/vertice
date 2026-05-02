@@ -9,8 +9,11 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
+import type { SpendingProfile } from "@/types";
 
 interface SessionContextValue {
+  profile: SpendingProfile | null;
+  setProfile: Dispatch<SetStateAction<SpendingProfile | null>>;
   ptaxOverride: number | null;
   setPtaxOverride: Dispatch<SetStateAction<number | null>>;
   reset: () => void;
@@ -23,15 +26,17 @@ interface SessionProviderProps {
 }
 
 export const SessionProvider = ({ children }: SessionProviderProps): JSX.Element => {
+  const [profile, setProfile] = useState<SpendingProfile | null>(null);
   const [ptaxOverride, setPtaxOverride] = useState<number | null>(null);
 
   const reset = useCallback(() => {
+    setProfile(null);
     setPtaxOverride(null);
   }, []);
 
   const value = useMemo<SessionContextValue>(
-    () => ({ ptaxOverride, setPtaxOverride, reset }),
-    [ptaxOverride, reset],
+    () => ({ profile, setProfile, ptaxOverride, setPtaxOverride, reset }),
+    [profile, ptaxOverride, reset],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
