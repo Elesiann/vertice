@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply text-ink;
+  }
+
+  body {
+    @apply bg-surface font-sans antialiased;
+  }
+}
