@@ -11,16 +11,7 @@ export type Bank =
   | "xp"
   | "other";
 
-export type ProgramId =
-  | "smiles"
-  | "latam-pass"
-  | "tudoazul"
-  | "livelo"
-  | "esfera"
-  | "ourocard"
-  | "aadvantage"
-  | "iberia-plus"
-  | "cashback";
+export type ProgramId = "smiles" | "latam-pass" | "tudoazul" | "livelo" | "esfera" | "cashback";
 
 export type ProgramKind = "airline-miles" | "bank-points" | "cashback";
 
