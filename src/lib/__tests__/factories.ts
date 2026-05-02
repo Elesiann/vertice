@@ -1,3 +1,4 @@
+import type { RawParserResult } from "@/lib/parser";
 import type { RawTransaction, Transaction } from "@/types";
 
 let nextId = 0;
@@ -19,5 +20,16 @@ export const makeRaw = (overrides: Partial<RawTransaction> = {}): RawTransaction
 export const makeTx = (overrides: Partial<Transaction> = {}): Transaction => ({
   ...baseDefaults(),
   category: "domestic",
+  ...overrides,
+});
+
+export const makeRawResult = (overrides: Partial<RawParserResult> = {}): RawParserResult => ({
+  bank: "nubank",
+  fileName: "fatura.pdf",
+  rawTransactions: [makeRaw()],
+  detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
+  warnings: [],
+  checksum: 100,
+  layoutFingerprint: "abc123",
   ...overrides,
 });

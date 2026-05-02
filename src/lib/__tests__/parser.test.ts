@@ -1,33 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { runChain, type Parser, type ParserInput, type RawParserResult } from "@/lib/parser";
 import { fail, ok, type Result } from "@/lib/result";
-import type { ParseError, RawTransaction } from "@/types";
+import { makeRaw, makeRawResult } from "@/lib/__tests__/factories";
+import type { ParseError } from "@/types";
 
 const baseInput: ParserInput = {
   rawText: "irrelevant for these tests",
   fileName: "fatura.pdf",
 };
-
-const makeRawTx = (overrides: Partial<RawTransaction> = {}): RawTransaction => ({
-  id: "tx-1",
-  date: "2026-04-15",
-  description: "Padaria",
-  amountBrl: 100,
-  sourceFile: "fatura.pdf",
-  bank: "nubank",
-  ...overrides,
-});
-
-const makeRawResult = (overrides: Partial<RawParserResult> = {}): RawParserResult => ({
-  bank: "nubank",
-  fileName: "fatura.pdf",
-  rawTransactions: [makeRawTx()],
-  detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
-  warnings: [],
-  checksum: 100,
-  layoutFingerprint: "abc123",
-  ...overrides,
-});
 
 const stubParser = (bank: Parser["bank"], result: Result<RawParserResult, ParseError>): Parser => ({
   bank,
@@ -54,7 +34,7 @@ describe("runChain", () => {
         "nubank",
         ok(
           makeRawResult({
-            rawTransactions: [makeRawTx({ amountBrl: 100 })],
+            rawTransactions: [makeRaw({ amountBrl: 100 })],
             checksum: 100,
           }),
         ),
@@ -77,7 +57,7 @@ describe("runChain", () => {
         "nubank",
         ok(
           makeRawResult({
-            rawTransactions: [makeRawTx()],
+            rawTransactions: [makeRaw()],
             checksum: null,
           }),
         ),
@@ -99,7 +79,7 @@ describe("runChain", () => {
         "nubank",
         ok(
           makeRawResult({
-            rawTransactions: [makeRawTx({ amountBrl: 100.005 })],
+            rawTransactions: [makeRaw({ amountBrl: 100.005 })],
             checksum: 100.0,
           }),
         ),
@@ -122,8 +102,8 @@ describe("runChain", () => {
         ok(
           makeRawResult({
             rawTransactions: [
-              makeRawTx({ id: "buy", amountBrl: 100, description: "Loja" }),
-              makeRawTx({
+              makeRaw({ id: "buy", amountBrl: 100, description: "Loja" }),
+              makeRaw({
                 id: "pay",
                 amountBrl: -100,
                 description: "Pagamento em 08 ABR",
@@ -152,7 +132,7 @@ describe("runChain", () => {
         "nubank",
         ok(
           makeRawResult({
-            rawTransactions: [makeRawTx({ amountBrl: 50 })],
+            rawTransactions: [makeRaw({ amountBrl: 50 })],
             checksum: 100,
           }),
         ),
@@ -162,7 +142,7 @@ describe("runChain", () => {
         ok({
           bank: "unknown",
           fileName: "fatura.pdf",
-          rawTransactions: [makeRawTx({ id: "g", amountBrl: 80 })],
+          rawTransactions: [makeRaw({ id: "g", amountBrl: 80 })],
           detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
           warnings: [],
           checksum: null,
@@ -196,7 +176,7 @@ describe("runChain", () => {
         ok({
           bank: "unknown",
           fileName: "fatura.pdf",
-          rawTransactions: [makeRawTx({ id: "g", amountBrl: 80 })],
+          rawTransactions: [makeRaw({ id: "g", amountBrl: 80 })],
           detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
           warnings: [],
           checksum: null,
@@ -221,7 +201,7 @@ describe("runChain", () => {
         ok({
           bank: "unknown",
           fileName: "fatura.pdf",
-          rawTransactions: [makeRawTx({ id: "g" })],
+          rawTransactions: [makeRaw({ id: "g" })],
           detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
           warnings: [],
           checksum: null,
@@ -283,7 +263,7 @@ describe("runChain", () => {
         "nubank",
         ok(
           makeRawResult({
-            rawTransactions: [makeRawTx({ id: "intl", description: "AMAZON US" })],
+            rawTransactions: [makeRaw({ id: "intl", description: "AMAZON US" })],
             checksum: 100,
           }),
         ),
