@@ -1,2 +1,2 @@
-npx vitest run --passWithNoTests
-npx vite build
+pnpm test
+pnpm build
