@@ -1,6 +1,11 @@
 import { getPtaxRate } from "@/lib/ptax";
 import type { Bank, Category, DateRange, SpendingAggregate, Transaction } from "@/types";
 
+/**
+ * Customize aggregation. ptaxRate overrides the configured default
+ * (ADR-0005); periodOverride clamps totals to a user-edited window
+ * from the review screen.
+ */
 export interface AggregateOptions {
   ptaxRate?: number;
   periodOverride?: DateRange;
@@ -9,6 +14,11 @@ export interface AggregateOptions {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MS_PER_AVG_MONTH = MS_PER_DAY * 30.4375;
 const SIXTY_DAYS_MS = 60 * MS_PER_DAY;
+
+type SpendCategory = Extract<Category, "domestic" | "international">;
+
+const isSpending = (category: Category): category is SpendCategory =>
+  category === "domestic" || category === "international";
 
 const dedupKey = (tx: Transaction): string =>
   `${tx.date}|${tx.description}|${tx.amountBrl.toFixed(2)}|${tx.bank}`;
@@ -27,21 +37,26 @@ const dedupTransactions = (
   };
 };
 
-type SpendCategory = Extract<Category, "domestic" | "international">;
+const buildTsCache = (txs: readonly Transaction[]): ReadonlyMap<string, number> => {
+  const cache = new Map<string, number>();
+  for (const tx of txs) cache.set(tx.id, new Date(tx.date).getTime());
+  return cache;
+};
 
 const inferRefundOriginalCategory = (
   refund: Transaction,
   others: readonly Transaction[],
+  tsByTxId: ReadonlyMap<string, number>,
 ): SpendCategory => {
-  const refundTime = new Date(refund.date).getTime();
+  const refundTime = tsByTxId.get(refund.id) ?? new Date(refund.date).getTime();
   const refundAmount = Math.abs(refund.amountBrl);
-  const match = others.find(
-    (other) =>
-      other.id !== refund.id &&
-      (other.category === "domestic" || other.category === "international") &&
-      Math.abs(Math.abs(other.amountBrl) - refundAmount) < 0.01 &&
-      Math.abs(new Date(other.date).getTime() - refundTime) <= SIXTY_DAYS_MS,
-  );
+  const match = others.find((other) => {
+    if (other.id === refund.id) return false;
+    if (!isSpending(other.category)) return false;
+    if (Math.abs(Math.abs(other.amountBrl) - refundAmount) >= 0.01) return false;
+    const otherTime = tsByTxId.get(other.id) ?? new Date(other.date).getTime();
+    return Math.abs(otherTime - refundTime) <= SIXTY_DAYS_MS;
+  });
   return match?.category === "international" ? "international" : "domestic";
 };
 
@@ -66,19 +81,19 @@ interface TotalsAccumulator {
 const targetCategoryFor = (
   tx: Transaction,
   allTxs: readonly Transaction[],
+  tsByTxId: ReadonlyMap<string, number>,
   inRange: (date: string) => boolean,
 ): SpendCategory | null => {
-  if (tx.category === "domestic" || tx.category === "international") {
-    return inRange(tx.date) ? tx.category : null;
-  }
   if (tx.category === "refund") {
-    return inferRefundOriginalCategory(tx, allTxs);
+    return inferRefundOriginalCategory(tx, allTxs, tsByTxId);
   }
-  return null;
+  if (!isSpending(tx.category)) return null;
+  return inRange(tx.date) ? tx.category : null;
 };
 
 const accumulateTotals = (
   txs: readonly Transaction[],
+  tsByTxId: ReadonlyMap<string, number>,
   inRange: (date: string) => boolean,
 ): TotalsAccumulator => {
   const acc: TotalsAccumulator = {
@@ -88,7 +103,7 @@ const accumulateTotals = (
   };
 
   for (const tx of txs) {
-    const targetCategory = targetCategoryFor(tx, txs, inRange);
+    const targetCategory = targetCategoryFor(tx, txs, tsByTxId, inRange);
 
     if (targetCategory === "domestic") {
       acc.totalDomesticBrl += tx.amountBrl;
@@ -96,7 +111,7 @@ const accumulateTotals = (
       acc.totalInternationalBrl += tx.amountBrl;
     }
 
-    if ((tx.category === "domestic" || tx.category === "international") && inRange(tx.date)) {
+    if (isSpending(tx.category) && inRange(tx.date)) {
       acc.byBank[tx.bank] = (acc.byBank[tx.bank] ?? 0) + tx.amountBrl;
     }
   }
@@ -140,10 +155,15 @@ export const aggregate = (
   if (txs.length === 0) return emptyAggregate(ptaxRateUsed);
 
   const { unique, duplicatesRemoved } = dedupTransactions(txs);
+  const tsByTxId = buildTsCache(unique);
   const period = computePeriod(unique, options.periodOverride);
   const inRange = (date: string): boolean => date >= period.start && date <= period.end;
 
-  const { totalDomesticBrl, totalInternationalBrl, byBank } = accumulateTotals(unique, inRange);
+  const { totalDomesticBrl, totalInternationalBrl, byBank } = accumulateTotals(
+    unique,
+    tsByTxId,
+    inRange,
+  );
 
   const monthsCovered = monthsBetween(period.start, period.end);
   const totalInternationalUsd = safeDivide(totalInternationalBrl, ptaxRateUsed);
