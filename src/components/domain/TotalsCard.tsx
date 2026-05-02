@@ -1,18 +1,10 @@
 import type { JSX } from "react";
+import { formatBrl, formatMonths, formatUsd } from "@/lib/format";
 import type { SpendingAggregate } from "@/types";
 
 interface TotalsCardProps {
   aggregate: SpendingAggregate;
 }
-
-const formatBrl = (amount: number): string =>
-  amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-const formatUsd = (amount: number): string =>
-  amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
-
-const formatMonths = (months: number): string =>
-  months < 1 ? "menos de 1 mês" : `${months.toFixed(1)} meses`;
 
 export const TotalsCard = ({ aggregate }: TotalsCardProps): JSX.Element => (
   <section
