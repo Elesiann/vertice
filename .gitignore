@@ -43,13 +43,3 @@ src/lib/__tests__/fixtures/**/raw/
 
 # Anonymization workflow intermediates
 src/lib/__tests__/fixtures/**/*.raw.txt
-
-# Anonymizer-derived fixtures: privacy-conservative default. Sanitized
-# outputs from a real statement may still carry regional or behavioral
-# signal (merchant clustering, exact dates × amounts). Contributors who
-# want to commit a derived fixture must explicitly un-ignore their
-# specific file with a !pattern below this line.
-src/lib/__tests__/fixtures/**/*.txt
-src/lib/__tests__/fixtures/**/*.expected.json
-!src/lib/__tests__/fixtures/**/synthetic-*.txt
-!src/lib/__tests__/fixtures/**/synthetic-*.expected.json

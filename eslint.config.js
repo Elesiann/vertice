@@ -54,17 +54,13 @@ export default tseslint.config(
     },
   },
   {
-    files: ["vite.config.ts", "vitest.config.ts", "scripts/**/*.ts"],
-    extends: [...tseslint.configs.strictTypeChecked, ...tseslint.configs.stylisticTypeChecked],
+    files: ["vite.config.ts", "vitest.config.ts"],
     languageOptions: {
       globals: { ...globals.node },
       parserOptions: {
         project: ["./tsconfig.node.json"],
         tsconfigRootDir: import.meta.dirname,
       },
-    },
-    rules: {
-      "no-console": "off",
     },
   },
   prettier,
