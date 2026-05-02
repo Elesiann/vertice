@@ -1,4 +1,5 @@
 import type { Parser, ParserInput, RawParserResult } from "@/lib/parser";
+import { parseBrAmount } from "@/lib/parsers/br-amount";
 import { fail, ok, type Result } from "@/lib/result";
 import type { ParseError, RawTransaction } from "@/types";
 
@@ -23,18 +24,6 @@ const STATEMENT_YEAR_PATTERN =
   /FATURA\s+\d{2}\s+(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\s+(\d{4})/i;
 const PERIOD_PATTERN = /Per[ií]odo vigente:\s*(\d{2})\s+(\w{3})\s+a\s+(\d{2})\s+(\w{3})/i;
 const TOTAL_TO_PAY_PATTERN = /Total a pagar\s+R\$\s*([\d.,]+)/i;
-
-const parseBrAmount = (text: string): number | null => {
-  const isNegative = /[−-]/.test(text);
-  const normalized = text
-    .replace(/[^0-9.,]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  if (!normalized) return null;
-  const value = Number(normalized);
-  if (Number.isNaN(value)) return null;
-  return isNegative ? -value : value;
-};
 
 const padTwo = (n: number): string => String(n).padStart(2, "0");
 

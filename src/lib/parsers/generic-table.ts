@@ -1,4 +1,5 @@
 import type { Parser, ParserInput, RawParserResult } from "@/lib/parser";
+import { parseBrAmount } from "@/lib/parsers/br-amount";
 import type { PdfTextItem } from "@/lib/parsers/pdf-text";
 import { ok, type Result } from "@/lib/result";
 import type { ParseError, RawTransaction } from "@/types";
@@ -54,15 +55,7 @@ const parseDate = (text: string): string | null => {
 
 const parseAmount = (text: string): number | null => {
   if (!AMOUNT_PATTERN.test(text.trim())) return null;
-  const isNegative = /[−-]/.test(text);
-  const cleaned = text
-    .replace(/[^0-9.,]/g, "")
-    .replace(/\./g, "")
-    .replace(",", ".");
-  if (!cleaned) return null;
-  const value = Number(cleaned);
-  if (Number.isNaN(value)) return null;
-  return isNegative ? -value : value;
+  return parseBrAmount(text);
 };
 
 const findRowDate = (row: readonly PdfTextItem[]): { date: string; index: number } | null => {
