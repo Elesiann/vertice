@@ -1,6 +1,12 @@
 import { categorizeBatch } from "@/lib/categorizer";
-import { fail, ok, type Result } from "@/lib/result";
+import { bradescoParser } from "@/lib/parsers/bradesco";
+import { detectBank } from "@/lib/parsers/detect";
+import { computeLayoutFingerprint } from "@/lib/parsers/fingerprint";
+import { genericTableParser } from "@/lib/parsers/generic-table";
+import { itauParser } from "@/lib/parsers/itau";
+import { nubankParser } from "@/lib/parsers/nubank";
 import type { PdfTextItem } from "@/lib/parsers/pdf-text";
+import { fail, ok, type Result } from "@/lib/result";
 import type {
   Bank,
   DateRange,
@@ -45,6 +51,7 @@ const totalForChecksum = (txs: readonly Transaction[]): number =>
 
 const finalize = (
   raw: RawParserResult,
+  rawText: string,
   layerUsed: ParserResult["layerUsed"],
   extraWarnings: readonly string[],
 ): ParserResult => ({
@@ -54,7 +61,7 @@ const finalize = (
   detectedPeriod: raw.detectedPeriod,
   warnings: [...raw.warnings, ...extraWarnings],
   checksum: raw.checksum,
-  layoutFingerprint: raw.layoutFingerprint,
+  layoutFingerprint: computeLayoutFingerprint(rawText),
   layerUsed,
 });
 
@@ -67,7 +74,7 @@ export const runChain = (
   if (options.bankSpecific) {
     const layer1 = options.bankSpecific.parse(input);
     if (layer1.ok) {
-      const finalized = finalize(layer1.value, "bank-specific", []);
+      const finalized = finalize(layer1.value, input.rawText, "bank-specific", []);
       const expected = layer1.value.checksum;
       if (expected === null) return ok(finalized);
       const computed = totalForChecksum(finalized.transactions);
@@ -85,7 +92,7 @@ export const runChain = (
   const layer3 = options.genericTable.parse(input);
   if (layer3.ok && layer3.value.rawTransactions.length > 0) {
     return ok(
-      finalize(layer3.value, "generic-table", [
+      finalize(layer3.value, input.rawText, "generic-table", [
         ...accumulatedWarnings,
         "Fallback: parser genérico foi usado (Layer 3).",
       ]),
@@ -98,4 +105,16 @@ export const runChain = (
       "Não conseguimos extrair transações desta fatura automaticamente. " + "Tente entrada manual.",
     fileName: input.fileName,
   });
+};
+
+const PARSERS_BY_BANK: Readonly<Record<Exclude<Bank, "unknown">, Parser>> = {
+  nubank: nubankParser,
+  itau: itauParser,
+  bradesco: bradescoParser,
+};
+
+export const parseStatement = (input: ParserInput): Result<ParserResult, ParseError> => {
+  const bank = detectBank(input.rawText);
+  const bankSpecific = bank === "unknown" ? null : PARSERS_BY_BANK[bank];
+  return runChain(input, { bankSpecific, genericTable: genericTableParser });
 };

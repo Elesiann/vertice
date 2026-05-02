@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { runChain, type Parser, type ParserInput, type RawParserResult } from "@/lib/parser";
+import {
+  parseStatement,
+  runChain,
+  type Parser,
+  type ParserInput,
+  type RawParserResult,
+} from "@/lib/parser";
 import { fail, ok, type Result } from "@/lib/result";
 import { makeRaw, makeRawResult } from "@/lib/__tests__/factories";
 import type { ParseError } from "@/types";
@@ -279,5 +285,87 @@ describe("runChain", () => {
         expect(result.value.transactions[0]?.category).toBe("international");
       }
     });
+
+    it("populates layoutFingerprint with a non-empty hex hash", () => {
+      const bankSpecific = stubParser(
+        "nubank",
+        ok(makeRawResult({ rawTransactions: [makeRaw()], checksum: 100 })),
+      );
+
+      const result = runChain(
+        {
+          rawText: "FATURA 08 MAI 2026 RESUMO DA FATURA Total a pagar R$ 100,00",
+          fileName: "f.pdf",
+        },
+        { bankSpecific, genericTable: emptyGeneric },
+      );
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.layoutFingerprint).toMatch(/^[0-9a-f]{8}$/);
+      }
+    });
+  });
+});
+
+describe("parseStatement (wired dispatcher)", () => {
+  const NUBANK_TEXT = `
+Nubank fatura
+FATURA 08 MAI 2026 EMISSÃO E ENVIO 01 MAI 2026
+RESUMO DA FATURA ATUAL
+Total a pagar R$ 100,00
+Período vigente: 01 ABR a 01 MAI
+TRANSAÇÕES DE 01 ABR A 01 MAI
+04 ABR •••• 1234 Loja Teste R$ 100,00
+`.trim();
+
+  it("routes detected Nubank text through the bank-specific parser", () => {
+    const result = parseStatement({ rawText: NUBANK_TEXT, fileName: "fatura.pdf" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.bank).toBe("nubank");
+    expect(result.value.layerUsed).toBe("bank-specific");
+    expect(result.value.transactions).toHaveLength(1);
+  });
+
+  it("routes Itaú-detected text to the stub, which falls through to Layer 3", () => {
+    const result = parseStatement({
+      rawText: "Itaú Personnalité Visa Infinite\nDemonstrativo de pagamentos",
+      fileName: "fatura.pdf",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("ALL_LAYERS_FAILED");
+  });
+
+  it("routes unknown text directly to Layer 3 (no bank detected)", () => {
+    const result = parseStatement({
+      rawText: "Sem identificação de banco aqui",
+      fileName: "fatura.pdf",
+    });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("ALL_LAYERS_FAILED");
+  });
+
+  it("falls through to Layer 3 with positional items when bank parser fails", () => {
+    const result = parseStatement({
+      rawText: "Bradesco Visa\nrandom text",
+      fileName: "fatura.pdf",
+      items: [
+        { text: "01/04/2026", x: 50, y: 700, width: 50, height: 12, page: 1 },
+        { text: "Loja", x: 150, y: 700, width: 30, height: 12, page: 1 },
+        { text: "R$ 50,00", x: 350, y: 700, width: 50, height: 12, page: 1 },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.layerUsed).toBe("generic-table");
+    expect(result.value.transactions).toHaveLength(1);
+    expect(result.value.warnings.some((w) => w.includes("Layer 1 falhou"))).toBe(true);
   });
 });
