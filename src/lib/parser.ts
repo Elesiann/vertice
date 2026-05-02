@@ -56,17 +56,6 @@ const finalize = (
   layerUsed,
 });
 
-const validateChecksum = (
-  expected: number,
-  transactions: readonly Transaction[],
-): { valid: boolean; computed: number } => {
-  const computed = totalForChecksum(transactions);
-  return {
-    valid: Math.abs(computed - expected) <= CHECKSUM_TOLERANCE,
-    computed,
-  };
-};
-
 export const runChain = (
   input: ParserInput,
   options: ChainOptions,
@@ -77,16 +66,13 @@ export const runChain = (
     const layer1 = options.bankSpecific.parse(input);
     if (layer1.ok) {
       const finalized = finalize(layer1.value, "bank-specific", []);
-      if (layer1.value.checksum === null) {
-        return ok(finalized);
-      }
-      const { valid, computed } = validateChecksum(layer1.value.checksum, finalized.transactions);
-      if (valid) {
-        return ok(finalized);
-      }
+      const expected = layer1.value.checksum;
+      if (expected === null) return ok(finalized);
+      const computed = totalForChecksum(finalized.transactions);
+      if (Math.abs(computed - expected) <= CHECKSUM_TOLERANCE) return ok(finalized);
       accumulatedWarnings.push(
         `Layer 1 (${options.bankSpecific.bank}) checksum mismatch: ` +
-          `esperado R$ ${layer1.value.checksum.toFixed(2)}, ` +
+          `esperado R$ ${expected.toFixed(2)}, ` +
           `calculado R$ ${computed.toFixed(2)}. Caindo para parser genérico.`,
       );
     } else {
