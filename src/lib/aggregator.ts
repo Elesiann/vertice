@@ -78,32 +78,29 @@ interface TotalsAccumulator {
   byBank: Partial<Record<Bank, number>>;
 }
 
-const targetCategoryFor = (
-  tx: Transaction,
-  allTxs: readonly Transaction[],
-  tsByTxId: ReadonlyMap<string, number>,
-  inRange: (date: string) => boolean,
-): SpendCategory | null => {
+interface AccumulationContext {
+  allTxs: readonly Transaction[];
+  tsByTxId: ReadonlyMap<string, number>;
+  inRange: (date: string) => boolean;
+}
+
+const targetCategoryFor = (tx: Transaction, ctx: AccumulationContext): SpendCategory | null => {
   if (tx.category === "refund") {
-    return inferRefundOriginalCategory(tx, allTxs, tsByTxId);
+    return inferRefundOriginalCategory(tx, ctx.allTxs, ctx.tsByTxId);
   }
   if (!isSpending(tx.category)) return null;
-  return inRange(tx.date) ? tx.category : null;
+  return ctx.inRange(tx.date) ? tx.category : null;
 };
 
-const accumulateTotals = (
-  txs: readonly Transaction[],
-  tsByTxId: ReadonlyMap<string, number>,
-  inRange: (date: string) => boolean,
-): TotalsAccumulator => {
+const accumulateTotals = (ctx: AccumulationContext): TotalsAccumulator => {
   const acc: TotalsAccumulator = {
     totalDomesticBrl: 0,
     totalInternationalBrl: 0,
     byBank: {},
   };
 
-  for (const tx of txs) {
-    const targetCategory = targetCategoryFor(tx, txs, tsByTxId, inRange);
+  for (const tx of ctx.allTxs) {
+    const targetCategory = targetCategoryFor(tx, ctx);
 
     if (targetCategory === "domestic") {
       acc.totalDomesticBrl += tx.amountBrl;
@@ -111,7 +108,7 @@ const accumulateTotals = (
       acc.totalInternationalBrl += tx.amountBrl;
     }
 
-    if (isSpending(tx.category) && inRange(tx.date)) {
+    if (isSpending(tx.category) && ctx.inRange(tx.date)) {
       acc.byBank[tx.bank] = (acc.byBank[tx.bank] ?? 0) + tx.amountBrl;
     }
   }
@@ -159,11 +156,11 @@ export const aggregate = (
   const period = computePeriod(unique, options.periodOverride);
   const inRange = (date: string): boolean => date >= period.start && date <= period.end;
 
-  const { totalDomesticBrl, totalInternationalBrl, byBank } = accumulateTotals(
-    unique,
+  const { totalDomesticBrl, totalInternationalBrl, byBank } = accumulateTotals({
+    allTxs: unique,
     tsByTxId,
     inRange,
-  );
+  });
 
   const monthsCovered = monthsBetween(period.start, period.end);
   const totalInternationalUsd = safeDivide(totalInternationalBrl, ptaxRateUsed);
