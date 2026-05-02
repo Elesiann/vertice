@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { ROUTES } from "@/routes";
 
 export const HomePage = (): JSX.Element => (
   <ErrorBoundary>
@@ -13,7 +14,7 @@ export const HomePage = (): JSX.Element => (
         Tudo acontece no seu navegador. Sem login, sem upload pra servidor, sem rastreamento.
       </p>
       <div className="mt-8">
-        <ButtonLink to="/upload">Começar →</ButtonLink>
+        <ButtonLink to={ROUTES.UPLOAD}>Começar →</ButtonLink>
       </div>
     </main>
   </ErrorBoundary>

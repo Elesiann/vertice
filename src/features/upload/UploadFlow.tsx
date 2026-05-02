@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { FileDrop } from "@/components/ui/FileDrop";
 import { useSession } from "@/context/SessionContext";
 import { useStatementUpload } from "@/hooks/useStatementUpload";
+import { ROUTES } from "@/routes";
 
 export const UploadFlow = (): JSX.Element => {
   const { files } = useSession();
@@ -15,7 +16,7 @@ export const UploadFlow = (): JSX.Element => {
   const canContinue = successCount > 0;
 
   const handleContinue = (): void => {
-    void navigate("/review");
+    void navigate(ROUTES.REVIEW);
   };
 
   return (

@@ -3,6 +3,7 @@ import { ButtonLink } from "@/components/ui/ButtonLink";
 import { DuplicatesBanner } from "@/components/domain/DuplicatesBanner";
 import { TotalsCard } from "@/components/domain/TotalsCard";
 import { useParsedSession } from "@/hooks/useParsedSession";
+import { ROUTES } from "@/routes";
 
 export const ReviewView = (): JSX.Element => {
   const { aggregate, transactions } = useParsedSession();
@@ -13,7 +14,7 @@ export const ReviewView = (): JSX.Element => {
         <h1 className="text-2xl font-semibold text-ink">Nenhuma transação ainda</h1>
         <p className="mt-2 text-ink-muted">Suba pelo menos uma fatura pra ver a análise.</p>
         <div className="mt-4">
-          <ButtonLink to="/upload">Ir para upload →</ButtonLink>
+          <ButtonLink to={ROUTES.UPLOAD}>Ir para upload →</ButtonLink>
         </div>
       </div>
     );
