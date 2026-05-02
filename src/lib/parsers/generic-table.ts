@@ -156,7 +156,6 @@ export const genericTableParser: Parser = {
       detectedPeriod: periodFromTransactions(transactions),
       warnings,
       checksum: null,
-      layoutFingerprint: null,
     });
   },
 };

@@ -154,7 +154,6 @@ export const nubankParser: Parser = {
       },
       warnings,
       checksum,
-      layoutFingerprint: null,
     });
   },
 };

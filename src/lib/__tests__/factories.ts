@@ -30,6 +30,5 @@ export const makeRawResult = (overrides: Partial<RawParserResult> = {}): RawPars
   detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
   warnings: [],
   checksum: 100,
-  layoutFingerprint: "abc123",
   ...overrides,
 });

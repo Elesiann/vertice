@@ -29,7 +29,6 @@ export interface RawParserResult {
   detectedPeriod: DateRange;
   warnings: string[];
   checksum: number | null;
-  layoutFingerprint: string | null;
 }
 
 export interface Parser {

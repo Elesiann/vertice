@@ -29,7 +29,6 @@ const emptyGeneric: Parser = stubParser(
     detectedPeriod: { start: "", end: "" },
     warnings: [],
     checksum: null,
-    layoutFingerprint: null,
   }),
 );
 
@@ -152,7 +151,6 @@ describe("runChain", () => {
           detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
           warnings: [],
           checksum: null,
-          layoutFingerprint: null,
         }),
       );
 
@@ -186,7 +184,6 @@ describe("runChain", () => {
           detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
           warnings: [],
           checksum: null,
-          layoutFingerprint: null,
         }),
       );
 
@@ -211,7 +208,6 @@ describe("runChain", () => {
           detectedPeriod: { start: "2026-04-15", end: "2026-04-15" },
           warnings: [],
           checksum: null,
-          layoutFingerprint: null,
         }),
       );
 
