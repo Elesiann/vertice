@@ -1,5 +1,6 @@
 import { categorizeBatch } from "@/lib/categorizer";
 import { fail, ok, type Result } from "@/lib/result";
+import type { PdfTextItem } from "@/lib/parsers/pdf-text";
 import type {
   Bank,
   DateRange,
@@ -12,6 +13,7 @@ import type {
 export interface ParserInput {
   rawText: string;
   fileName: string;
+  items?: readonly PdfTextItem[];
 }
 
 export interface RawParserResult {
