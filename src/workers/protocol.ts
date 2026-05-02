@@ -1,6 +1,4 @@
-import type { ParseError, ParserResult } from "@/types";
-
-export type ParseProgressPhase = "extracting" | "detecting" | "parsing" | "categorizing";
+import type { ParseError, ParseProgressPhase, ParserResult } from "@/types";
 
 export type WorkerRequest =
   | { type: "PARSE"; requestId: string; fileName: string; bytes: ArrayBuffer }

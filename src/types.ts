@@ -70,3 +70,18 @@ export interface ParserResult {
   layoutFingerprint: string | null;
   layerUsed: ParserLayer;
 }
+
+export type ParseProgressPhase = "extracting" | "detecting" | "parsing" | "categorizing";
+
+export type ParseStatus =
+  | { kind: "pending" }
+  | { kind: "parsing"; phase: ParseProgressPhase; pct: number }
+  | { kind: "success"; result: ParserResult }
+  | { kind: "error"; error: ParseError };
+
+export interface UploadFileState {
+  id: string;
+  fileName: string;
+  sizeBytes: number;
+  status: ParseStatus;
+}
