@@ -4,7 +4,7 @@ export default {
     "type-enum": [
       2,
       "always",
-      ["feat", "fix", "docs", "chore", "test", "refactor", "style", "build", "ci"],
+      ["feat", "fix", "docs", "chore", "test", "refactor", "style", "build", "ci", "perf"],
     ],
     // Disabled deliberately:
     //   subject-case: our subjects mix lowercase verbs with PascalCase
