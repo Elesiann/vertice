@@ -21,7 +21,7 @@ export const StackPair = ({ stack }: StackPairProps): JSX.Element => (
           key={card.id}
           className="rounded-lg border border-ink-subtle/30 bg-surface-raised p-4"
         >
-          <h3 className="text-lg font-semibold text-ink">{card.name}</h3>
+          <h2 className="text-lg font-semibold text-ink">{card.name}</h2>
           <p className="text-sm text-ink-muted">
             {card.bank} · {card.brand} · {card.tier}
           </p>

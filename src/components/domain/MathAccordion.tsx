@@ -16,13 +16,14 @@ export const MathAccordion = ({ stack }: MathAccordionProps): JSX.Element => {
           setOpen((v) => !v);
         }}
         aria-expanded={open}
+        aria-controls="math-panel"
         className="flex w-full items-center justify-between px-4 py-3 text-left font-medium text-ink hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         <span>Ver o math</span>
         <span aria-hidden>{open ? "−" : "+"}</span>
       </button>
       {open ? (
-        <dl className="divide-y divide-ink-subtle/20 px-4 pb-4 text-sm">
+        <dl id="math-panel" className="divide-y divide-ink-subtle/20 px-4 pb-4 text-sm">
           <div className="flex justify-between py-2">
             <dt className="text-ink-muted">Pontos earned year-1</dt>
             <dd className="text-ink">{formatPoints(stack.yearOneEarnedPoints)}</dd>

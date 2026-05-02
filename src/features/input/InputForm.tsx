@@ -95,11 +95,15 @@ export const InputForm = (): JSX.Element => {
             type="number"
             step="100"
             min="0"
-            className="mt-1 w-full rounded-md border border-ink-subtle/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-invalid={errors.monthlyDomesticBrl ? true : undefined}
+            aria-describedby={errors.monthlyDomesticBrl ? "brl-error" : undefined}
+            className="mt-1 w-full rounded-md border border-ink-subtle/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-rose-700"
             {...register("monthlyDomesticBrl")}
           />
           {errors.monthlyDomesticBrl ? (
-            <p className="mt-1 text-sm text-rose-700">{errors.monthlyDomesticBrl.message}</p>
+            <p id="brl-error" role="alert" className="mt-1 text-sm text-rose-700">
+              {errors.monthlyDomesticBrl.message}
+            </p>
           ) : null}
         </div>
 
@@ -112,11 +116,15 @@ export const InputForm = (): JSX.Element => {
             type="number"
             step="10"
             min="0"
-            className="mt-1 w-full rounded-md border border-ink-subtle/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            aria-invalid={errors.monthlyInternationalUsd ? true : undefined}
+            aria-describedby={errors.monthlyInternationalUsd ? "usd-error" : undefined}
+            className="mt-1 w-full rounded-md border border-ink-subtle/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-rose-700"
             {...register("monthlyInternationalUsd")}
           />
           {errors.monthlyInternationalUsd ? (
-            <p className="mt-1 text-sm text-rose-700">{errors.monthlyInternationalUsd.message}</p>
+            <p id="usd-error" role="alert" className="mt-1 text-sm text-rose-700">
+              {errors.monthlyInternationalUsd.message}
+            </p>
           ) : null}
         </div>
 
