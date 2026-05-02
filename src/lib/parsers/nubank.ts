@@ -90,10 +90,11 @@ const extractTransactions = (
     const day = Number(dayStr);
     const year = yearForTxMonth(month, period);
     const date = toIsoDate(year, month, day);
+    const trimmedDescription = description.trim();
     transactions.push({
-      id: buildTxId(date, description.trim(), amountBrl, transactions.length),
+      id: buildTxId(date, trimmedDescription, amountBrl, transactions.length),
       date,
-      description: description.trim(),
+      description: trimmedDescription,
       amountBrl,
       sourceFile: fileName,
       bank: "nubank",

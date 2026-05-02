@@ -44,9 +44,10 @@ export interface ChainOptions {
 const CHECKSUM_TOLERANCE = 0.01;
 
 const totalForChecksum = (txs: readonly Transaction[]): number =>
-  txs
-    .filter((tx) => tx.category !== "payment" && tx.category !== "refund")
-    .reduce((sum, tx) => sum + tx.amountBrl, 0);
+  txs.reduce(
+    (sum, tx) => (tx.category === "payment" || tx.category === "refund" ? sum : sum + tx.amountBrl),
+    0,
+  );
 
 const finalize = (
   raw: RawParserResult,
