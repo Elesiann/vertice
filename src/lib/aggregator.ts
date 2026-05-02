@@ -113,6 +113,10 @@ const monthsBetween = (startIso: string, endIso: string): number => {
 const safeDivide = (numerator: number, denominator: number): number =>
   denominator === 0 ? 0 : numerator / denominator;
 
+// Empty period strings are the "no data" sentinel: the aggregate type
+// keeps periodStart/periodEnd as required strings, and consumers gate on
+// truthiness (`if (!aggregate.periodStart) showEmptyState()`). This keeps
+// the type narrow without a nullable union.
 const emptyAggregate = (ptaxRateUsed: number): SpendingAggregate => ({
   periodStart: "",
   periodEnd: "",
