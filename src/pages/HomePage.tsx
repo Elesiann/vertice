@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Link } from "react-router-dom";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 
 export const HomePage = (): JSX.Element => (
   <main className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
@@ -10,11 +10,8 @@ export const HomePage = (): JSX.Element => (
     <p className="mt-2 text-ink-subtle">
       Tudo acontece no seu navegador. Sem login, sem upload pra servidor, sem rastreamento.
     </p>
-    <Link
-      to="/upload"
-      className="mt-8 inline-flex min-h-11 items-center justify-center rounded-md bg-accent px-6 font-medium text-white transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-    >
-      Começar →
-    </Link>
+    <div className="mt-8">
+      <ButtonLink to="/upload">Começar →</ButtonLink>
+    </div>
   </main>
 );

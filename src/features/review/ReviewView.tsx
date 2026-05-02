@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Link } from "react-router-dom";
+import { ButtonLink } from "@/components/ui/ButtonLink";
 import { DuplicatesBanner } from "@/components/domain/DuplicatesBanner";
 import { TotalsCard } from "@/components/domain/TotalsCard";
 import { useParsedSession } from "@/hooks/useParsedSession";
@@ -9,15 +9,12 @@ export const ReviewView = (): JSX.Element => {
 
   if (transactions.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl p-6 text-center">
+      <div className="mx-auto flex max-w-3xl flex-col items-center p-6 text-center">
         <h1 className="text-2xl font-semibold text-ink">Nenhuma transação ainda</h1>
         <p className="mt-2 text-ink-muted">Suba pelo menos uma fatura pra ver a análise.</p>
-        <Link
-          to="/upload"
-          className="mt-4 inline-block rounded-md text-accent hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
-        >
-          Ir para upload →
-        </Link>
+        <div className="mt-4">
+          <ButtonLink to="/upload">Ir para upload →</ButtonLink>
+        </div>
       </div>
     );
   }

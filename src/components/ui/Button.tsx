@@ -1,18 +1,14 @@
 import type { JSX, ReactNode } from "react";
+import { BUTTON_BASE, BUTTON_VARIANT, type ButtonVariant } from "@/components/ui/button-styles";
 
 interface ButtonProps {
   children: ReactNode;
   onClick?: () => void;
-  variant?: "primary" | "ghost";
+  variant?: ButtonVariant;
   disabled?: boolean;
   type?: "button" | "submit";
   ariaLabel?: string;
 }
-
-const VARIANT_CLASSES = {
-  primary: "bg-accent text-white hover:bg-accent-hover",
-  ghost: "bg-transparent text-ink hover:bg-surface-sunken",
-} as const;
 
 export const Button = ({
   children,
@@ -27,7 +23,7 @@ export const Button = ({
     onClick={onClick}
     disabled={disabled}
     aria-label={ariaLabel}
-    className={`inline-flex min-h-11 items-center justify-center rounded-md px-4 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]}`}
+    className={`${BUTTON_BASE} px-4 ${BUTTON_VARIANT[variant]}`}
   >
     {children}
   </button>
