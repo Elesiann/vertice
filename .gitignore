@@ -36,7 +36,10 @@ coverage
 .env.local
 .env.*.local
 
-# Test fixtures with PII (raw PDFs never committed)
+# Test fixtures with PII (raw PDFs and unsanitized extracts never committed)
 src/lib/__tests__/fixtures/**/raw/
 *.pdf
 !docs/**/*.pdf
+
+# Anonymization workflow intermediates
+src/lib/__tests__/fixtures/**/*.raw.txt
