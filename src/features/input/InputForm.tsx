@@ -1,4 +1,4 @@
-import { useEffect, type JSX } from "react";
+import type { JSX } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
@@ -55,8 +55,6 @@ export const InputForm = (): JSX.Element => {
       currentCardIds: [],
     },
   });
-
-  useEffect(() => undefined, []);
 
   const onSubmit = (values: InputFormValues): void => {
     const profile: SpendingProfile = {
