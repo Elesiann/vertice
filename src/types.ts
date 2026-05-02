@@ -4,16 +4,19 @@ export type Bank = "nubank" | "itau" | "bradesco" | "unknown";
 
 export type Category = "domestic" | "international" | "iof" | "fees" | "payment" | "refund";
 
-export interface Transaction {
+export interface RawTransaction {
   id: string;
   date: string;
   description: string;
   amountBrl: number;
   originalCurrency?: Currency;
   originalAmount?: number;
-  category: Category;
   sourceFile: string;
   bank: Bank;
+}
+
+export interface Transaction extends RawTransaction {
+  category: Category;
 }
 
 export interface DateRange {

@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { RawTransaction } from "@/lib/categorizer";
 import { runChain, type Parser, type ParserInput, type RawParserResult } from "@/lib/parser";
 import { fail, ok, type Result } from "@/lib/result";
-import type { ParseError } from "@/types";
+import type { ParseError, RawTransaction } from "@/types";
 
 const baseInput: ParserInput = {
   rawText: "irrelevant for these tests",

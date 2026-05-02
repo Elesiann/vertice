@@ -1,15 +1,4 @@
-import type { Bank, Category, Currency, Transaction } from "@/types";
-
-export interface RawTransaction {
-  id: string;
-  date: string;
-  description: string;
-  amountBrl: number;
-  originalCurrency?: Currency;
-  originalAmount?: number;
-  sourceFile: string;
-  bank: Bank;
-}
+import type { Category, RawTransaction, Transaction } from "@/types";
 
 type Rule = (tx: RawTransaction, allTxs: readonly RawTransaction[]) => Category | null;
 

@@ -1,5 +1,4 @@
-import type { RawTransaction } from "@/lib/categorizer";
-import type { Transaction } from "@/types";
+import type { RawTransaction, Transaction } from "@/types";
 
 let nextId = 0;
 

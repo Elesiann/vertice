@@ -1,6 +1,13 @@
-import { categorizeBatch, type RawTransaction } from "@/lib/categorizer";
+import { categorizeBatch } from "@/lib/categorizer";
 import { fail, ok, type Result } from "@/lib/result";
-import type { Bank, DateRange, ParseError, ParserResult, Transaction } from "@/types";
+import type {
+  Bank,
+  DateRange,
+  ParseError,
+  ParserResult,
+  RawTransaction,
+  Transaction,
+} from "@/types";
 
 export interface ParserInput {
   rawText: string;
