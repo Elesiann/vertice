@@ -1,3 +1,4 @@
+import { dateRangeOf } from "@/lib/date-range";
 import type { Parser, ParserInput, RawParserResult } from "@/lib/parser";
 import { parseBrAmount } from "@/lib/parsers/br-amount";
 import type { PdfTextItem } from "@/lib/parsers/pdf-text";
@@ -118,14 +119,7 @@ const extractTransactionsFromItems = (
 
 const periodFromTransactions = (
   transactions: readonly RawTransaction[],
-): { start: string; end: string } => {
-  if (transactions.length === 0) return { start: "", end: "" };
-  const dates = transactions.map((t) => t.date);
-  return {
-    start: dates.reduce((a, b) => (b < a ? b : a), dates[0] ?? ""),
-    end: dates.reduce((a, b) => (b > a ? b : a), dates[0] ?? ""),
-  };
-};
+): { start: string; end: string } => dateRangeOf(transactions.map((t) => t.date));
 
 export const genericTableParser: Parser = {
   bank: "unknown",

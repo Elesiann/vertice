@@ -1,3 +1,4 @@
+import { dateRangeOf } from "@/lib/date-range";
 import { getPtaxRate } from "@/lib/ptax";
 import type { Bank, Category, DateRange, SpendingAggregate, Transaction } from "@/types";
 
@@ -66,10 +67,7 @@ const computePeriod = (txs: readonly Transaction[], override: DateRange | undefi
     .filter((tx) => tx.category !== "payment" && tx.category !== "refund")
     .map((tx) => tx.date);
   const dates = spendDates.length > 0 ? spendDates : txs.map((tx) => tx.date);
-  return {
-    start: dates.reduce((acc, d) => (d < acc ? d : acc), dates[0] ?? ""),
-    end: dates.reduce((acc, d) => (d > acc ? d : acc), dates[0] ?? ""),
-  };
+  return dateRangeOf(dates);
 };
 
 interface TotalsAccumulator {
