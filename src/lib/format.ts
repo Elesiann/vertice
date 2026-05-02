@@ -8,9 +8,15 @@ const USD_FORMATTER = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+const POINTS_FORMATTER = new Intl.NumberFormat("pt-BR", {
+  maximumFractionDigits: 0,
+});
+
 export const formatBrl = (amount: number): string => BRL_FORMATTER.format(amount);
 
 export const formatUsd = (amount: number): string => USD_FORMATTER.format(amount);
+
+export const formatPoints = (points: number): string => POINTS_FORMATTER.format(points);
 
 export const formatMonths = (months: number): string =>
   months < 1 ? "menos de 1 mês" : `${months.toFixed(1)} meses`;

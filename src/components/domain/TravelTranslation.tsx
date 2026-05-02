@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import { formatPoints } from "@/lib/format";
 import type { TravelTranslation as TravelTranslationData } from "@/types";
 
 interface TravelTranslationProps {
@@ -17,7 +18,7 @@ export const TravelTranslation = ({ translation }: TravelTranslationProps): JSX.
     <p className="text-sm text-ink-muted">{translation.flight}</p>
     {translation.remainingPoints > 0 ? (
       <p className="mt-1 text-xs text-ink-subtle">
-        Sobra: {translation.remainingPoints.toLocaleString("pt-BR")} pontos
+        Sobra: {formatPoints(translation.remainingPoints)} pontos
       </p>
     ) : null}
   </section>

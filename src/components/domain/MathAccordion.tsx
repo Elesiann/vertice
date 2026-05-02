@@ -1,5 +1,5 @@
 import { useState, type JSX } from "react";
-import { formatBrl } from "@/lib/format";
+import { formatBrl, formatPoints } from "@/lib/format";
 import type { StackEvaluation } from "@/types";
 
 interface MathAccordionProps {
@@ -25,15 +25,15 @@ export const MathAccordion = ({ stack }: MathAccordionProps): JSX.Element => {
         <dl className="divide-y divide-ink-subtle/20 px-4 pb-4 text-sm">
           <div className="flex justify-between py-2">
             <dt className="text-ink-muted">Pontos earned year-1</dt>
-            <dd className="text-ink">{stack.yearOneEarnedPoints.toLocaleString("pt-BR")}</dd>
+            <dd className="text-ink">{formatPoints(stack.yearOneEarnedPoints)}</dd>
           </div>
           <div className="flex justify-between py-2">
             <dt className="text-ink-muted">Welcome bonus year-1</dt>
-            <dd className="text-ink">{stack.yearOneWelcomeBonusPoints.toLocaleString("pt-BR")}</dd>
+            <dd className="text-ink">{formatPoints(stack.yearOneWelcomeBonusPoints)}</dd>
           </div>
           <div className="flex justify-between py-2">
             <dt className="text-ink-muted">Total de pontos</dt>
-            <dd className="text-ink">{stack.yearOneTotalPoints.toLocaleString("pt-BR")}</dd>
+            <dd className="text-ink">{formatPoints(stack.yearOneTotalPoints)}</dd>
           </div>
           <div className="flex justify-between py-2">
             <dt className="text-ink-muted">Valor bruto em R$</dt>

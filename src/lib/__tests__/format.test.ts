@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBrl, formatMonths, formatUsd } from "@/lib/format";
+import { formatBrl, formatMonths, formatPoints, formatUsd } from "@/lib/format";
 
 describe("formatBrl", () => {
   it("formats with R$ prefix and BR thousand/decimal separators", () => {
@@ -18,6 +18,20 @@ describe("formatBrl", () => {
 describe("formatUsd", () => {
   it("formats with $ prefix and en-US separators", () => {
     expect(formatUsd(1234.5)).toBe("$1,234.50");
+  });
+});
+
+describe("formatPoints", () => {
+  it("groups thousands with the BR separator", () => {
+    expect(formatPoints(1234567)).toMatch(/1\.234\.567/);
+  });
+
+  it("rounds floats to integers", () => {
+    expect(formatPoints(80000.7)).toMatch(/80\.001/);
+  });
+
+  it("handles zero", () => {
+    expect(formatPoints(0)).toBe("0");
   });
 });
 

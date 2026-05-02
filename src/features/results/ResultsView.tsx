@@ -6,11 +6,13 @@ import { ShoutoutLine } from "@/components/domain/ShoutoutLine";
 import { StackPair } from "@/components/domain/StackPair";
 import { TravelTranslation } from "@/components/domain/TravelTranslation";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { ROUTES } from "@/routes";
 
 export const ResultsView = (): JSX.Element => {
-  const { profile, result } = useRecommendation();
+  const { profile } = useSession();
+  const result = useRecommendation();
 
   if (profile === null) {
     return (

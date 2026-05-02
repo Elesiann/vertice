@@ -9,6 +9,8 @@ import { catalog } from "@/data/catalog";
 import { ROUTES } from "@/routes";
 import type { ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
 
+const MILES_PROGRAMS = ["smiles", "latam-pass", "tudoazul"] as const satisfies ProgramId[];
+
 const REDEMPTION_OPTIONS: { value: string; label: string }[] = [
   { value: "any", label: "Sem preferência" },
   { value: "miles:smiles", label: "Milhas Smiles (GOL)" },
@@ -26,11 +28,14 @@ const inputSchema = z.object({
 
 type InputFormValues = z.infer<typeof inputSchema>;
 
+const isMilesProgram = (value: string): value is (typeof MILES_PROGRAMS)[number] =>
+  (MILES_PROGRAMS as readonly string[]).includes(value);
+
 const parseRedemption = (raw: string): RedemptionPreference => {
-  if (raw === "any") return { kind: "any" };
   if (raw === "cashback") return { kind: "cashback" };
   if (raw.startsWith("miles:")) {
-    return { kind: "miles", program: raw.slice("miles:".length) as ProgramId };
+    const program = raw.slice("miles:".length);
+    if (isMilesProgram(program)) return { kind: "miles", program };
   }
   return { kind: "any" };
 };
