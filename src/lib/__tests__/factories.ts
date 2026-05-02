@@ -1,3 +1,4 @@
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import type { RawParserResult } from "@/lib/parser";
 import type { RawTransaction, Transaction } from "@/types";
 
@@ -32,3 +33,16 @@ export const makeRawResult = (overrides: Partial<RawParserResult> = {}): RawPars
   checksum: 100,
   ...overrides,
 });
+
+export const buildSyntheticPdf = async (lines: readonly string[]): Promise<ArrayBuffer> => {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([400, 700]);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  let cursorY = 660;
+  for (const line of lines) {
+    page.drawText(line, { x: 30, y: cursorY, size: 12, font });
+    cursorY -= 20;
+  }
+  const bytes = await pdf.save();
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+};

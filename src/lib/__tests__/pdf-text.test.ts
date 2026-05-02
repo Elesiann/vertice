@@ -1,19 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { extractText } from "@/lib/parsers/pdf-text";
-
-const buildSyntheticPdf = async (lines: readonly string[]): Promise<ArrayBuffer> => {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([400, 600]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  let cursorY = 560;
-  for (const line of lines) {
-    page.drawText(line, { x: 50, y: cursorY, size: 12, font });
-    cursorY -= 20;
-  }
-  const bytes = await pdf.save();
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-};
+import { buildSyntheticPdf } from "@/lib/__tests__/factories";
 
 describe("extractText", () => {
   it("extracts text from a single-page synthetic PDF", async () => {

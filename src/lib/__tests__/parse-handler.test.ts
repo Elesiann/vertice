@@ -1,20 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { PDFDocument, StandardFonts } from "pdf-lib";
 import { handleParseRequest } from "@/workers/parse-handler";
 import type { WorkerEvent } from "@/workers/protocol";
-
-const buildSyntheticPdf = async (lines: readonly string[]): Promise<ArrayBuffer> => {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([400, 700]);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  let y = 660;
-  for (const line of lines) {
-    page.drawText(line, { x: 30, y, size: 11, font });
-    y -= 20;
-  }
-  const bytes = await pdf.save();
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-};
+import { buildSyntheticPdf } from "@/lib/__tests__/factories";
 
 const collect = async (bytes: ArrayBuffer, fileName = "fatura.pdf"): Promise<WorkerEvent[]> => {
   const events: WorkerEvent[] = [];
