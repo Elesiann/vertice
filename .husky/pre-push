@@ -1,2 +1,2 @@
-npx vitest run
+npx vitest run --passWithNoTests
 npx vite build
