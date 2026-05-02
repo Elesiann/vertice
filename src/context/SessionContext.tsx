@@ -9,11 +9,8 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import type { UploadFileState } from "@/types";
 
 interface SessionContextValue {
-  files: readonly UploadFileState[];
-  setFiles: Dispatch<SetStateAction<UploadFileState[]>>;
   ptaxOverride: number | null;
   setPtaxOverride: Dispatch<SetStateAction<number | null>>;
   reset: () => void;
@@ -26,17 +23,15 @@ interface SessionProviderProps {
 }
 
 export const SessionProvider = ({ children }: SessionProviderProps): JSX.Element => {
-  const [files, setFiles] = useState<UploadFileState[]>([]);
   const [ptaxOverride, setPtaxOverride] = useState<number | null>(null);
 
   const reset = useCallback(() => {
-    setFiles([]);
     setPtaxOverride(null);
   }, []);
 
   const value = useMemo<SessionContextValue>(
-    () => ({ files, setFiles, ptaxOverride, setPtaxOverride, reset }),
-    [files, ptaxOverride, reset],
+    () => ({ ptaxOverride, setPtaxOverride, reset }),
+    [ptaxOverride, reset],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -8,16 +8,11 @@ export default mergeConfig(
       environment: "jsdom",
       globals: true,
       setupFiles: ["./src/test/setup.ts"],
-      server: {
-        deps: {
-          inline: ["pdfjs-dist"],
-        },
-      },
       coverage: {
         provider: "v8",
         reporter: ["text", "html"],
         include: ["src/lib/**/*.ts"],
-        exclude: ["**/*.test.ts", "**/__tests__/**", "src/test/**", "src/lib/parsers/pdf-text.ts"],
+        exclude: ["**/*.test.ts", "**/__tests__/**", "src/test/**"],
         thresholds: {
           lines: 80,
           functions: 80,
@@ -25,14 +20,6 @@ export default mergeConfig(
           statements: 80,
         },
       },
-    },
-    resolve: {
-      alias: [
-        {
-          find: /^pdfjs-dist$/,
-          replacement: "pdfjs-dist/legacy/build/pdf.mjs",
-        },
-      ],
     },
   }),
 );
