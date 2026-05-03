@@ -12,6 +12,7 @@ export type Bank =
   | "other";
 
 export type ProgramId =
+  // Programas BR existentes (v0.2)
   | "smiles"
   | "latam-pass"
   | "tudoazul"
@@ -21,7 +22,30 @@ export type ProgramId =
   | "inter-loop"
   | "uau-caixa"
   | "atomos"
-  | "btg-points";
+  | "btg-points"
+  // Programas BR adicionados na v0.3
+  | "aadvantage"
+  | "tap-miles-and-go"
+  | "pao-de-acucar-mais"
+  | "cresol-pontos"
+  | "coopera"
+  | "sisprime-pontos"
+  | "unicred-unico"
+  | "safra-rewards"
+  | "porto-plus"
+  | "nomad-pass"
+  | "revpoints"
+  // Programas internacionais — só aparecem como destino (Revolut transfere 1:1).
+  // Sem cartão BR earning nativo.
+  | "iberia-club"
+  | "ba-club"
+  | "qatar-privilege-club"
+  | "turkish-miles-smiles"
+  | "finnair-plus"
+  | "aer-lingus-aerclub"
+  | "vueling-club"
+  | "flying-blue"
+  | "etihad-guest";
 
 export type ProgramKind = "airline-miles" | "bank-points" | "cashback";
 
