@@ -42,6 +42,10 @@ export interface PointsProgram {
 export type CardBrand = "visa" | "mastercard" | "amex" | "elo";
 export type CardTier = "standard" | "platinum" | "infinite" | "black" | "elite";
 
+// 1 = regulamento citado verbatim; 2 = 2+ fontes secundárias concordando,
+// ≥1 nos últimos 6 meses; 3 = 1 fonte ou >6 meses (re-verificação pendente).
+export type VerificationTier = 1 | 2 | 3;
+
 export interface Card {
   id: string;
   name: string;
@@ -65,7 +69,7 @@ export interface Card {
   minIncomeBrl?: number;
   benefits: string[];
   lastVerified: string;
-  verifiedTier?: 1 | 2 | 3;
+  verifiedTier?: VerificationTier;
   verifiedSources?: string[];
   verifiedAt?: string;
 }
