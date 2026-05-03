@@ -11,7 +11,17 @@ export type Bank =
   | "xp"
   | "other";
 
-export type ProgramId = "smiles" | "latam-pass" | "tudoazul" | "livelo" | "esfera" | "cashback";
+export type ProgramId =
+  | "smiles"
+  | "latam-pass"
+  | "tudoazul"
+  | "livelo"
+  | "esfera"
+  | "cashback"
+  | "inter-loop"
+  | "uau-caixa"
+  | "atomos"
+  | "btg-points";
 
 export type ProgramKind = "airline-miles" | "bank-points" | "cashback";
 
@@ -39,10 +49,15 @@ export interface Card {
   brand: CardBrand;
   tier: CardTier;
   annualFeeBrl: number;
+  firstYearAnnualFeeBrl?: number;
   annualFeeWaiverThresholdBrl?: number;
   pointsProgram: ProgramId;
-  pointsPerBrlDomestic: number;
-  pointsPerUsdInternational: number;
+  // Earning — exatamente um dos três (validado no zod):
+  pointsPerBrlDomestic?: number;
+  pointsPerUsdDomestic?: number;
+  cashbackRatePercent?: number;
+  // Internacional — obrigatório quando earning é points (não cashback):
+  pointsPerUsdInternational?: number;
   monthlyPointsCap?: number;
   welcomeBonusPoints?: number;
   welcomeBonusMinSpendBrl?: number;
@@ -50,6 +65,9 @@ export interface Card {
   minIncomeBrl?: number;
   benefits: string[];
   lastVerified: string;
+  verifiedTier?: 1 | 2 | 3;
+  verifiedSources?: string[];
+  verifiedAt?: string;
 }
 
 export type RedemptionPreference =
