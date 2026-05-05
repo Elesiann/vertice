@@ -46,6 +46,7 @@ export type ProgramId =
   | "etihad-guest";
 
 export type ProgramKind = "airline-miles" | "bank-points" | "cashback";
+export type LiquidityLevel = "high" | "medium" | "low";
 
 export interface ProgramTransfer {
   to: ProgramId;
@@ -56,6 +57,7 @@ export interface PointsProgram {
   id: ProgramId;
   name: string;
   kind: ProgramKind;
+  liquidity: LiquidityLevel;
   pointValueBrl: number;
   transfersTo?: ProgramTransfer[];
   lastVerified: string;
@@ -63,6 +65,7 @@ export interface PointsProgram {
 
 export type CardBrand = "visa" | "mastercard" | "amex" | "elo";
 export type CardTier = "standard" | "platinum" | "infinite" | "black" | "elite";
+export type RelationshipLevel = "open" | "checking" | "investment" | "private";
 
 // 1 = regulamento citado verbatim; 2 = 2+ fontes secundárias concordando,
 // ≥1 nos últimos 6 meses; 3 = 1 fonte ou >6 meses (re-verificação pendente).
@@ -89,6 +92,10 @@ export interface Card {
   welcomeBonusMinSpendBrl?: number;
   welcomeBonusWindowMonths?: number;
   minIncomeBrl?: number;
+  minInvestmentBrl?: number;
+  investmentFeeWaiverBrl?: number;
+  pointsExpirationMonths?: number;
+  requiresRelationship?: RelationshipLevel;
   benefits: string[];
   lastVerified: string;
   verifiedTier?: VerificationTier;
@@ -104,6 +111,7 @@ export type RedemptionPreference =
 export interface SpendingProfile {
   monthlyDomesticBrl: number;
   monthlyInternationalUsd: number;
+  monthlyIncomeBrl?: number;
   redemption: RedemptionPreference;
   currentCardIds?: string[];
 }
@@ -121,6 +129,7 @@ export interface StackEvaluation {
   yearOneWelcomeBonusPoints: number;
   yearOneEarnedPoints: number;
   yearOneTotalPoints: number;
+  yearOnePointsByProgram: Partial<Record<ProgramId, number>>;
   yearOneTotalValueBrl: number;
   yearOneNetValueBrl: number;
   warnings: string[];
@@ -128,15 +137,32 @@ export interface StackEvaluation {
 }
 
 export interface TravelTranslation {
+  program: ProgramId;
   flight: string;
   pointsRequired: number;
+  compatiblePoints: number;
   trips: number;
   remainingPoints: number;
+}
+
+export type LeaderboardAxisId =
+  | "net-return"
+  | "liquidity"
+  | "annual-fee"
+  | "simplicity"
+  | "accessibility";
+
+export interface AxisLeaderboard {
+  axisId: LeaderboardAxisId;
+  title: string;
+  stacks: StackEvaluation[];
 }
 
 export interface Recommendation {
   topStack: StackEvaluation;
   alternatives: StackEvaluation[];
+  leaderboardsByAxis: AxisLeaderboard[];
+  isReturnDecisionTight: boolean;
   currentStack?: StackEvaluation;
   moneyOnTheTableBrl?: number;
   travelTranslation: TravelTranslation;
