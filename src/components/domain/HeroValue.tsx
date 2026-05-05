@@ -16,7 +16,7 @@ export const HeroValue = ({ topNetValueBrl, moneyOnTheTableBrl }: HeroValueProps
         <h1 className="mt-2 text-5xl font-bold text-rose-700 sm:text-6xl">
           {formatBrl(moneyOnTheTableBrl)}
         </h1>
-        <p className="mt-2 text-ink-muted">por ano em pontos não aproveitados.</p>
+        <p className="mt-2 text-ink-muted">por ano de valor não aproveitado.</p>
       </section>
     );
   }
@@ -28,7 +28,7 @@ export const HeroValue = ({ topNetValueBrl, moneyOnTheTableBrl }: HeroValueProps
       <h1 className="mt-2 text-5xl font-bold text-accent sm:text-6xl">
         {formatBrl(topNetValueBrl)}
       </h1>
-      <p className="mt-2 text-ink-muted">por ano em pontos com este stack.</p>
+      <p className="mt-2 text-ink-muted">por ano de valor líquido com este stack.</p>
     </section>
   );
 };

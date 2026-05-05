@@ -40,11 +40,12 @@ describe("InputForm", () => {
     navigateMock.mockClear();
   });
 
-  it("renders the four input controls", () => {
+  it("renders spending, income and preference controls", () => {
     renderForm(() => undefined);
 
     expect(screen.getByLabelText(/Gasto doméstico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Gasto internacional/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Renda mensal/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/prefere resgatar/i)).toBeInTheDocument();
     expect(screen.getByText(/Cartões que você já tem/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /análise/i })).toBeInTheDocument();
@@ -74,6 +75,25 @@ describe("InputForm", () => {
       redemption: { kind: "miles", program: "smiles" },
     });
     expect(navigateMock).toHaveBeenCalledWith("/results");
+  });
+
+  it("includes monthlyIncomeBrl when optional income is provided", async () => {
+    let latest: SpendingProfile | null = null;
+    renderForm((p) => {
+      latest = p;
+    });
+
+    const income = screen.getByLabelText(/Renda mensal/i);
+    await userEvent.clear(income);
+    await userEvent.type(income, "12000");
+    await userEvent.click(screen.getByRole("button", { name: /análise/i }));
+
+    expect(latest).toEqual({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      monthlyIncomeBrl: 12000,
+      redemption: { kind: "any" },
+    });
   });
 
   it("rejects negative values via zod", async () => {

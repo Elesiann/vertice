@@ -22,6 +22,10 @@ const REDEMPTION_OPTIONS: { value: string; label: string }[] = [
 const inputSchema = z.object({
   monthlyDomesticBrl: z.coerce.number().min(0, "Não pode ser negativo"),
   monthlyInternationalUsd: z.coerce.number().min(0, "Não pode ser negativo"),
+  monthlyIncomeBrl: z.preprocess(
+    (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
+    z.number().min(0, "Não pode ser negativo").optional(),
+  ),
   redemptionRaw: z.string().min(1, "Selecione uma preferência"),
   currentCardIds: z.array(z.string()),
 });
@@ -54,6 +58,7 @@ export const InputForm = (): JSX.Element => {
     defaultValues: {
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
+      monthlyIncomeBrl: undefined,
       redemptionRaw: "any",
       currentCardIds: [],
     },
@@ -63,6 +68,9 @@ export const InputForm = (): JSX.Element => {
     const profile: SpendingProfile = {
       monthlyDomesticBrl: values.monthlyDomesticBrl,
       monthlyInternationalUsd: values.monthlyInternationalUsd,
+      ...(values.monthlyIncomeBrl !== undefined
+        ? { monthlyIncomeBrl: values.monthlyIncomeBrl }
+        : {}),
       redemption: parseRedemption(values.redemptionRaw),
       ...(values.currentCardIds.length > 0 ? { currentCardIds: values.currentCardIds } : {}),
     };
@@ -81,7 +89,7 @@ export const InputForm = (): JSX.Element => {
       <header>
         <h1 className="text-2xl font-semibold text-ink">Diga seu gasto</h1>
         <p className="mt-1 text-ink-muted">
-          Os 4 campos abaixo são suficientes pra calcular seu stack ótimo. Tudo é local.
+          Com estes campos, calculamos seu stack por perfil. Tudo é local.
         </p>
       </header>
 
@@ -124,6 +132,27 @@ export const InputForm = (): JSX.Element => {
           {errors.monthlyInternationalUsd ? (
             <p id="usd-error" role="alert" className="mt-1 text-sm text-rose-700">
               {errors.monthlyInternationalUsd.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div>
+          <label htmlFor="income" className="block text-sm font-medium text-ink">
+            Renda mensal (R$) — opcional
+          </label>
+          <input
+            id="income"
+            type="number"
+            step="500"
+            min="0"
+            aria-invalid={errors.monthlyIncomeBrl ? true : undefined}
+            aria-describedby={errors.monthlyIncomeBrl ? "income-error" : undefined}
+            className="mt-1 w-full rounded-md border border-ink-subtle/40 px-3 py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent aria-[invalid=true]:border-rose-700"
+            {...register("monthlyIncomeBrl")}
+          />
+          {errors.monthlyIncomeBrl ? (
+            <p id="income-error" role="alert" className="mt-1 text-sm text-rose-700">
+              {errors.monthlyIncomeBrl.message}
             </p>
           ) : null}
         </div>

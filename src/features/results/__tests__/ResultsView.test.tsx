@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
+import { catalog } from "@/data/catalog";
 import { ResultsView } from "@/features/results/ResultsView";
 import type { SpendingProfile } from "@/types";
 
@@ -41,9 +42,27 @@ describe("ResultsView", () => {
     });
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Stack recomendado/i })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /Quadro de opções por eixo/i })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /Tradução em viagens/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Ver o math/i })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: /Comparar com meus cartões atuais/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders current-card comparison only when currentCardIds is informed", async () => {
+    const currentCardId = catalog.cards[0]?.id;
+    if (!currentCardId) throw new Error("test catalog must include at least one card");
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "miles", program: "smiles" },
+      currentCardIds: [currentCardId],
+    });
+
+    expect(
+      await screen.findByRole("region", { name: /Comparar com meus cartões atuais/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders an error state when the solver rejects the profile", async () => {
