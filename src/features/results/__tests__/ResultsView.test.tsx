@@ -1,11 +1,10 @@
 import { useEffect } from "react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
-import { catalog } from "@/data/catalog";
 import { ResultsView } from "@/features/results/ResultsView";
-import type { SpendingProfile } from "@/types";
+import type { Recommendation, SpendingProfile } from "@/types";
 
 const SeedSession = ({ profile }: { profile: SpendingProfile | null }): null => {
   const { setProfile } = useSession();
@@ -26,7 +25,90 @@ const renderResults = (profile: SpendingProfile | null): void => {
   );
 };
 
+const stack = {
+  cards: [
+    {
+      id: "inter-win-black-mastercard",
+      name: "Inter Win Black",
+      bank: "inter",
+      pointsProgram: "inter-loop",
+      requiresRelationship: "open",
+    },
+    {
+      id: "nomad-explorer-visa-infinite",
+      name: "Nomad Explorer Visa Infinite",
+      bank: "other",
+      pointsProgram: "nomad-pass",
+      requiresRelationship: "open",
+    },
+  ],
+  allocation: [
+    {
+      cardId: "inter-win-black-mastercard",
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 0,
+    },
+    {
+      cardId: "nomad-explorer-visa-infinite",
+      monthlyDomesticBrl: 0,
+      monthlyInternationalUsd: 200,
+    },
+  ],
+  liquidity: "low",
+  yearOneAnnualFeeBrl: 0,
+  yearOneWelcomeBonusPoints: 0,
+  yearOneEarnedPoints: 37200,
+  yearOneTotalPoints: 37200,
+  yearOneTotalValueBrl: 756,
+  yearOneNetValueBrl: 756,
+  warnings: [],
+  confidence: "high",
+} satisfies Recommendation["topStack"];
+
+const recommendationFixture: Recommendation = {
+  topStack: stack,
+  alternatives: [],
+  leaderboardsByAxis: [
+    { axisId: "net-return", title: "Maior retorno líquido", stacks: [stack] },
+    { axisId: "liquidity", title: "Melhor liquidez", stacks: [stack] },
+    { axisId: "annual-fee", title: "Menor anuidade total", stacks: [stack] },
+    { axisId: "simplicity", title: "Mais simples", stacks: [stack] },
+    { axisId: "accessibility", title: "Mais acessível", stacks: [stack] },
+  ],
+  isReturnDecisionTight: false,
+  travelTranslation: {
+    program: "tudoazul",
+    flight: "GRU-FOR economy via TudoAzul",
+    pointsRequired: 14000,
+    compatiblePoints: 37200,
+    trips: 2,
+    remainingPoints: 9200,
+  },
+  shoutout:
+    "Com Inter Win Black + Nomad Explorer Visa Infinite, você gera R$ 756 de valor líquido no primeiro ano.",
+};
+
+const mockRecommendation = (recommendation: Recommendation = recommendationFixture): void => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          ok: true,
+          data: recommendation,
+          catalogVersion: "test",
+          solverVersion: "test",
+        }),
+    }),
+  );
+};
+
 describe("ResultsView", () => {
+  beforeEach(() => {
+    mockRecommendation();
+  });
+
   it("shows empty state when no profile is set", () => {
     renderResults(null);
 
@@ -50,14 +132,20 @@ describe("ResultsView", () => {
   });
 
   it("renders current-card comparison only when currentCardIds is informed", async () => {
-    const currentCardId = catalog.cards[0]?.id;
-    if (!currentCardId) throw new Error("test catalog must include at least one card");
+    mockRecommendation({
+      ...recommendationFixture,
+      currentStack: {
+        ...stack,
+        yearOneNetValueBrl: 500,
+      },
+      moneyOnTheTableBrl: 256,
+    });
 
     renderResults({
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
       redemption: { kind: "miles", program: "smiles" },
-      currentCardIds: [currentCardId],
+      currentCardIds: ["inter-win-black-mastercard"],
     });
 
     expect(
@@ -77,6 +165,18 @@ describe("ResultsView", () => {
   });
 
   it("renders an error state when the solver rejects the profile", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: () =>
+          Promise.resolve({
+            ok: false,
+            error: { code: "INVALID_PROFILE", message: "Informe pelo menos um valor positivo." },
+          }),
+      }),
+    );
+
     renderResults({
       monthlyDomesticBrl: 0,
       monthlyInternationalUsd: 0,

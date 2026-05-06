@@ -4,7 +4,6 @@ import { ShoutoutLine } from "@/components/domain/ShoutoutLine";
 import { TravelTranslation } from "@/components/domain/TravelTranslation";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { useSession } from "@/context/SessionContext";
-import { catalog } from "@/data/catalog";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { formatBrl } from "@/lib/format";
 import { ROUTES } from "@/routes";
@@ -46,18 +45,15 @@ const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
 const stackId = (stack: StackEvaluation): string =>
   (stack.cards.filter((card) => {
     const alloc = stack.allocation.find((item) => item.cardId === card.id);
-    const hasAllocatedSpend =
-      alloc !== undefined && (alloc.monthlyDomesticBrl > 0 || alloc.monthlyInternationalUsd > 0);
-    const baseYearOneFee = card.firstYearAnnualFeeBrl ?? card.annualFeeBrl;
-    return hasAllocatedSpend || baseYearOneFee > 0;
+    return (
+      alloc !== undefined && (alloc.monthlyDomesticBrl > 0 || alloc.monthlyInternationalUsd > 0)
+    );
   }).length > 0
     ? stack.cards.filter((card) => {
         const alloc = stack.allocation.find((item) => item.cardId === card.id);
-        const hasAllocatedSpend =
-          alloc !== undefined &&
-          (alloc.monthlyDomesticBrl > 0 || alloc.monthlyInternationalUsd > 0);
-        const baseYearOneFee = card.firstYearAnnualFeeBrl ?? card.annualFeeBrl;
-        return hasAllocatedSpend || baseYearOneFee > 0;
+        return (
+          alloc !== undefined && (alloc.monthlyDomesticBrl > 0 || alloc.monthlyInternationalUsd > 0)
+        );
       })
     : stack.cards
   )
@@ -70,13 +66,7 @@ const stackLabel = (stack: StackEvaluation): string =>
   stack.cards.map((card) => card.name).join(" + ");
 
 const stackLiquidity = (stack: StackEvaluation): "high" | "medium" | "low" => {
-  const byProgram = new Map(catalog.programs.map((program) => [program.id, program.liquidity]));
-  return stack.cards.reduce<"high" | "medium" | "low">((worst, card) => {
-    const current = byProgram.get(card.pointsProgram) ?? "low";
-    if (worst === "low" || current === "low") return "low";
-    if (worst === "medium" || current === "medium") return "medium";
-    return "high";
-  }, "high");
+  return stack.liquidity;
 };
 
 const stackAlsoLeadsText = (
@@ -200,10 +190,15 @@ export const ResultsView = (): JSX.Element => {
     winnerAxesByStack.set(key, [...previous, axis.axisId]);
   }
 
-  const hasCurrentComparison =
+  const currentComparison =
     (profile.currentCardIds?.length ?? 0) > 0 &&
     recommendation.currentStack !== undefined &&
-    recommendation.moneyOnTheTableBrl !== undefined;
+    recommendation.moneyOnTheTableBrl !== undefined
+      ? {
+          stack: recommendation.currentStack,
+          moneyOnTheTableBrl: recommendation.moneyOnTheTableBrl,
+        }
+      : null;
   const netReturnAxis = recommendation.leaderboardsByAxis.find(
     (axis) => axis.axisId === "net-return",
   );
@@ -362,7 +357,7 @@ export const ResultsView = (): JSX.Element => {
         <TravelTranslation translation={recommendation.travelTranslation} />
       </div>
 
-      {hasCurrentComparison ? (
+      {currentComparison ? (
         <section
           aria-label="Comparar com meus cartões atuais"
           className="results-rule mt-12 border-t pt-10"
@@ -371,14 +366,14 @@ export const ResultsView = (): JSX.Element => {
           <p className="results-display mt-4 text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-snug">
             Você está deixando{" "}
             <span className="results-num text-[color:var(--accent)]">
-              {formatBrl(recommendation.moneyOnTheTableBrl)}
+              {formatBrl(currentComparison.moneyOnTheTableBrl)}
             </span>{" "}
             por ano na mesa.
           </p>
           <p className="mt-3 text-sm text-[color:var(--ink-soft)]">
             Atual:{" "}
             <span className="results-num">
-              {formatBrl(recommendation.currentStack.yearOneNetValueBrl)}
+              {formatBrl(currentComparison.stack.yearOneNetValueBrl)}
             </span>{" "}
             · Sugerido:{" "}
             <span className="results-num text-[color:var(--ink)]">

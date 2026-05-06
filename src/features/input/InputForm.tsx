@@ -1,13 +1,13 @@
-import type { JSX } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/context/SessionContext";
-import { catalog } from "@/data/catalog";
+import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
-import type { ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
+import type { CardOption, ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
 
 const MILES_PROGRAMS = ["smiles", "latam-pass", "tudoazul"] as const satisfies ProgramId[];
 
@@ -30,7 +30,8 @@ const inputSchema = z.object({
   currentCardIds: z.array(z.string()),
 });
 
-type InputFormValues = z.infer<typeof inputSchema>;
+type InputFormInput = z.input<typeof inputSchema>;
+type InputFormValues = z.output<typeof inputSchema>;
 
 const isMilesProgram = (value: string): value is (typeof MILES_PROGRAMS)[number] =>
   (MILES_PROGRAMS as readonly string[]).includes(value);
@@ -47,18 +48,37 @@ const parseRedemption = (raw: string): RedemptionPreference => {
 export const InputForm = (): JSX.Element => {
   const { setProfile } = useSession();
   const navigate = useNavigate();
+  const [cardOptions, setCardOptions] = useState<CardOption[]>([]);
+  const [cardOptionsError, setCardOptionsError] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchCardOptions()
+      .then((cards) => {
+        if (cancelled) return;
+        setCardOptions(cards);
+        setCardOptionsError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCardOptions([]);
+        setCardOptionsError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm<InputFormValues>({
+  } = useForm<InputFormInput, unknown, InputFormValues>({
     resolver: zodResolver(inputSchema),
     defaultValues: {
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
-      monthlyIncomeBrl: undefined,
       redemptionRaw: "any",
       currentCardIds: [],
     },
@@ -192,7 +212,7 @@ export const InputForm = (): JSX.Element => {
                     : "Selecionar cartões"}
                 </summary>
                 <div className="max-h-64 space-y-1 overflow-y-auto border-t border-ink-subtle/20 px-3 py-2">
-                  {catalog.cards.map((card) => {
+                  {cardOptions.map((card) => {
                     const checked = field.value.includes(card.id);
                     return (
                       <label key={card.id} className="flex items-start gap-2 text-sm text-ink">
@@ -213,6 +233,13 @@ export const InputForm = (): JSX.Element => {
                       </label>
                     );
                   })}
+                  {cardOptions.length === 0 ? (
+                    <p className="text-sm text-ink-subtle">
+                      {cardOptionsError
+                        ? "Não foi possível carregar a lista de cartões."
+                        : "Carregando cartões..."}
+                    </p>
+                  ) : null}
                 </div>
               </details>
             )}

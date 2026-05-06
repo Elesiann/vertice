@@ -35,12 +35,26 @@ const renderForm = (onProfile: (p: SpendingProfile | null) => void): void => {
   );
 };
 
+const mockCardsResponse = (): void => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          cards: [{ id: "nubank-ultravioleta", name: "Nubank Ultravioleta", bank: "nubank" }],
+        }),
+    }),
+  );
+};
+
 describe("InputForm", () => {
   beforeEach(() => {
     navigateMock.mockClear();
+    mockCardsResponse();
   });
 
-  it("renders spending, income and preference controls", () => {
+  it("renders spending, income and preference controls", async () => {
     renderForm(() => undefined);
 
     expect(screen.getByLabelText(/Gasto doméstico/i)).toBeInTheDocument();
@@ -49,6 +63,7 @@ describe("InputForm", () => {
     expect(screen.getByLabelText(/prefere resgatar/i)).toBeInTheDocument();
     expect(screen.getByText(/Cartões que você já tem/i)).toBeInTheDocument();
     expect(screen.getByText(/Selecionar cartões/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Nubank Ultravioleta/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /análise/i })).toBeInTheDocument();
   });
 
@@ -56,8 +71,7 @@ describe("InputForm", () => {
     renderForm(() => undefined);
 
     await userEvent.click(screen.getByText(/Selecionar cartões/i));
-    const firstCheckbox = screen.getAllByRole("checkbox")[0];
-    if (!firstCheckbox) throw new Error("expected at least one card checkbox");
+    const firstCheckbox = await screen.findByRole("checkbox");
     await userEvent.click(firstCheckbox);
 
     expect(screen.getByText(/1 cartão selecionado/i)).toBeInTheDocument();
