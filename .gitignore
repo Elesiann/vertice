@@ -43,3 +43,14 @@ src/lib/__tests__/fixtures/**/raw/
 
 # Anonymization workflow intermediates
 src/lib/__tests__/fixtures/**/*.raw.txt
+
+# Local agent/tooling metadata and private notes
+.agents/
+.claude/
+.codex/
+.letta/
+CLAUDE.md
+AGENTS.md
+
+# Private documentation not meant for public repo
+docs/
