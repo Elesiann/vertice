@@ -48,7 +48,19 @@ describe("InputForm", () => {
     expect(screen.getByLabelText(/Renda mensal/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/prefere resgatar/i)).toBeInTheDocument();
     expect(screen.getByText(/Cartões que você já tem/i)).toBeInTheDocument();
+    expect(screen.getByText(/Selecionar cartões/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /análise/i })).toBeInTheDocument();
+  });
+
+  it("shows selected cards count in dropdown trigger", async () => {
+    renderForm(() => undefined);
+
+    await userEvent.click(screen.getByText(/Selecionar cartões/i));
+    const firstCheckbox = screen.getAllByRole("checkbox")[0];
+    if (!firstCheckbox) throw new Error("expected at least one card checkbox");
+    await userEvent.click(firstCheckbox);
+
+    expect(screen.getByText(/1 cartão selecionado/i)).toBeInTheDocument();
   });
 
   it("submits profile and navigates to /results", async () => {

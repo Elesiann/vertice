@@ -108,6 +108,20 @@ const stackAccessibilityLabel = (stack: StackEvaluation): string => {
   return Array.from(new Set(levels)).join(" + ");
 };
 
+const stackAccessibilityReason = (stack: StackEvaluation): string => {
+  const levels = new Set(stack.cards.map((card) => card.requiresRelationship ?? "checking"));
+  if (levels.size === 1 && levels.has("open")) {
+    return "Stack aberto — não exige correntista nem investimento mínimo no banco emissor.";
+  }
+  if (levels.has("investment") || levels.has("private")) {
+    return "Stack exige relacionamento e/ou investimento mínimo para viabilizar todos os cartões.";
+  }
+  if (levels.has("checking")) {
+    return "Stack exige correntista em pelo menos um emissor, sem exigência de investimento mínimo.";
+  }
+  return "Stack com barreiras moderadas de relacionamento bancário.";
+};
+
 const axisLeaderReason = (
   axisId: LeaderboardAxisId,
   leader: StackEvaluation,
@@ -125,7 +139,7 @@ const axisLeaderReason = (
     return `Mantém custo anual em ${formatBrl(leader.yearOneAnnualFeeBrl)} sem perder competitividade de retorno.`;
   }
   if (axisId === "accessibility") {
-    return `Stack ${stackAccessibilityLabel(leader)} — não exige correntista nem investimento mínimo no banco emissor.`;
+    return `Stack ${stackAccessibilityLabel(leader)} — ${stackAccessibilityReason(leader)}`;
   }
   const cardCount = leader.cards.length;
   const noun = cardCount > 1 ? "cartões" : "cartão";

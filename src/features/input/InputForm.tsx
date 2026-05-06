@@ -185,29 +185,36 @@ export const InputForm = (): JSX.Element => {
             control={control}
             name="currentCardIds"
             render={({ field }) => (
-              <div className="mt-2 space-y-1">
-                {catalog.cards.map((card) => {
-                  const checked = field.value.includes(card.id);
-                  return (
-                    <label key={card.id} className="flex items-start gap-2 text-sm text-ink">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) => {
-                          const next = e.target.checked
-                            ? [...field.value, card.id]
-                            : field.value.filter((id) => id !== card.id);
-                          field.onChange(next);
-                        }}
-                        className="mt-1"
-                      />
-                      <span>
-                        {card.name} <span className="text-ink-subtle">({card.bank})</span>
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
+              <details className="mt-2 rounded-md border border-ink-subtle/40 bg-surface">
+                <summary className="cursor-pointer list-none px-3 py-2 text-sm font-medium text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+                  {field.value.length > 0
+                    ? `${String(field.value.length)} cartão${field.value.length > 1 ? "ões" : ""} selecionado${field.value.length > 1 ? "s" : ""}`
+                    : "Selecionar cartões"}
+                </summary>
+                <div className="max-h-64 space-y-1 overflow-y-auto border-t border-ink-subtle/20 px-3 py-2">
+                  {catalog.cards.map((card) => {
+                    const checked = field.value.includes(card.id);
+                    return (
+                      <label key={card.id} className="flex items-start gap-2 text-sm text-ink">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...field.value, card.id]
+                              : field.value.filter((id) => id !== card.id);
+                            field.onChange(next);
+                          }}
+                          className="mt-1"
+                        />
+                        <span>
+                          {card.name} <span className="text-ink-subtle">({card.bank})</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </details>
             )}
           />
         </div>

@@ -65,6 +65,17 @@ describe("ResultsView", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not render contradictory accessibility copy", async () => {
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByText(/exige correntista.*não exige correntista/i)).not.toBeInTheDocument();
+  });
+
   it("renders an error state when the solver rejects the profile", async () => {
     renderResults({
       monthlyDomesticBrl: 0,
