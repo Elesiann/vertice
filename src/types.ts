@@ -1,5 +1,3 @@
-export type Currency = "BRL" | "USD";
-
 export type Bank =
   | "nubank"
   | "itau"
@@ -33,8 +31,6 @@ export type ProgramId =
   | "porto-plus"
   | "nomad-pass"
   | "revpoints"
-  // Programas internacionais — só aparecem como destino (Revolut Ultra
-  // transfere 1:1 sem deságio); sem cartão BR earning nativo.
   | "iberia-club"
   | "ba-club"
   | "qatar-privilege-club"
@@ -45,62 +41,13 @@ export type ProgramId =
   | "flying-blue"
   | "etihad-guest";
 
-export type ProgramKind = "airline-miles" | "bank-points" | "cashback";
+export type RelationshipLevel = "open" | "checking" | "investment" | "private";
 export type LiquidityLevel = "high" | "medium" | "low";
 
-export interface ProgramTransfer {
-  to: ProgramId;
-  ratio: number;
-}
-
-export interface PointsProgram {
-  id: ProgramId;
-  name: string;
-  kind: ProgramKind;
-  liquidity: LiquidityLevel;
-  pointValueBrl: number;
-  transfersTo?: ProgramTransfer[];
-  lastVerified: string;
-}
-
-export type CardBrand = "visa" | "mastercard" | "amex" | "elo";
-export type CardTier = "standard" | "platinum" | "infinite" | "black" | "elite";
-export type RelationshipLevel = "open" | "checking" | "investment" | "private";
-
-// 1 = regulamento citado verbatim; 2 = 2+ fontes secundárias concordando,
-// ≥1 nos últimos 6 meses; 3 = 1 fonte ou >6 meses (re-verificação pendente).
-export type VerificationTier = 1 | 2 | 3;
-
-export interface Card {
+export interface CardOption {
   id: string;
   name: string;
   bank: Bank;
-  brand: CardBrand;
-  tier: CardTier;
-  annualFeeBrl: number;
-  firstYearAnnualFeeBrl?: number;
-  annualFeeWaiverThresholdBrl?: number;
-  pointsProgram: ProgramId;
-  // Earning — exatamente um dos três (validado no zod):
-  pointsPerBrlDomestic?: number;
-  pointsPerUsdDomestic?: number;
-  cashbackRatePercent?: number;
-  // Internacional — obrigatório quando earning é points (não cashback):
-  pointsPerUsdInternational?: number;
-  monthlyPointsCap?: number;
-  welcomeBonusPoints?: number;
-  welcomeBonusMinSpendBrl?: number;
-  welcomeBonusWindowMonths?: number;
-  minIncomeBrl?: number;
-  minInvestmentBrl?: number;
-  investmentFeeWaiverBrl?: number;
-  pointsExpirationMonths?: number;
-  requiresRelationship?: RelationshipLevel;
-  benefits: string[];
-  lastVerified: string;
-  verifiedTier?: VerificationTier;
-  verifiedSources?: string[];
-  verifiedAt?: string;
 }
 
 export type RedemptionPreference =
@@ -122,14 +69,22 @@ export interface CardAllocation {
   monthlyInternationalUsd: number;
 }
 
+export interface PublicStackCard {
+  id: string;
+  name: string;
+  bank: Bank;
+  pointsProgram: ProgramId;
+  requiresRelationship?: RelationshipLevel;
+}
+
 export interface StackEvaluation {
-  cards: Card[];
+  cards: PublicStackCard[];
   allocation: CardAllocation[];
+  liquidity: LiquidityLevel;
   yearOneAnnualFeeBrl: number;
   yearOneWelcomeBonusPoints: number;
   yearOneEarnedPoints: number;
   yearOneTotalPoints: number;
-  yearOnePointsByProgram: Partial<Record<ProgramId, number>>;
   yearOneTotalValueBrl: number;
   yearOneNetValueBrl: number;
   warnings: string[];
@@ -169,12 +124,12 @@ export interface Recommendation {
   shoutout: string;
 }
 
-export interface Catalog {
-  cards: Card[];
-  programs: PointsProgram[];
-}
-
-export type SolverErrorCode = "EMPTY_CATALOG" | "NO_ELIGIBLE_CARDS" | "INVALID_PROFILE";
+export type SolverErrorCode =
+  | "EMPTY_CATALOG"
+  | "NO_ELIGIBLE_CARDS"
+  | "INVALID_PROFILE"
+  | "INVALID_REQUEST"
+  | "NETWORK_ERROR";
 
 export interface SolverError {
   code: SolverErrorCode;
