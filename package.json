@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "pnpm typecheck && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage --passWithNoTests",
@@ -23,7 +23,6 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.75.0",
     "react-router-dom": "^7.14.2",
-    "yaml": "^2.8.4",
     "zod": "^4.4.2"
   },
   "devDependencies": {
