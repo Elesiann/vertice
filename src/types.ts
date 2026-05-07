@@ -60,6 +60,11 @@ export type RedemptionPreference =
   | { kind: "cashback" }
   | { kind: "any" };
 
+// Frequência declarada de viagens internacionais. Espelha o backend
+// (src/domain/types.ts) — alimenta defaults para visitas a salas VIP e
+// número de viagens/ano nos cálculos de benefitUtilityBrl.
+export type TravelFrequency = "none" | "occasional" | "frequent";
+
 export interface SpendingProfile {
   monthlyDomesticBrl: number;
   monthlyInternationalUsd: number;
@@ -67,6 +72,7 @@ export interface SpendingProfile {
   availableToInvestBrl?: number;
   redemption: RedemptionPreference;
   currentCardIds?: string[];
+  travelFrequency?: TravelFrequency;
 }
 
 export interface CardAllocation {
