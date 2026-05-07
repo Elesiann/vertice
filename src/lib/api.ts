@@ -44,7 +44,7 @@ export const fetchRecommendation = async (
   ptaxRate?: number,
 ): Promise<Result<Recommendation, SolverError>> => {
   try {
-    const response = await fetch(apiUrl("/recommendations"), {
+    const response = await fetch(apiUrl("/score-lab/recommendations"), {
       method: "POST",
       headers: {
         "content-type": "application/json",

@@ -63,20 +63,36 @@ const stackRelationshipSummary = (stack: StackEvaluation): string => {
 
 const stackFinancialRequirement = (
   stack: StackEvaluation,
-): { minInvestmentBrl: number; investmentFeeWaiverBrl: number; aggregateBrl: number } =>
+): {
+  minInvestmentBrl: number;
+  minInvestmentUsd: number;
+  investmentFeeWaiverBrl: number;
+  aggregateBrl: number;
+  requiredInvestmentUsd: number;
+} =>
   cardsInUse(stack).reduce(
     (highest, card) => {
       const minInvestmentBrl = card.minInvestmentBrl ?? 0;
+      const minInvestmentUsd = card.minInvestmentUsd ?? 0;
       const investmentFeeWaiverBrl = card.investmentFeeWaiverBrl ?? 0;
       const aggregateBrl =
         card.requiredInvestmentBrl ?? Math.max(minInvestmentBrl, investmentFeeWaiverBrl);
+      const requiredInvestmentUsd = card.requiredInvestmentUsd ?? minInvestmentUsd;
       return {
         minInvestmentBrl: Math.max(highest.minInvestmentBrl, minInvestmentBrl),
+        minInvestmentUsd: Math.max(highest.minInvestmentUsd, minInvestmentUsd),
         investmentFeeWaiverBrl: Math.max(highest.investmentFeeWaiverBrl, investmentFeeWaiverBrl),
         aggregateBrl: Math.max(highest.aggregateBrl, aggregateBrl),
+        requiredInvestmentUsd: Math.max(highest.requiredInvestmentUsd, requiredInvestmentUsd),
       };
     },
-    { minInvestmentBrl: 0, investmentFeeWaiverBrl: 0, aggregateBrl: 0 },
+    {
+      minInvestmentBrl: 0,
+      minInvestmentUsd: 0,
+      investmentFeeWaiverBrl: 0,
+      aggregateBrl: 0,
+      requiredInvestmentUsd: 0,
+    },
   );
 
 const stackInvestmentRequirementLabel = (stack: StackEvaluation): string => {
@@ -84,6 +100,9 @@ const stackInvestmentRequirementLabel = (stack: StackEvaluation): string => {
   const parts: string[] = [];
   if (requirement.minInvestmentBrl > 0) {
     parts.push(`acesso ${formatBrl(requirement.minInvestmentBrl)}`);
+  }
+  if (requirement.minInvestmentUsd > 0) {
+    parts.push(`acesso ${formatUsd(requirement.minInvestmentUsd)}`);
   }
   if (requirement.investmentFeeWaiverBrl > 0) {
     parts.push(`isenção ${formatBrl(requirement.investmentFeeWaiverBrl)}`);
@@ -95,8 +114,15 @@ const stackInvestmentRequirementLabel = (stack: StackEvaluation): string => {
 };
 
 const stackAccessibilitySummary = (profile: SpendingProfile, stack: StackEvaluation): string => {
-  const requiredInvestmentBrl = stackFinancialRequirement(stack).aggregateBrl;
-  if (requiredInvestmentBrl <= 0) return "Sem exigência financeira adicional neste stack.";
+  const requirement = stackFinancialRequirement(stack);
+  const requiredInvestmentBrl = requirement.aggregateBrl;
+  if (requiredInvestmentBrl <= 0 && requirement.requiredInvestmentUsd <= 0) {
+    return "Sem exigência financeira adicional neste stack.";
+  }
+
+  if (requiredInvestmentBrl <= 0 && requirement.requiredInvestmentUsd > 0) {
+    return `Este stack exige investimento de acesso em dólar: ${formatUsd(requirement.requiredInvestmentUsd)}.`;
+  }
 
   if (profile.availableToInvestBrl === undefined) {
     return `Para a melhor acessibilidade, considere ${formatBrl(requiredInvestmentBrl)} disponíveis para investir.`;
@@ -144,6 +170,11 @@ const axisReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation): str
   );
   return reasons;
 };
+
+const scoreLabReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation): string[] =>
+  topStack.scoreLab?.reasons.slice(0, 5) ?? axisReasons(topStack, runnerUp);
+
+const scoreText = (value: number): string => value.toFixed(2);
 
 export const ResultsView = (): JSX.Element => {
   const { profile } = useSession();
@@ -197,10 +228,12 @@ export const ResultsView = (): JSX.Element => {
 
   const recommendation = result.value;
   const topStack = recommendation.topStack;
+  const scoreLab = topStack.scoreLab;
+  const scoreLabMeta = recommendation.scoreLab;
   const netReturnAxis = recommendation.leaderboardsByAxis.find(
     (axis) => axis.axisId === "net-return",
   );
-  const reasons = axisReasons(topStack, netReturnAxis?.stacks[1]);
+  const reasons = scoreLabReasons(topStack, netReturnAxis?.stacks[1]);
   const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
 
   const currentComparison =
@@ -243,6 +276,20 @@ export const ResultsView = (): JSX.Element => {
                 {formatBrl(topStack.yearOneAnnualFeeBrl)}
               </dd>
             </div>
+            {scoreLab ? (
+              <>
+                <div className="results-rule flex items-baseline justify-between border-b py-3">
+                  <dt className="text-[color:var(--ink-faint)]">Custo FX/IOF</dt>
+                  <dd className="results-num font-semibold">
+                    {formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  </dd>
+                </div>
+                <div className="results-rule flex items-baseline justify-between border-b py-3">
+                  <dt className="text-[color:var(--ink-faint)]">Score-lab</dt>
+                  <dd className="results-num font-semibold">{scoreText(scoreLab.score)}</dd>
+                </div>
+              </>
+            ) : null}
             <div className="results-rule flex items-baseline justify-between border-b py-3">
               <dt className="text-[color:var(--ink-faint)]">Liquidez</dt>
               <dd className="font-semibold text-[color:var(--ink)]">
@@ -261,6 +308,66 @@ export const ResultsView = (): JSX.Element => {
             </div>
           </dl>
         </section>
+
+        {scoreLab ? (
+          <section aria-label="Auditoria score-lab" className="results-rule border-b py-8">
+            <div className="grid gap-6 md:grid-cols-[1fr_1.3fr] md:items-start">
+              <div>
+                <h2 className="results-display text-xl font-semibold">Auditoria score-lab</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+                  Motor determinístico com PTAX {scoreLabMeta?.ptaxRate.toFixed(2) ?? "atual"},
+                  comparando {scoreLabMeta?.evaluatedStacks.toLocaleString("pt-BR") ?? "os"} stacks.
+                </p>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
+                <div>
+                  <dt className="text-[color:var(--ink-faint)]">Retorno bruto</dt>
+                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
+                    {formatBrl(scoreLab.modeledAnnual.grossValueBrl)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[color:var(--ink-faint)]">Anuidade</dt>
+                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
+                    {formatBrl(scoreLab.modeledAnnual.recurringAnnualFeeBrl)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[color:var(--ink-faint)]">FX/IOF</dt>
+                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
+                    {formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[color:var(--ink-faint)]">Reliability</dt>
+                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
+                    {scoreText(scoreLab.productReliabilityScore)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+            {scoreLabMeta?.netReturnLeaderDiffers ? (
+              <p className="mt-5 border-l-2 border-[color:var(--rule-strong)] py-1 pl-3 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+                Maior retorno líquido isolado:{" "}
+                <span className="font-semibold text-[color:var(--ink)]">
+                  {stackLabel(scoreLabMeta.netReturnLeader)}
+                </span>{" "}
+                ({formatBrl(scoreLabMeta.netReturnLeader.yearOneNetValueBrl)}). O recomendado
+                pondera retorno, condições, custo, objetivo, allocation, reliability e confiança de
+                dados.
+              </p>
+            ) : null}
+            {scoreLabMeta?.institutionalAlternative ? (
+              <p className="mt-3 border-l-2 border-[color:var(--rule-strong)] py-1 pl-3 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+                Alternativa institucional próxima:{" "}
+                <span className="font-semibold text-[color:var(--ink)]">
+                  {stackLabel(scoreLabMeta.institutionalAlternative.stack)}
+                </span>{" "}
+                ({formatBrl(scoreLabMeta.institutionalAlternative.stack.yearOneNetValueBrl)}).
+              </p>
+            ) : null}
+          </section>
+        ) : null}
 
         <section
           className="results-rule grid grid-cols-1 border-b md:grid-cols-2"

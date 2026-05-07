@@ -66,6 +66,46 @@ const stack = {
   yearOneNetValueBrl: 756,
   warnings: [],
   confidence: "high",
+  scoreLab: {
+    stackId: "domestic-rewards-card|international-travel-card",
+    score: 87.39,
+    scoreBreakdown: {
+      economicReturnCurrent: { raw: 100, weight: 30, weighted: 30 },
+      conditionFit: { raw: 100, weight: 25, weighted: 25 },
+      costSafety: { raw: 90, weight: 15, weighted: 13.5 },
+      objectiveAlignment: { raw: 100, weight: 15, weighted: 15 },
+      allocationEfficiency: { raw: 80, weight: 5, weighted: 4 },
+      productReliability: { raw: 90, weight: 5, weighted: 4.5 },
+      dataConfidence: { raw: 82, weight: 5, weighted: 4.1 },
+    },
+    modeledAnnual: {
+      earnedPoints: 37200,
+      welcomeBonusPoints: 0,
+      totalPoints: 37200,
+      grossValueBrl: 1200,
+      benefitUtilityBrl: 0,
+      recurringAnnualFeeBrl: 0,
+      internationalCostBrl: 444,
+      netReturnBrl: 756,
+    },
+    potentialAnnual: {
+      grossValueBrl: 1200,
+      benefitUtilityBrl: 0,
+      recurringAnnualFeeBrl: 0,
+      internationalCostBrl: 444,
+      netReturnBrl: 756,
+      incrementalNetReturnBrl: 0,
+    },
+    productReliabilityScore: 90,
+    requirements: [],
+    foreignExchangeCosts: [],
+    benefitsApplied: [],
+    benefitsNotApplied: [],
+    reasons: [
+      "Domestic Rewards Card + International Travel Card: score 87.39 com retorno líquido anual modelado de R$ 756.00.",
+      "Custo internacional modelado: R$ 444.00/ano.",
+    ],
+  },
 } satisfies Recommendation["topStack"];
 
 const recommendationFixture: Recommendation = {
@@ -89,6 +129,17 @@ const recommendationFixture: Recommendation = {
   },
   shoutout:
     "Com Domestic Rewards Card + International Travel Card, você gera R$ 756 de valor líquido no primeiro ano.",
+  scoreLab: {
+    scenarioId: "frontend-profile",
+    preference: "any",
+    ptaxRate: 4.95,
+    scoreLabVersion: "test-score-lab",
+    evaluatedStacks: 7140,
+    netReturnLeaderDiffers: false,
+    netReturnLeader: stack,
+    nearUnlocks: [],
+    notes: [],
+  },
 };
 
 const mockRecommendation = (recommendation: Recommendation = recommendationFixture): void => {
@@ -127,11 +178,17 @@ describe("ResultsView", () => {
     });
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /Auditoria score-lab/i })).toBeInTheDocument();
+    expect(screen.getAllByText(/FX\/IOF/i).length).toBeGreaterThan(0);
     expect(screen.getByRole("region", { name: /Trade-offs por eixo/i })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /Tradução em viagens/i })).toBeInTheDocument();
     expect(
       screen.queryByRole("region", { name: /Comparar com stack atual/i }),
     ).not.toBeInTheDocument();
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/score-lab\/recommendations$/),
+      expect.any(Object),
+    );
   });
 
   it("renders current-card comparison only when currentCardIds is informed", async () => {

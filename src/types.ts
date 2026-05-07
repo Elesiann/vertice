@@ -49,8 +49,10 @@ export interface CardOption {
   name: string;
   bank: Bank;
   minInvestmentBrl?: number;
+  minInvestmentUsd?: number;
   investmentFeeWaiverBrl?: number;
   requiredInvestmentBrl?: number;
+  requiredInvestmentUsd?: number;
 }
 
 export type RedemptionPreference =
@@ -80,8 +82,10 @@ export interface PublicStackCard {
   pointsProgram: ProgramId;
   requiresRelationship?: RelationshipLevel;
   minInvestmentBrl?: number;
+  minInvestmentUsd?: number;
   investmentFeeWaiverBrl?: number;
   requiredInvestmentBrl?: number;
+  requiredInvestmentUsd?: number;
 }
 
 export interface StackEvaluation {
@@ -96,6 +100,93 @@ export interface StackEvaluation {
   yearOneNetValueBrl: number;
   warnings: string[];
   confidence: "high" | "medium" | "low";
+  scoreLab?: ScoreLabStack;
+}
+
+export type ScoreCategory =
+  | "economicReturnCurrent"
+  | "conditionFit"
+  | "costSafety"
+  | "objectiveAlignment"
+  | "allocationEfficiency"
+  | "productReliability"
+  | "dataConfidence";
+
+export interface ScoreComponent {
+  raw: number;
+  weight: number;
+  weighted: number;
+}
+
+export type ScoreBreakdown = Record<ScoreCategory, ScoreComponent>;
+
+export interface ScoreLabModeledAnnual {
+  earnedPoints: number;
+  welcomeBonusPoints: number;
+  totalPoints: number;
+  grossValueBrl: number;
+  benefitUtilityBrl: number;
+  recurringAnnualFeeBrl: number;
+  internationalCostBrl: number;
+  netReturnBrl: number;
+}
+
+export interface ScoreLabPotentialAnnual {
+  grossValueBrl: number;
+  benefitUtilityBrl: number;
+  recurringAnnualFeeBrl: number;
+  internationalCostBrl: number;
+  netReturnBrl: number;
+  incrementalNetReturnBrl: number;
+}
+
+export interface ScoreLabRequirement {
+  cardId: string;
+  kind:
+    | "min-investment"
+    | "min-income"
+    | "investment-fee-waiver"
+    | "spend-fee-waiver"
+    | "welcome-bonus-spend";
+  label: string;
+  required: number;
+  available: number;
+  gap: number;
+  unit: "BRL" | "USD" | "BRL/month" | "BRL/window";
+  satisfied: boolean;
+  fit: number;
+}
+
+export interface ScoreLabForeignExchangeCost {
+  cardId: string;
+  annualInternationalSpendBrl: number;
+  spreadPercent: number;
+  iofRatePercent: number;
+  annualCostBrl: number;
+  source: "official" | "secondary" | "assumption" | "mixed";
+  notes: string[];
+}
+
+export interface ScoreLabBenefit {
+  cardId: string;
+  kind: "annual-fee-waiver" | "welcome-bonus";
+  label: string;
+  valueBrl: number;
+  requirement?: ScoreLabRequirement;
+}
+
+export interface ScoreLabStack {
+  stackId: string;
+  score: number;
+  scoreBreakdown: ScoreBreakdown;
+  modeledAnnual: ScoreLabModeledAnnual;
+  potentialAnnual: ScoreLabPotentialAnnual;
+  productReliabilityScore: number;
+  requirements: ScoreLabRequirement[];
+  foreignExchangeCosts: ScoreLabForeignExchangeCost[];
+  benefitsApplied: ScoreLabBenefit[];
+  benefitsNotApplied: ScoreLabBenefit[];
+  reasons: string[];
 }
 
 export interface TravelTranslation {
@@ -129,6 +220,25 @@ export interface Recommendation {
   moneyOnTheTableBrl?: number;
   travelTranslation: TravelTranslation;
   shoutout: string;
+  scoreLab?: {
+    scenarioId: string;
+    preference: "any" | "cashback" | "miles";
+    ptaxRate: number;
+    scoreLabVersion: string;
+    evaluatedStacks: number;
+    netReturnLeaderDiffers: boolean;
+    netReturnLeader: StackEvaluation;
+    institutionalAlternative?: {
+      stack: StackEvaluation;
+      score: number;
+      netReturnBrl: number;
+      netReturnDeltaBrl: number;
+      scoreDelta: number;
+      reason: string;
+    };
+    nearUnlocks: StackEvaluation[];
+    notes: string[];
+  };
 }
 
 export type SolverErrorCode =
