@@ -105,6 +105,13 @@ const stack = {
       "Domestic Rewards Card + International Travel Card: score 87.39 com retorno líquido anual modelado de R$ 756.00.",
       "Custo internacional modelado: R$ 444.00/ano.",
     ],
+    verdict: {
+      kind: "viable",
+      label: "Pode compensar dependendo do uso",
+      detail: "Retorno líquido modelado de R$ 756,00 ao ano.",
+    },
+    breakEvenMonthlySpendBrl: null,
+    roiMultiple: null,
   },
 } satisfies Recommendation["topStack"];
 
@@ -133,6 +140,8 @@ const recommendationFixture: Recommendation = {
     scenarioId: "frontend-profile",
     preference: "any",
     ptaxRate: 4.95,
+    ptaxSource: "manual",
+    ptaxFetchedAt: "2026-05-07T13:00:00.000Z",
     scoreLabVersion: "test-score-lab",
     evaluatedStacks: 7140,
     netReturnLeaderDiffers: false,

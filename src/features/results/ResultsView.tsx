@@ -176,6 +176,26 @@ const scoreLabReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation):
 
 const scoreText = (value: number): string => value.toFixed(2);
 
+const VERDICT_TONE: Record<"strong" | "viable" | "negative", string> = {
+  strong: "text-[color:var(--accent)]",
+  viable: "text-[color:var(--ink)]",
+  negative: "text-amber-800",
+};
+
+const PTAX_SOURCE_LABEL: Record<"awesomeapi" | "fallback" | "manual", string> = {
+  awesomeapi: "ao vivo",
+  fallback: "fallback",
+  manual: "manual",
+};
+
+const formatRoiMultiple = (value: number): string => `${value.toFixed(2).replace(".", ",")}x`;
+
+const formatPtaxFetchedAt = (iso: string): string => {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+};
+
 export const ResultsView = (): JSX.Element => {
   const { profile } = useSession();
   const result = useRecommendation();
@@ -253,6 +273,14 @@ export const ResultsView = (): JSX.Element => {
           <h1 className="results-display text-[clamp(2rem,4.6vw,3.45rem)] font-semibold leading-[1.02] tracking-[-0.025em]">
             Stack recomendado: {stackLabel(topStack)}
           </h1>
+          {scoreLab?.verdict ? (
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed">
+              <span className={`font-semibold ${VERDICT_TONE[scoreLab.verdict.kind]}`}>
+                {scoreLab.verdict.label}.
+              </span>{" "}
+              <span className="text-[color:var(--ink-soft)]">{scoreLab.verdict.detail}</span>
+            </p>
+          ) : null}
         </header>
 
         <section className="results-rule mt-10 grid grid-cols-1 gap-y-8 border-b border-t py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10">
@@ -288,6 +316,22 @@ export const ResultsView = (): JSX.Element => {
                   <dt className="text-[color:var(--ink-faint)]">Score-lab</dt>
                   <dd className="results-num font-semibold">{scoreText(scoreLab.score)}</dd>
                 </div>
+                {scoreLab.breakEvenMonthlySpendBrl !== null ? (
+                  <div className="results-rule flex items-baseline justify-between border-b py-3">
+                    <dt className="text-[color:var(--ink-faint)]">Break-even mensal</dt>
+                    <dd className="results-num font-semibold">
+                      {formatBrl(scoreLab.breakEvenMonthlySpendBrl)}
+                    </dd>
+                  </div>
+                ) : null}
+                {scoreLab.roiMultiple !== null ? (
+                  <div className="results-rule flex items-baseline justify-between border-b py-3">
+                    <dt className="text-[color:var(--ink-faint)]">ROI sobre anuidade</dt>
+                    <dd className="results-num font-semibold">
+                      {formatRoiMultiple(scoreLab.roiMultiple)}
+                    </dd>
+                  </div>
+                ) : null}
               </>
             ) : null}
             <div className="results-rule flex items-baseline justify-between border-b py-3">
@@ -315,8 +359,23 @@ export const ResultsView = (): JSX.Element => {
               <div>
                 <h2 className="results-display text-xl font-semibold">Auditoria score-lab</h2>
                 <p className="mt-2 text-sm leading-relaxed text-[color:var(--ink-soft)]">
-                  Motor determinístico com PTAX {scoreLabMeta?.ptaxRate.toFixed(2) ?? "atual"},
-                  comparando {scoreLabMeta?.evaluatedStacks.toLocaleString("pt-BR") ?? "os"} stacks.
+                  Motor determinístico com PTAX{" "}
+                  <span className="results-num font-semibold text-[color:var(--ink)]">
+                    {scoreLabMeta?.ptaxRate.toFixed(2) ?? "atual"}
+                  </span>
+                  {scoreLabMeta ? (
+                    <>
+                      {" "}
+                      ({PTAX_SOURCE_LABEL[scoreLabMeta.ptaxSource]}
+                      {scoreLabMeta.ptaxSource === "awesomeapi" &&
+                      formatPtaxFetchedAt(scoreLabMeta.ptaxFetchedAt) !== ""
+                        ? `, ${formatPtaxFetchedAt(scoreLabMeta.ptaxFetchedAt)}`
+                        : null}
+                      )
+                    </>
+                  ) : null}
+                  , comparando {scoreLabMeta?.evaluatedStacks.toLocaleString("pt-BR") ?? "os"}{" "}
+                  stacks.
                 </p>
               </div>
               <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">

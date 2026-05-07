@@ -175,6 +175,14 @@ export interface ScoreLabBenefit {
   requirement?: ScoreLabRequirement;
 }
 
+export type ScoreLabVerdictKind = "strong" | "viable" | "negative";
+
+export interface ScoreLabVerdict {
+  kind: ScoreLabVerdictKind;
+  label: string;
+  detail: string;
+}
+
 export interface ScoreLabStack {
   stackId: string;
   score: number;
@@ -187,6 +195,9 @@ export interface ScoreLabStack {
   benefitsApplied: ScoreLabBenefit[];
   benefitsNotApplied: ScoreLabBenefit[];
   reasons: string[];
+  verdict: ScoreLabVerdict;
+  breakEvenMonthlySpendBrl: number | null;
+  roiMultiple: number | null;
 }
 
 export interface TravelTranslation {
@@ -224,6 +235,8 @@ export interface Recommendation {
     scenarioId: string;
     preference: "any" | "cashback" | "miles";
     ptaxRate: number;
+    ptaxSource: "awesomeapi" | "fallback" | "manual";
+    ptaxFetchedAt: string;
     scoreLabVersion: string;
     evaluatedStacks: number;
     netReturnLeaderDiffers: boolean;
