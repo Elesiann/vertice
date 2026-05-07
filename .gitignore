@@ -8,6 +8,7 @@ dist
 dist-ssr
 build
 *.local
+.vite
 
 # Editor
 .vscode/*
@@ -36,12 +37,14 @@ coverage
 .env.local
 .env.*.local
 
-# Test fixtures with PII (raw PDFs and unsanitized extracts never committed)
-src/lib/__tests__/fixtures/**/raw/
-*.pdf
+# Local golden/regression audit artifacts
+scripts/run-golden.mjs
+src/lib/__tests__/api.test.ts
+src/lib/__tests__/api.integration.test.ts
+src/lib/__tests__/fixtures/
 
-# Anonymization workflow intermediates
-src/lib/__tests__/fixtures/**/*.raw.txt
+# Test fixtures with PII (raw PDFs and unsanitized extracts never committed)
+*.pdf
 
 # Local agent/tooling metadata and private notes
 .agents/
