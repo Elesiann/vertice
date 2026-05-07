@@ -10,10 +10,10 @@ export const HeroValue = ({ topNetValueBrl, moneyOnTheTableBrl }: HeroValueProps
   if (moneyOnTheTableBrl !== undefined && moneyOnTheTableBrl > 0) {
     return (
       <section className="text-center" aria-labelledby="hero-label">
-        <p id="hero-label" className="text-sm uppercase tracking-wide text-ink-muted">
+        <p id="hero-label" className="text-sm font-medium text-ink-muted">
           Você está deixando na mesa
         </p>
-        <h1 className="mt-2 text-5xl font-bold text-rose-700 sm:text-6xl">
+        <h1 className="mt-2 text-4xl font-bold text-rose-700 sm:text-5xl">
           {formatBrl(moneyOnTheTableBrl)}
         </h1>
         <p className="mt-2 text-ink-muted">por ano de valor não aproveitado.</p>
@@ -22,10 +22,10 @@ export const HeroValue = ({ topNetValueBrl, moneyOnTheTableBrl }: HeroValueProps
   }
   return (
     <section className="text-center" aria-labelledby="hero-label">
-      <p id="hero-label" className="text-sm uppercase tracking-wide text-ink-muted">
+      <p id="hero-label" className="text-sm font-medium text-ink-muted">
         Você ganha
       </p>
-      <h1 className="mt-2 text-5xl font-bold text-accent sm:text-6xl">
+      <h1 className="mt-2 text-4xl font-bold text-accent sm:text-5xl">
         {formatBrl(topNetValueBrl)}
       </h1>
       <p className="mt-2 text-ink-muted">por ano de valor líquido com este stack.</p>

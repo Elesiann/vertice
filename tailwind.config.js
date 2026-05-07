@@ -5,30 +5,23 @@ export default {
     extend: {
       colors: {
         ink: {
-          DEFAULT: "#0f172a",
-          muted: "#475569",
-          subtle: "#94a3b8",
+          DEFAULT: "#1f2a24",
+          muted: "#5f6f65",
+          subtle: "#8a978f",
         },
         surface: {
-          DEFAULT: "#ffffff",
-          raised: "#f8fafc",
-          sunken: "#f1f5f9",
+          DEFAULT: "#f8f7f2",
+          raised: "#fffefa",
+          sunken: "#f1f0ea",
         },
+        line: "#d7ddd5",
         accent: {
-          DEFAULT: "#7c3aed",
-          hover: "#6d28d9",
+          DEFAULT: "#166f4f",
+          hover: "#10583f",
         },
       },
       fontFamily: {
-        sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
-          "-apple-system",
-          "Segoe UI",
-          "Roboto",
-          "sans-serif",
-        ],
+        sans: ["Manrope", "ui-sans-serif", "system-ui", "-apple-system", "sans-serif"],
       },
     },
   },

@@ -8,10 +8,10 @@ interface TravelTranslationProps {
 
 export const TravelTranslation = ({ translation }: TravelTranslationProps): JSX.Element => (
   <section
-    className="rounded-md border border-accent/30 bg-accent/5 p-4 text-center"
+    className="rounded-md border border-line bg-surface-sunken p-4"
     aria-label="Tradução em viagens"
   >
-    <p className="text-sm uppercase tracking-wide text-ink-muted">Isso vira</p>
+    <p className="text-sm font-medium text-ink-muted">Isso vira</p>
     {translation.program === "cashback" ? (
       <p className="mt-1 text-xl font-semibold text-ink">
         {formatBrl(translation.compatiblePoints)} de cashback

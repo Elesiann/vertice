@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=Manrope:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -11,26 +11,74 @@
 
   body {
     @apply bg-surface font-sans antialiased;
+    min-width: 320px;
   }
 }
 
 @layer components {
+  .app-shell {
+    min-height: 100vh;
+    background: #f8f7f2;
+    color: theme("colors.ink.DEFAULT");
+  }
+
+  .app-container {
+    @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8;
+  }
+
+  .panel {
+    @apply rounded-lg border border-line bg-surface-raised;
+  }
+
+  .panel-muted {
+    @apply rounded-md border border-line bg-surface-sunken;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-semibold text-ink;
+  }
+
+  .field-control {
+    @apply w-full rounded-md border border-line bg-white px-3 py-2 text-base text-ink outline-none transition placeholder:text-ink-subtle focus:border-accent focus:ring-2 focus:ring-accent/20 aria-[invalid=true]:border-rose-600 aria-[invalid=true]:focus:ring-rose-200 sm:text-sm;
+  }
+
+  .details-summary {
+    @apply cursor-pointer select-none list-none font-semibold text-ink outline-none transition hover:text-accent focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+  }
+
+  .details-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .plain-link {
+    @apply text-sm font-semibold text-ink-muted underline decoration-line underline-offset-4 transition hover:text-accent hover:decoration-accent focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+  }
+
+  .kpi-value {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(2.4rem, 7vw, 4.2rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
   .results-page {
-    --paper: oklch(0.98 0.008 80);
-    --paper-2: oklch(0.955 0.012 80);
-    --ink: oklch(0.18 0.02 258);
-    --ink-soft: oklch(0.36 0.02 260);
-    --ink-faint: oklch(0.55 0.015 260);
-    --rule: oklch(0.86 0.015 258);
-    --rule-strong: oklch(0.78 0.018 258);
-    --accent: oklch(0.44 0.14 252);
-    --accent-soft: oklch(0.93 0.04 252);
-    background:
-      radial-gradient(circle at 6% -8%, oklch(0.94 0.04 78 / 0.55), transparent 42%),
-      radial-gradient(circle at 96% -2%, oklch(0.93 0.025 252 / 0.5), transparent 38%),
-      linear-gradient(180deg, var(--paper), var(--paper-2));
+    --paper: #f8f7f2;
+    --paper-2: #fffefa;
+    --ink: #1f2a24;
+    --ink-soft: #5f6f65;
+    --ink-faint: #8a978f;
+    --rule: #d7ddd5;
+    --rule-strong: #bcc8bf;
+    --accent: #166f4f;
+    --accent-soft: #e5efe9;
+    background: var(--paper);
     color: var(--ink-soft);
-    font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    font-family: "Manrope", "Avenir Next", sans-serif;
   }
 
   .results-display {
@@ -47,10 +95,8 @@
   }
 
   .results-eyebrow {
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    font-size: 0.875rem;
+    font-weight: 500;
     color: var(--ink-faint);
   }
 
@@ -67,7 +113,7 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.16rem 0.55rem;
-    border-radius: 999px;
+    border-radius: 6px;
     background: color-mix(in oklch, var(--accent) 12%, var(--paper));
     color: color-mix(in oklch, var(--accent) 80%, black);
     font-size: 0.68rem;

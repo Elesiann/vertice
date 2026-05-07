@@ -48,6 +48,9 @@ export interface CardOption {
   id: string;
   name: string;
   bank: Bank;
+  minInvestmentBrl?: number;
+  investmentFeeWaiverBrl?: number;
+  requiredInvestmentBrl?: number;
 }
 
 export type RedemptionPreference =
@@ -59,6 +62,7 @@ export interface SpendingProfile {
   monthlyDomesticBrl: number;
   monthlyInternationalUsd: number;
   monthlyIncomeBrl?: number;
+  availableToInvestBrl?: number;
   redemption: RedemptionPreference;
   currentCardIds?: string[];
 }
@@ -75,6 +79,9 @@ export interface PublicStackCard {
   bank: Bank;
   pointsProgram: ProgramId;
   requiresRelationship?: RelationshipLevel;
+  minInvestmentBrl?: number;
+  investmentFeeWaiverBrl?: number;
+  requiredInvestmentBrl?: number;
 }
 
 export interface StackEvaluation {

@@ -42,7 +42,7 @@ const mockCardsResponse = (): void => {
       ok: true,
       json: () =>
         Promise.resolve({
-          cards: [{ id: "nubank-ultravioleta", name: "Nubank Ultravioleta", bank: "nubank" }],
+          cards: [{ id: "sample-card", name: "Sample Card", bank: "other" }],
         }),
     }),
   );
@@ -60,10 +60,11 @@ describe("InputForm", () => {
     expect(screen.getByLabelText(/Gasto doméstico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Gasto internacional/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Renda mensal/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/disponível para investir/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/prefere resgatar/i)).toBeInTheDocument();
     expect(screen.getByText(/Cartões que você já tem/i)).toBeInTheDocument();
     expect(screen.getByText(/Selecionar cartões/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Nubank Ultravioleta/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Sample Card/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /análise/i })).toBeInTheDocument();
   });
 
@@ -118,6 +119,25 @@ describe("InputForm", () => {
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
       monthlyIncomeBrl: 12000,
+      redemption: { kind: "any" },
+    });
+  });
+
+  it("includes availableToInvestBrl when optional investment is provided", async () => {
+    let latest: SpendingProfile | null = null;
+    renderForm((p) => {
+      latest = p;
+    });
+
+    const availableToInvest = screen.getByLabelText(/disponível para investir/i);
+    await userEvent.clear(availableToInvest);
+    await userEvent.type(availableToInvest, "50000");
+    await userEvent.click(screen.getByRole("button", { name: /análise/i }));
+
+    expect(latest).toEqual({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      availableToInvestBrl: 50000,
       redemption: { kind: "any" },
     });
   });

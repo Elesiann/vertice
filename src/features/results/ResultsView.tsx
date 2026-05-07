@@ -1,39 +1,19 @@
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
-import { ShoutoutLine } from "@/components/domain/ShoutoutLine";
 import { TravelTranslation } from "@/components/domain/TravelTranslation";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
-import { formatBrl } from "@/lib/format";
+import { formatBrl, formatUsd } from "@/lib/format";
 import { ROUTES } from "@/routes";
-import type { LeaderboardAxisId, StackEvaluation } from "@/types";
+import type { LeaderboardAxisId, SpendingProfile, StackEvaluation } from "@/types";
 
-const AXIS_SHORT_LABEL: Record<LeaderboardAxisId, string> = {
+const AXIS_LABEL: Record<LeaderboardAxisId, string> = {
   "net-return": "Retorno",
   liquidity: "Liquidez",
   "annual-fee": "Anuidade",
   simplicity: "Simplicidade",
   accessibility: "Acessibilidade",
-};
-
-const AXIS_DESCRIPTION: Record<LeaderboardAxisId, string> = {
-  "net-return": "Maior valor líquido anual, já descontando anuidade.",
-  liquidity: "Programas mais fáceis de usar e resgatar no dia a dia.",
-  "annual-fee": "Menor custo anual total para manter o stack ativo.",
-  simplicity: "Menos fricção operacional para usar sem microgerenciar.",
-  accessibility:
-    "Stack viável sem precisar abrir conta em banco específico ou ter alto investimento.",
-};
-
-const RELATIONSHIP_LABEL: Record<
-  NonNullable<StackEvaluation["cards"][number]["requiresRelationship"]>,
-  string
-> = {
-  open: "aberto",
-  checking: "exige correntista",
-  investment: "exige investimentos",
-  private: "private banking",
 };
 
 const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
@@ -42,98 +22,127 @@ const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
   low: "Baixa",
 };
 
-const stackId = (stack: StackEvaluation): string =>
-  (stack.cards.filter((card) => {
+const RELATIONSHIP_LABEL: Record<
+  NonNullable<StackEvaluation["cards"][number]["requiresRelationship"]>,
+  string
+> = {
+  open: "aberto",
+  checking: "correntista",
+  investment: "investimento",
+  private: "private",
+};
+
+const cardsInUse = (stack: StackEvaluation): StackEvaluation["cards"] => {
+  const activeCards = stack.cards.filter((card) => {
     const alloc = stack.allocation.find((item) => item.cardId === card.id);
     return (
       alloc !== undefined && (alloc.monthlyDomesticBrl > 0 || alloc.monthlyInternationalUsd > 0)
     );
-  }).length > 0
-    ? stack.cards.filter((card) => {
-        const alloc = stack.allocation.find((item) => item.cardId === card.id);
-        return (
-          alloc !== undefined && (alloc.monthlyDomesticBrl > 0 || alloc.monthlyInternationalUsd > 0)
-        );
-      })
-    : stack.cards
-  )
+  });
+  return activeCards.length > 0 ? activeCards : stack.cards;
+};
+
+const stackId = (stack: StackEvaluation): string =>
+  cardsInUse(stack)
     .map((card) => card.id)
     .slice()
     .sort()
     .join("|");
 
 const stackLabel = (stack: StackEvaluation): string =>
-  stack.cards.map((card) => card.name).join(" + ");
+  cardsInUse(stack)
+    .map((card) => card.name)
+    .join(" + ");
 
-const stackLiquidity = (stack: StackEvaluation): "high" | "medium" | "low" => {
-  return stack.liquidity;
+const stackRelationshipSummary = (stack: StackEvaluation): string => {
+  const levels = Array.from(
+    new Set(stack.cards.map((card) => RELATIONSHIP_LABEL[card.requiresRelationship ?? "checking"])),
+  );
+  return levels.join(" + ");
 };
 
-const stackAlsoLeadsText = (
+const stackFinancialRequirement = (
   stack: StackEvaluation,
-  axisId: LeaderboardAxisId,
-  winnerAxesByStack: Map<string, LeaderboardAxisId[]>,
-): string | null => {
-  const key = stackId(stack);
-  const winnerAxes = winnerAxesByStack.get(key) ?? [];
-  const alsoLeads = winnerAxes
-    .filter((otherAxis) => otherAxis !== axisId)
-    .map((otherAxis) => AXIS_SHORT_LABEL[otherAxis]);
-  if (alsoLeads.length === 0) return null;
-  return `Também lidera: ${alsoLeads.join(", ")}`;
+): { minInvestmentBrl: number; investmentFeeWaiverBrl: number; aggregateBrl: number } =>
+  cardsInUse(stack).reduce(
+    (highest, card) => {
+      const minInvestmentBrl = card.minInvestmentBrl ?? 0;
+      const investmentFeeWaiverBrl = card.investmentFeeWaiverBrl ?? 0;
+      const aggregateBrl =
+        card.requiredInvestmentBrl ?? Math.max(minInvestmentBrl, investmentFeeWaiverBrl);
+      return {
+        minInvestmentBrl: Math.max(highest.minInvestmentBrl, minInvestmentBrl),
+        investmentFeeWaiverBrl: Math.max(highest.investmentFeeWaiverBrl, investmentFeeWaiverBrl),
+        aggregateBrl: Math.max(highest.aggregateBrl, aggregateBrl),
+      };
+    },
+    { minInvestmentBrl: 0, investmentFeeWaiverBrl: 0, aggregateBrl: 0 },
+  );
+
+const stackInvestmentRequirementLabel = (stack: StackEvaluation): string => {
+  const requirement = stackFinancialRequirement(stack);
+  const parts: string[] = [];
+  if (requirement.minInvestmentBrl > 0) {
+    parts.push(`acesso ${formatBrl(requirement.minInvestmentBrl)}`);
+  }
+  if (requirement.investmentFeeWaiverBrl > 0) {
+    parts.push(`isenção ${formatBrl(requirement.investmentFeeWaiverBrl)}`);
+  }
+  if (parts.length === 0 && requirement.aggregateBrl > 0) {
+    return `Até ${formatBrl(requirement.aggregateBrl)}`;
+  }
+  return parts.length > 0 ? parts.join(" · ") : "Sem exigência";
 };
 
-const axisValueLabel = (axisId: LeaderboardAxisId): string => {
-  if (axisId === "annual-fee") return "Anuidade deste stack";
-  if (axisId === "liquidity") return "Retorno com este nível de liquidez";
-  if (axisId === "simplicity") return "Retorno no stack mais simples";
-  if (axisId === "accessibility") return "Retorno do stack mais acessível";
-  return "Retorno líquido deste stack";
+const stackAccessibilitySummary = (profile: SpendingProfile, stack: StackEvaluation): string => {
+  const requiredInvestmentBrl = stackFinancialRequirement(stack).aggregateBrl;
+  if (requiredInvestmentBrl <= 0) return "Sem exigência financeira adicional neste stack.";
+
+  if (profile.availableToInvestBrl === undefined) {
+    return `Para a melhor acessibilidade, considere ${formatBrl(requiredInvestmentBrl)} disponíveis para investir.`;
+  }
+
+  if (profile.availableToInvestBrl >= requiredInvestmentBrl) {
+    return `Seu valor disponível (${formatBrl(profile.availableToInvestBrl)}) cobre a exigência de investimento (${formatBrl(requiredInvestmentBrl)}).`;
+  }
+
+  return `A exigência estimada (${formatBrl(requiredInvestmentBrl)}) supera os ${formatBrl(profile.availableToInvestBrl)} informados. O stack segue comparado sem bloqueio automático.`;
 };
 
-const stackAccessibilityLabel = (stack: StackEvaluation): string => {
-  const levels = stack.cards
-    .map((card) => card.requiresRelationship ?? "checking")
-    .map((level) => RELATIONSHIP_LABEL[level]);
-  return Array.from(new Set(levels)).join(" + ");
+const currencyDelta = (value: number): string => {
+  if (value > 0) return `+${formatBrl(value)}`;
+  return formatBrl(value);
 };
 
-const stackAccessibilityReason = (stack: StackEvaluation): string => {
-  const levels = new Set(stack.cards.map((card) => card.requiresRelationship ?? "checking"));
-  if (levels.size === 1 && levels.has("open")) {
-    return "Stack aberto — não exige correntista nem investimento mínimo no banco emissor.";
-  }
-  if (levels.has("investment") || levels.has("private")) {
-    return "Stack exige relacionamento e/ou investimento mínimo para viabilizar todos os cartões.";
-  }
-  if (levels.has("checking")) {
-    return "Stack exige correntista em pelo menos um emissor, sem exigência de investimento mínimo.";
-  }
-  return "Stack com barreiras moderadas de relacionamento bancário.";
-};
-
-const axisLeaderReason = (
-  axisId: LeaderboardAxisId,
-  leader: StackEvaluation,
-  runnerUp: StackEvaluation | undefined,
-): string => {
-  if (axisId === "net-return") {
-    if (!runnerUp) return "Lidera retorno líquido sem concorrente próximo no recorte atual.";
-    const delta = leader.yearOneNetValueBrl - runnerUp.yearOneNetValueBrl;
-    return `Abre ${formatBrl(delta)} de vantagem sobre a próxima opção neste eixo.`;
-  }
-  if (axisId === "liquidity") {
-    return "Prioriza programas com resgate mais simples e previsível.";
-  }
-  if (axisId === "annual-fee") {
-    return `Mantém custo anual em ${formatBrl(leader.yearOneAnnualFeeBrl)} sem perder competitividade de retorno.`;
+const axisMetric = (axisId: LeaderboardAxisId, stack: StackEvaluation): string => {
+  if (axisId === "annual-fee") return `${formatBrl(stack.yearOneAnnualFeeBrl)} de anuidade`;
+  if (axisId === "liquidity") return `${LIQUIDITY_LABEL[stack.liquidity]} liquidez`;
+  if (axisId === "simplicity") {
+    const count = cardsInUse(stack).length;
+    return `${String(count)} cartão${count > 1 ? "es" : ""}`;
   }
   if (axisId === "accessibility") {
-    return `Stack ${stackAccessibilityLabel(leader)} — ${stackAccessibilityReason(leader)}`;
+    return `${stackRelationshipSummary(stack)} · ${stackInvestmentRequirementLabel(stack).toLowerCase()}`;
   }
-  const cardCount = leader.cards.length;
-  const noun = cardCount > 1 ? "cartões" : "cartão";
-  return `Opera com ${String(cardCount)} ${noun} para reduzir fricção no uso diário.`;
+  return `${formatBrl(stack.yearOneNetValueBrl)} líquido`;
+};
+
+const axisReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation): string[] => {
+  const reasons: string[] = [];
+  if (runnerUp) {
+    const delta = topStack.yearOneNetValueBrl - runnerUp.yearOneNetValueBrl;
+    reasons.push(`${formatBrl(delta)} de vantagem no retorno líquido frente ao segundo colocado.`);
+  } else {
+    reasons.push("Lidera o retorno líquido no recorte atual.");
+  }
+  reasons.push(
+    `Entrega ${formatBrl(topStack.yearOneNetValueBrl)} líquido por ano com ${formatBrl(topStack.yearOneAnnualFeeBrl)} de anuidade total.`,
+  );
+  const cards = cardsInUse(topStack).length;
+  reasons.push(
+    `Opera com ${String(cards)} cartão${cards > 1 ? "es" : ""} e liquidez ${LIQUIDITY_LABEL[topStack.liquidity].toLowerCase()}.`,
+  );
+  return reasons;
 };
 
 export const ResultsView = (): JSX.Element => {
@@ -142,53 +151,57 @@ export const ResultsView = (): JSX.Element => {
 
   if (profile === null) {
     return (
-      <div className="results-page mx-auto max-w-3xl space-y-5 px-6 py-16 text-center">
-        <p className="results-eyebrow">Stackr</p>
-        <h1 className="results-display text-3xl font-semibold leading-tight">
-          Nada pra mostrar ainda
-        </h1>
-        <p className="text-[color:var(--ink-soft)]">Preencha seus dados primeiro.</p>
-        <div>
-          <ButtonLink to={ROUTES.INPUT}>Ir pro formulário →</ButtonLink>
+      <main className="app-shell">
+        <div className="app-container max-w-3xl">
+          <section className="panel space-y-4 p-6 text-center sm:p-8">
+            <h1 className="text-3xl font-semibold text-ink">Nada para mostrar ainda</h1>
+            <p className="text-sm text-ink-muted">Preencha seus dados para gerar a recomendação.</p>
+            <div>
+              <ButtonLink to={ROUTES.INPUT}>Ir para o formulário</ButtonLink>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (result === null) {
     return (
-      <div className="results-page mx-auto max-w-3xl px-6 py-16 text-center">
-        <p className="text-[color:var(--ink-faint)]">Calculando…</p>
-      </div>
+      <main className="app-shell">
+        <div className="app-container max-w-3xl">
+          <section className="panel p-6 text-center text-ink-muted sm:p-8">
+            Calculando recomendação...
+          </section>
+        </div>
+      </main>
     );
   }
 
   if (!result.ok) {
     return (
-      <div className="results-page mx-auto max-w-3xl space-y-5 px-6 py-16 text-center">
-        <p className="results-eyebrow">Stackr</p>
-        <h1 className="results-display text-3xl font-semibold leading-tight">
-          Não conseguimos recomendar
-        </h1>
-        <p className="text-[color:var(--ink-soft)]">{result.error.message}</p>
-        <div>
-          <Link to={ROUTES.INPUT} className="results-link text-sm font-medium">
-            ← Voltar e ajustar os dados
-          </Link>
+      <main className="app-shell">
+        <div className="app-container max-w-3xl">
+          <section className="panel space-y-4 p-6 text-center sm:p-8">
+            <h1 className="text-3xl font-semibold text-ink">Não conseguimos recomendar</h1>
+            <p className="text-sm text-ink-muted">{result.error.message}</p>
+            <div>
+              <Link to={ROUTES.INPUT} className="plain-link">
+                Voltar e ajustar os dados
+              </Link>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     );
   }
 
   const recommendation = result.value;
-  const winnerAxesByStack = new Map<string, LeaderboardAxisId[]>();
-  for (const axis of recommendation.leaderboardsByAxis) {
-    const winner = axis.stacks[0];
-    if (!winner) continue;
-    const key = stackId(winner);
-    const previous = winnerAxesByStack.get(key) ?? [];
-    winnerAxesByStack.set(key, [...previous, axis.axisId]);
-  }
+  const topStack = recommendation.topStack;
+  const netReturnAxis = recommendation.leaderboardsByAxis.find(
+    (axis) => axis.axisId === "net-return",
+  );
+  const reasons = axisReasons(topStack, netReturnAxis?.stacks[1]);
+  const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
 
   const currentComparison =
     (profile.currentCardIds?.length ?? 0) > 0 &&
@@ -199,203 +212,209 @@ export const ResultsView = (): JSX.Element => {
           moneyOnTheTableBrl: recommendation.moneyOnTheTableBrl,
         }
       : null;
-  const netReturnAxis = recommendation.leaderboardsByAxis.find(
-    (axis) => axis.axisId === "net-return",
-  );
-  const topReturnStack = netReturnAxis?.stacks[0];
 
   return (
-    <div className="results-page mx-auto max-w-5xl px-6 py-10 md:py-14 lg:px-10">
-      <header className="max-w-3xl">
-        <p className="results-eyebrow">Análise · seu perfil</p>
-        <h1 className="results-display mt-3 text-[clamp(2rem,4.6vw,3.4rem)] font-semibold leading-[1.02] tracking-[-0.02em]">
-          Quatro recortes.
-          <br />
-          <span className="text-[color:var(--ink-faint)]">Um stack para cada decisão.</span>
-        </h1>
-        <p className="mt-5 max-w-[58ch] text-[0.98rem] leading-relaxed text-[color:var(--ink-soft)]">
-          Em vez de eleger um vencedor único, mostramos o stack líder em cada eixo — retorno
-          líquido, liquidez de resgate, custo anual e simplicidade operacional — para que a decisão
-          seja sua.
-        </p>
-      </header>
+    <main className="results-page min-h-screen">
+      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
+        <header className="max-w-4xl">
+          <h1 className="results-display text-[clamp(2rem,4.6vw,3.45rem)] font-semibold leading-[1.02] tracking-[-0.025em]">
+            Stack recomendado: {stackLabel(topStack)}
+          </h1>
+        </header>
 
-      {topReturnStack ? (
-        <section className="results-rule mt-12 grid grid-cols-1 gap-y-8 border-b border-t py-10 md:grid-cols-[1.5fr_1fr] md:gap-x-14 md:py-12">
+        <section className="results-rule mt-10 grid grid-cols-1 gap-y-8 border-b border-t py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10">
           <div>
-            <p className="results-eyebrow">Líder em retorno líquido</p>
-            <p className="results-display mt-3 text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-[1.2]">
-              {stackLabel(topReturnStack)}
-            </p>
-            <p className="results-num mt-7 text-[clamp(2.8rem,7vw,4.6rem)] font-semibold leading-none">
-              {formatBrl(topReturnStack.yearOneNetValueBrl)}
+            <p className="results-num text-[clamp(3rem,7vw,4.8rem)] font-semibold leading-none text-[color:var(--accent)]">
+              {formatBrl(topStack.yearOneNetValueBrl)}
             </p>
             <p className="mt-3 text-sm text-[color:var(--ink-faint)]">
-              valor líquido estimado · 12 meses
+              valor líquido estimado em 12 meses
             </p>
             {recommendation.isReturnDecisionTight ? (
-              <p className="mt-6 inline-block border-l-2 border-amber-700/70 bg-amber-50/40 py-1 pl-3 pr-2 text-xs leading-relaxed text-amber-900">
-                Decisão apertada: a diferença para o segundo lugar fica abaixo de 10%. Olhe os
-                outros eixos antes de decidir.
+              <p className="mt-5 border-l-2 border-amber-700/70 bg-amber-50/40 py-1 pl-3 pr-2 text-xs leading-relaxed text-amber-900">
+                Decisão apertada: a diferença de retorno para o segundo lugar está abaixo de 10%.
               </p>
             ) : null}
           </div>
-          <dl className="grid grid-cols-1 content-end gap-0 self-end text-sm">
+          <dl className="grid content-end gap-0 self-end text-sm">
             <div className="results-rule flex items-baseline justify-between border-b py-3">
               <dt className="text-[color:var(--ink-faint)]">Anuidade total</dt>
               <dd className="results-num font-semibold">
-                {formatBrl(topReturnStack.yearOneAnnualFeeBrl)}
+                {formatBrl(topStack.yearOneAnnualFeeBrl)}
               </dd>
             </div>
             <div className="results-rule flex items-baseline justify-between border-b py-3">
-              <dt className="text-[color:var(--ink-faint)]">Liquidez do stack</dt>
+              <dt className="text-[color:var(--ink-faint)]">Liquidez</dt>
               <dd className="font-semibold text-[color:var(--ink)]">
-                {LIQUIDITY_LABEL[stackLiquidity(topReturnStack)]}
+                {LIQUIDITY_LABEL[topStack.liquidity]}
               </dd>
             </div>
-            <div className="flex items-baseline justify-between py-3">
+            <div className="results-rule flex items-baseline justify-between border-b py-3">
               <dt className="text-[color:var(--ink-faint)]">Cartões no stack</dt>
-              <dd className="results-num font-semibold">{topReturnStack.cards.length}</dd>
+              <dd className="results-num font-semibold">{cardsInUse(topStack).length}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-6 py-3">
+              <dt className="text-[color:var(--ink-faint)]">Investimento para acesso/isenção</dt>
+              <dd className="results-num text-right font-semibold">
+                {stackInvestmentRequirementLabel(topStack)}
+              </dd>
             </div>
           </dl>
         </section>
-      ) : null}
 
-      <section
-        aria-label="Quadro de opções por eixo"
-        className="mt-2 grid grid-cols-1 md:grid-cols-2"
-      >
-        {recommendation.leaderboardsByAxis.map((axis, idx) => {
-          const leader = axis.stacks[0];
-          const alsoLeads = leader
-            ? stackAlsoLeadsText(leader, axis.axisId, winnerAxesByStack)
-            : null;
-          const borderClasses = [
-            "results-rule px-0 py-8 md:px-8 md:py-10",
-            idx > 0 ? "border-t" : "",
-            idx % 2 === 1 ? "md:border-l" : "",
-            idx >= 2 ? "md:border-t" : "md:border-t-0",
-            idx === 1 ? "border-t md:border-t-0" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <article key={axis.axisId} className={borderClasses}>
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="results-eyebrow">
-                  <span className="results-num mr-2 text-[color:var(--ink-faint)]">0{idx + 1}</span>
-                  {AXIS_SHORT_LABEL[axis.axisId]}
-                </p>
-                {alsoLeads ? <span className="results-pill">{alsoLeads}</span> : null}
-              </div>
-              <p className="mt-2 text-[0.88rem] leading-relaxed text-[color:var(--ink-soft)]">
-                {AXIS_DESCRIPTION[axis.axisId]}
-              </p>
-              {leader ? (
-                <>
-                  <p className="results-display mt-6 text-[1.05rem] font-semibold leading-snug">
-                    {stackLabel(leader)}
-                  </p>
-                  <div className="mt-4 flex items-baseline gap-3">
-                    <p className="results-num text-[clamp(1.7rem,3vw,2.3rem)] font-semibold leading-none">
-                      {formatBrl(leader.yearOneNetValueBrl)}
-                    </p>
-                  </div>
-                  <p className="mt-1 text-[0.7rem] uppercase tracking-[0.14em] text-[color:var(--ink-faint)]">
-                    {axisValueLabel(axis.axisId)}
-                  </p>
-                  <p className="mt-4 max-w-[44ch] text-[0.88rem] leading-relaxed text-[color:var(--ink-soft)]">
-                    {axisLeaderReason(axis.axisId, leader, axis.stacks[1])}
-                  </p>
-                  <dl className="mt-5 flex flex-wrap gap-x-7 gap-y-2 text-xs">
-                    <div className="flex items-baseline gap-1.5">
-                      <dt className="text-[color:var(--ink-faint)]">Anuidade</dt>
-                      <dd className="results-num font-semibold">
+        <section
+          className="results-rule grid grid-cols-1 border-b md:grid-cols-2"
+          aria-label="Resumo do stack recomendado"
+        >
+          <article className="py-8 md:pr-10">
+            <h2 className="results-display text-xl font-semibold">Como usar</h2>
+            <ul className="mt-5 divide-y divide-[color:var(--rule)] text-sm">
+              {cardsInUse(topStack).map((card) => {
+                const alloc = topStack.allocation.find((entry) => entry.cardId === card.id);
+                return (
+                  <li
+                    key={card.id}
+                    className="grid gap-2 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-baseline sm:gap-5"
+                  >
+                    <span className="font-semibold text-[color:var(--ink)]">{card.name}</span>
+                    <span className="results-num text-[color:var(--ink-soft)]">
+                      BRL {formatBrl(alloc?.monthlyDomesticBrl ?? 0)}
+                    </span>
+                    <span className="results-num text-[color:var(--ink-soft)]">
+                      USD {formatUsd(alloc?.monthlyInternationalUsd ?? 0)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </article>
+
+          <article className="results-rule border-t py-8 md:border-l md:border-t-0 md:pl-10">
+            <h2 className="results-display text-xl font-semibold">Por que venceu</h2>
+            <ul className="mt-5 space-y-3 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+              {reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+            <p className="results-rule mt-5 border-t pt-4 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+              Acessibilidade: {accessibilitySummary}
+            </p>
+          </article>
+        </section>
+
+        {currentComparison ? (
+          <section aria-label="Comparar com stack atual" className="results-rule border-b py-8">
+            <h2 className="results-display text-xl font-semibold">Comparar com stack atual</h2>
+            <p className="mt-4 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+              Você está deixando{" "}
+              <span className="results-num font-semibold text-[color:var(--accent)]">
+                {formatBrl(currentComparison.moneyOnTheTableBrl)}
+              </span>{" "}
+              por ano na mesa.
+            </p>
+            <p className="mt-2 text-sm text-[color:var(--ink-soft)]">
+              Atual:{" "}
+              <span className="results-num font-semibold text-[color:var(--ink)]">
+                {formatBrl(currentComparison.stack.yearOneNetValueBrl)}
+              </span>{" "}
+              · Recomendado:{" "}
+              <span className="results-num font-semibold text-[color:var(--ink)]">
+                {formatBrl(topStack.yearOneNetValueBrl)}
+              </span>
+            </p>
+          </section>
+        ) : null}
+
+        <section aria-label="Trade-offs por eixo" className="results-rule border-b py-8">
+          <h2 className="results-display text-xl font-semibold">Trade-offs</h2>
+          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">
+            O eixo anuidade mostra custo anual, não retorno líquido.
+          </p>
+
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="results-rule border-b text-[color:var(--ink-faint)]">
+                  <th className="pb-2 pr-4 font-semibold">Eixo</th>
+                  <th className="pb-2 pr-4 font-semibold">Stack vencedor</th>
+                  <th className="pb-2 pr-4 font-semibold">Indicador</th>
+                  <th className="pb-2 pr-4 font-semibold">Retorno líquido</th>
+                  <th className="pb-2 pr-4 font-semibold">Anuidade</th>
+                  <th className="pb-2 pr-4 font-semibold">Liquidez</th>
+                  <th className="pb-2 font-semibold">Diferença</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recommendation.leaderboardsByAxis.map((axis) => {
+                  const leader = axis.stacks[0];
+                  if (!leader) return null;
+                  const deltaVsTop = leader.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
+                  return (
+                    <tr key={axis.axisId} className="results-rule border-b align-top">
+                      <td className="py-3 pr-4 font-semibold text-[color:var(--ink)]">
+                        {AXIS_LABEL[axis.axisId]}
+                      </td>
+                      <td className="py-3 pr-4 text-[color:var(--ink)]">{stackLabel(leader)}</td>
+                      <td className="py-3 pr-4 text-[color:var(--ink-soft)]">
+                        {axisMetric(axis.axisId, leader)}
+                      </td>
+                      <td className="results-num py-3 pr-4 text-[color:var(--ink)]">
+                        {formatBrl(leader.yearOneNetValueBrl)}
+                      </td>
+                      <td className="results-num py-3 pr-4 text-[color:var(--ink)]">
                         {formatBrl(leader.yearOneAnnualFeeBrl)}
-                      </dd>
-                    </div>
-                    <div className="flex items-baseline gap-1.5">
-                      <dt className="text-[color:var(--ink-faint)]">Liquidez</dt>
-                      <dd className="font-semibold text-[color:var(--ink)]">
-                        {LIQUIDITY_LABEL[stackLiquidity(leader)]}
-                      </dd>
-                    </div>
-                    <div className="flex items-baseline gap-1.5">
-                      <dt className="text-[color:var(--ink-faint)]">Cartões</dt>
-                      <dd className="results-num font-semibold">{leader.cards.length}</dd>
-                    </div>
-                  </dl>
-                </>
-              ) : null}
-              {axis.stacks.length > 1 ? (
-                <details className="results-disclosure mt-6">
-                  <summary>Outras opções neste eixo</summary>
-                  <ol className="results-rule mt-4 divide-y divide-[color:var(--rule)] border-t">
-                    {axis.stacks.slice(1, 3).map((stack, i) => (
+                      </td>
+                      <td className="py-3 pr-4 text-[color:var(--ink)]">
+                        {LIQUIDITY_LABEL[leader.liquidity]}
+                      </td>
+                      <td className="results-num py-3 text-[color:var(--ink-soft)]">
+                        {stackId(leader) === stackId(topStack)
+                          ? "Recomendado"
+                          : currencyDelta(deltaVsTop)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {recommendation.leaderboardsByAxis.map((axis) => {
+              if (axis.stacks.length < 2) return null;
+              return (
+                <details key={`details-${axis.axisId}`} className="results-disclosure">
+                  <summary>Outras opções no eixo {AXIS_LABEL[axis.axisId].toLowerCase()}</summary>
+                  <ol className="results-rule mt-3 divide-y divide-[color:var(--rule)] border-t text-sm text-[color:var(--ink-soft)]">
+                    {axis.stacks.slice(1, 4).map((stack, index) => (
                       <li
                         key={`${axis.axisId}-${stackId(stack)}`}
-                        className="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-4 py-3 text-sm"
+                        className="grid gap-1 py-3 sm:grid-cols-[40px_1fr_auto] sm:items-baseline sm:gap-3"
                       >
-                        <span className="results-num text-[0.7rem] uppercase tracking-[0.14em] text-[color:var(--ink-faint)]">
-                          0{i + 2}
+                        <span className="results-num text-xs text-[color:var(--ink-faint)]">
+                          {String(index + 2).padStart(2, "0")}
                         </span>
                         <span className="text-[color:var(--ink)]">{stackLabel(stack)}</span>
-                        <span className="results-num font-semibold">
-                          {formatBrl(stack.yearOneNetValueBrl)}
-                        </span>
+                        <span className="results-num">{formatBrl(stack.yearOneNetValueBrl)}</span>
                       </li>
                     ))}
                   </ol>
                 </details>
-              ) : null}
-            </article>
-          );
-        })}
-      </section>
-
-      <div className="mt-14">
-        <TravelTranslation translation={recommendation.travelTranslation} />
-      </div>
-
-      {currentComparison ? (
-        <section
-          aria-label="Comparar com meus cartões atuais"
-          className="results-rule mt-12 border-t pt-10"
-        >
-          <p className="results-eyebrow">Versus seu stack atual</p>
-          <p className="results-display mt-4 text-[clamp(1.35rem,2.4vw,1.75rem)] font-semibold leading-snug">
-            Você está deixando{" "}
-            <span className="results-num text-[color:var(--accent)]">
-              {formatBrl(currentComparison.moneyOnTheTableBrl)}
-            </span>{" "}
-            por ano na mesa.
-          </p>
-          <p className="mt-3 text-sm text-[color:var(--ink-soft)]">
-            Atual:{" "}
-            <span className="results-num">
-              {formatBrl(currentComparison.stack.yearOneNetValueBrl)}
-            </span>{" "}
-            · Sugerido:{" "}
-            <span className="results-num text-[color:var(--ink)]">
-              {formatBrl(recommendation.topStack.yearOneNetValueBrl)}
-            </span>{" "}
-            (líquido / 12 meses)
-          </p>
+              );
+            })}
+          </div>
         </section>
-      ) : null}
 
-      <div className="mt-14 max-w-2xl">
-        <ShoutoutLine text={recommendation.shoutout} />
-      </div>
+        <div className="mt-8">
+          <TravelTranslation translation={recommendation.travelTranslation} />
+        </div>
 
-      <div className="results-rule mt-12 flex items-center justify-between border-t pt-6">
-        <Link to={ROUTES.INPUT} className="results-link text-sm font-medium">
-          ← Ajustar dados
-        </Link>
-        <p className="text-[0.7rem] uppercase tracking-[0.16em] text-[color:var(--ink-faint)]">
-          Stackr · análise por eixos
-        </p>
+        <footer className="results-rule mt-8 border-t pt-4">
+          <Link to={ROUTES.INPUT} className="results-link text-sm font-medium">
+            Ajustar dados
+          </Link>
+        </footer>
       </div>
-    </div>
+    </main>
   );
 };

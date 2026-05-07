@@ -28,28 +28,31 @@ const renderResults = (profile: SpendingProfile | null): void => {
 const stack = {
   cards: [
     {
-      id: "inter-win-black-mastercard",
-      name: "Inter Win Black",
-      bank: "inter",
-      pointsProgram: "inter-loop",
+      id: "domestic-rewards-card",
+      name: "Domestic Rewards Card",
+      bank: "other",
+      pointsProgram: "cashback",
       requiresRelationship: "open",
+      investmentFeeWaiverBrl: 50000,
+      requiredInvestmentBrl: 50000,
     },
     {
-      id: "nomad-explorer-visa-infinite",
-      name: "Nomad Explorer Visa Infinite",
+      id: "international-travel-card",
+      name: "International Travel Card",
       bank: "other",
-      pointsProgram: "nomad-pass",
+      pointsProgram: "revpoints",
       requiresRelationship: "open",
+      requiredInvestmentBrl: 0,
     },
   ],
   allocation: [
     {
-      cardId: "inter-win-black-mastercard",
+      cardId: "domestic-rewards-card",
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 0,
     },
     {
-      cardId: "nomad-explorer-visa-infinite",
+      cardId: "international-travel-card",
       monthlyDomesticBrl: 0,
       monthlyInternationalUsd: 200,
     },
@@ -85,7 +88,7 @@ const recommendationFixture: Recommendation = {
     remainingPoints: 9200,
   },
   shoutout:
-    "Com Inter Win Black + Nomad Explorer Visa Infinite, você gera R$ 756 de valor líquido no primeiro ano.",
+    "Com Domestic Rewards Card + International Travel Card, você gera R$ 756 de valor líquido no primeiro ano.",
 };
 
 const mockRecommendation = (recommendation: Recommendation = recommendationFixture): void => {
@@ -112,7 +115,7 @@ describe("ResultsView", () => {
   it("shows empty state when no profile is set", () => {
     renderResults(null);
 
-    expect(screen.getByRole("heading", { name: /Nada pra mostrar/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Nada para mostrar ainda/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /formulário/i })).toBeInTheDocument();
   });
 
@@ -124,10 +127,10 @@ describe("ResultsView", () => {
     });
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Quadro de opções por eixo/i })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /Trade-offs por eixo/i })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /Tradução em viagens/i })).toBeInTheDocument();
     expect(
-      screen.queryByRole("region", { name: /Comparar com meus cartões atuais/i }),
+      screen.queryByRole("region", { name: /Comparar com stack atual/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -145,11 +148,11 @@ describe("ResultsView", () => {
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
       redemption: { kind: "miles", program: "smiles" },
-      currentCardIds: ["inter-win-black-mastercard"],
+      currentCardIds: ["domestic-rewards-card"],
     });
 
     expect(
-      await screen.findByRole("region", { name: /Comparar com meus cartões atuais/i }),
+      await screen.findByRole("region", { name: /Comparar com stack atual/i }),
     ).toBeInTheDocument();
   });
 
@@ -157,11 +160,17 @@ describe("ResultsView", () => {
     renderResults({
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
+      availableToInvestBrl: 10000,
       redemption: { kind: "any" },
     });
 
     await screen.findByRole("heading", { level: 1 });
     expect(screen.queryByText(/exige correntista.*não exige correntista/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/segue comparado sem bloqueio automático/i)).toBeInTheDocument();
+    const investmentRow = screen.getByText(/Investimento para acesso\/isenção/i).closest("div");
+    expect(investmentRow).toBeInTheDocument();
+    expect(investmentRow).toHaveTextContent(/isenção/);
+    expect(investmentRow).toHaveTextContent(/50\.000,00/);
   });
 
   it("renders an error state when the solver rejects the profile", async () => {
