@@ -126,12 +126,20 @@ export interface ScoreComponent {
 
 export type ScoreBreakdown = Record<ScoreCategory, ScoreComponent>;
 
+export interface BenefitBreakdown {
+  loungeValueBrl: number;
+  insuranceValueBrl: number;
+  baggageValueBrl: number;
+  totalBrl: number;
+}
+
 export interface ScoreLabModeledAnnual {
   earnedPoints: number;
   welcomeBonusPoints: number;
   totalPoints: number;
   grossValueBrl: number;
   benefitUtilityBrl: number;
+  benefitBreakdown?: BenefitBreakdown;
   recurringAnnualFeeBrl: number;
   internationalCostBrl: number;
   netReturnBrl: number;
@@ -140,6 +148,7 @@ export interface ScoreLabModeledAnnual {
 export interface ScoreLabPotentialAnnual {
   grossValueBrl: number;
   benefitUtilityBrl: number;
+  benefitBreakdown?: BenefitBreakdown;
   recurringAnnualFeeBrl: number;
   internationalCostBrl: number;
   netReturnBrl: number;

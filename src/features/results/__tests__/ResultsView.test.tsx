@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
 import { ResultsView } from "@/features/results/ResultsView";
@@ -187,20 +188,19 @@ describe("ResultsView", () => {
     });
 
     expect(await screen.findByRole("heading", { level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Auditoria score-lab/i })).toBeInTheDocument();
-    expect(screen.getAllByText(/FX\/IOF/i).length).toBeGreaterThan(0);
-    expect(screen.getByRole("region", { name: /Trade-offs por eixo/i })).toBeInTheDocument();
+    expect(screen.getByText(/Líquido estimado em 12 meses/i)).toBeInTheDocument();
+    expect(screen.getByText(/Anuidade total/i)).toBeInTheDocument();
+    expect(screen.getByText(/Custo FX\/IOF/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ver cálculo completo/i)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /Tradução em viagens/i })).toBeInTheDocument();
-    expect(
-      screen.queryByRole("region", { name: /Comparar com stack atual/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Você está deixando na mesa/i)).not.toBeInTheDocument();
     expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(/\/score-lab\/recommendations$/),
       expect.any(Object),
     );
   });
 
-  it("renders current-card comparison only when currentCardIds is informed", async () => {
+  it("renders money-on-the-table hero when currentCardIds and gap exist", async () => {
     mockRecommendation({
       ...recommendationFixture,
       currentStack: {
@@ -217,9 +217,9 @@ describe("ResultsView", () => {
       currentCardIds: ["domestic-rewards-card"],
     });
 
-    expect(
-      await screen.findByRole("region", { name: /Comparar com stack atual/i }),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Você está deixando na mesa/i)).toBeInTheDocument();
+    expect(screen.getByText(/256,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/Líquido estimado em 12 meses/i)).not.toBeInTheDocument();
   });
 
   it("does not render contradictory accessibility copy", async () => {
@@ -233,7 +233,10 @@ describe("ResultsView", () => {
     await screen.findByRole("heading", { level: 1 });
     expect(screen.queryByText(/exige correntista.*não exige correntista/i)).not.toBeInTheDocument();
     expect(screen.getByText(/segue comparado sem bloqueio automático/i)).toBeInTheDocument();
-    const investmentRow = screen.getByText(/Investimento para acesso\/isenção/i).closest("div");
+
+    await userEvent.click(screen.getByText(/Ver cálculo completo/i));
+    const investmentTerm = await screen.findByText(/Investimento de acesso/i);
+    const investmentRow = investmentTerm.closest("div");
     expect(investmentRow).toBeInTheDocument();
     expect(investmentRow).toHaveTextContent(/isenção/);
     expect(investmentRow).toHaveTextContent(/50\.000,00/);
