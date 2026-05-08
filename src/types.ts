@@ -178,7 +178,7 @@ export interface ScoreLabForeignExchangeCost {
   spreadPercent: number;
   iofRatePercent: number;
   annualCostBrl: number;
-  source: "official" | "secondary" | "assumption" | "mixed";
+  source: CardFxSource;
   notes: string[];
 }
 
