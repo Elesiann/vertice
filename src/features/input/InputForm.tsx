@@ -51,6 +51,14 @@ const inputSchema = z.object({
 type InputFormInput = z.input<typeof inputSchema>;
 type InputFormValues = z.output<typeof inputSchema>;
 
+const FORM_DEFAULTS: Partial<InputFormInput> = {
+  monthlyDomesticBrl: 5000,
+  monthlyInternationalUsd: 200,
+  redemptionRaw: "any",
+  travelFrequency: "none",
+  currentCardIds: [],
+};
+
 const isMilesProgram = (value: string): value is (typeof MILES_PROGRAMS)[number] =>
   (MILES_PROGRAMS as readonly string[]).includes(value);
 
@@ -63,13 +71,50 @@ const parseRedemption = (raw: string): RedemptionPreference => {
   return { kind: "any" };
 };
 
+const redemptionToRaw = (preference: RedemptionPreference): string => {
+  if (preference.kind === "cashback") return "cashback";
+  if (preference.kind === "miles") return `miles:${preference.program}`;
+  return "any";
+};
+
+const profileToFormDefaults = (profile: SpendingProfile | null): Partial<InputFormInput> => {
+  if (profile === null) return FORM_DEFAULTS;
+  return {
+    monthlyDomesticBrl: profile.monthlyDomesticBrl,
+    monthlyInternationalUsd: profile.monthlyInternationalUsd,
+    ...(profile.monthlyIncomeBrl !== undefined
+      ? { monthlyIncomeBrl: profile.monthlyIncomeBrl }
+      : {}),
+    ...(profile.availableToInvestBrl !== undefined
+      ? { availableToInvestBrl: profile.availableToInvestBrl }
+      : {}),
+    redemptionRaw: redemptionToRaw(profile.redemption),
+    travelFrequency: profile.travelFrequency ?? "none",
+    currentCardIds: profile.currentCardIds ?? [],
+  };
+};
+
+const formatRelative = (savedAt: string, now: number = Date.now()): string => {
+  const date = new Date(savedAt);
+  if (Number.isNaN(date.getTime())) return "agora";
+  const diffMs = Math.max(0, now - date.getTime());
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "agora há pouco";
+  if (minutes < 60) return `há ${String(minutes)} minuto${minutes > 1 ? "s" : ""}`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `há ${String(hours)} hora${hours > 1 ? "s" : ""}`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `há ${String(days)} dia${days > 1 ? "s" : ""}`;
+  return date.toLocaleDateString("pt-BR");
+};
+
 const selectedCardsLabel = (selectedCount: number): string =>
   selectedCount > 0
     ? `${String(selectedCount)} cartão${selectedCount > 1 ? "ões" : ""} selecionado${selectedCount > 1 ? "s" : ""}`
     : "Selecionar cartões";
 
 export const InputForm = (): JSX.Element => {
-  const { setProfile } = useSession();
+  const { profile, setProfile, profileSavedAt, reset: sessionReset } = useSession();
   const navigate = useNavigate();
   const [cardOptions, setCardOptions] = useState<CardOption[]>([]);
   const [cardOptionsError, setCardOptionsError] = useState(false);
@@ -96,16 +141,11 @@ export const InputForm = (): JSX.Element => {
     register,
     handleSubmit,
     control,
+    reset: resetForm,
     formState: { errors },
   } = useForm<InputFormInput, unknown, InputFormValues>({
     resolver: zodResolver(inputSchema),
-    defaultValues: {
-      monthlyDomesticBrl: 5000,
-      monthlyInternationalUsd: 200,
-      redemptionRaw: "any",
-      travelFrequency: "none",
-      currentCardIds: [],
-    },
+    defaultValues: profileToFormDefaults(profile),
   });
 
   const onSubmit = (values: InputFormValues): void => {
@@ -126,6 +166,11 @@ export const InputForm = (): JSX.Element => {
     void navigate(ROUTES.RESULTS);
   };
 
+  const onClearSavedProfile = (): void => {
+    sessionReset();
+    resetForm(FORM_DEFAULTS);
+  };
+
   return (
     <main className="app-shell">
       <div className="app-container max-w-4xl">
@@ -136,6 +181,22 @@ export const InputForm = (): JSX.Element => {
           className="border-line bg-surface-raised space-y-8 rounded-lg border p-6 sm:p-8"
           noValidate
         >
+          {profileSavedAt !== null ? (
+            <div className="border-line/80 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-2 border-b px-6 py-3 sm:-mx-8 sm:-mt-8 sm:px-8">
+              <p className="text-ink-muted text-sm">
+                <span className="text-caption text-ink-subtle mr-2">Última edição</span>
+                <span className="text-ink font-medium">{formatRelative(profileSavedAt)}</span>
+              </p>
+              <button
+                type="button"
+                onClick={onClearSavedProfile}
+                className="text-ink-muted hover:text-accent focus-visible:ring-accent text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              >
+                Limpar
+              </button>
+            </div>
+          ) : null}
+
           <header className="space-y-2">
             <h1 className="text-display-3 text-ink">Diga seu gasto</h1>
             <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">

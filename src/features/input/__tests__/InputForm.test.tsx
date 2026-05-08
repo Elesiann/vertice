@@ -52,6 +52,7 @@ describe("InputForm", () => {
   beforeEach(() => {
     navigateMock.mockClear();
     mockCardsResponse();
+    window.localStorage.clear();
   });
 
   it("renders spending, income and preference controls", async () => {
@@ -152,5 +153,51 @@ describe("InputForm", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/negativo/i);
     expect(navigateMock).not.toHaveBeenCalledWith("/results");
+  });
+
+  it("hydrates fields from a profile saved in localStorage", async () => {
+    window.localStorage.setItem(
+      "stackr.profile.v1",
+      JSON.stringify({
+        profile: {
+          monthlyDomesticBrl: 7000,
+          monthlyInternationalUsd: 350,
+          redemption: { kind: "miles", program: "smiles" },
+          travelFrequency: "frequent",
+        },
+        savedAt: new Date().toISOString(),
+      }),
+    );
+
+    renderForm(() => undefined);
+
+    expect(await screen.findByLabelText(/Gasto doméstico/i)).toHaveValue(7000);
+    expect(screen.getByLabelText(/Gasto internacional/i)).toHaveValue(350);
+    expect(screen.getByLabelText(/prefere resgatar/i)).toHaveValue("miles:smiles");
+    expect(screen.getByLabelText(/frequência você viaja/i)).toHaveValue("frequent");
+    expect(screen.getByText(/Última edição/i)).toBeInTheDocument();
+  });
+
+  it("clears the saved profile when Limpar is clicked", async () => {
+    window.localStorage.setItem(
+      "stackr.profile.v1",
+      JSON.stringify({
+        profile: {
+          monthlyDomesticBrl: 9999,
+          monthlyInternationalUsd: 999,
+          redemption: { kind: "cashback" },
+        },
+        savedAt: new Date().toISOString(),
+      }),
+    );
+
+    renderForm(() => undefined);
+
+    expect(await screen.findByText(/Última edição/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Limpar/i }));
+
+    expect(window.localStorage.getItem("stackr.profile.v1")).toBeNull();
+    expect(screen.queryByText(/Última edição/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Gasto doméstico/i)).toHaveValue(5000);
   });
 });
