@@ -178,7 +178,7 @@ export interface ScoreLabForeignExchangeCost {
   spreadPercent: number;
   iofRatePercent: number;
   annualCostBrl: number;
-  source: "official" | "secondary" | "assumption" | "mixed";
+  source: CardFxSource;
   notes: string[];
 }
 
@@ -274,9 +274,84 @@ export type SolverErrorCode =
   | "NO_ELIGIBLE_CARDS"
   | "INVALID_PROFILE"
   | "INVALID_REQUEST"
-  | "NETWORK_ERROR";
+  | "NETWORK_ERROR"
+  | "CARD_NOT_FOUND";
 
 export interface SolverError {
   code: SolverErrorCode;
   message: string;
+}
+
+export type CardTier = "standard" | "gold" | "platinum" | "black" | "infinite";
+export type CardBrand = "visa" | "mastercard" | "amex" | "elo" | "hipercard";
+export type CardFxSource = "official" | "secondary" | "assumption" | "mixed";
+export type CardTravelInsuranceLevel = "basic" | "premium";
+export type CardVerifiedTier = 1 | 2 | 3;
+
+export interface PublicLoungeAccess {
+  unlimited?: boolean;
+  visitsPerYear?: number;
+  conditional?: boolean;
+  conditionalMonthlySpendBrl?: number;
+  providers: string[];
+}
+
+export interface PublicCardBenefit {
+  kind: string;
+  label: string;
+}
+
+export interface PublicCatalogCard {
+  id: string;
+  name: string;
+  bank: Bank;
+  brand: CardBrand;
+  tier: CardTier;
+  pointsProgram: ProgramId;
+  annualFeeBrl: number;
+  annualFeeWaiverThresholdBrl?: number;
+  firstYearAnnualFeeBrl?: number;
+  investmentFeeWaiverBrl?: number;
+  minInvestmentBrl?: number;
+  minInvestmentUsd?: number;
+  requiredInvestmentBrl?: number;
+  requiredInvestmentUsd?: number;
+  requiresRelationship?: RelationshipLevel;
+  hasLoungeAccess: boolean;
+  hasTravelInsurance: boolean;
+  hasFreeCheckedBaggage: boolean;
+  hasZeroIof: boolean;
+  cashbackRatePercent?: number;
+  pointsPerUsdDomestic?: number;
+  pointsPerUsdInternational?: number;
+}
+
+export interface PublicCardDetail extends PublicCatalogCard {
+  loungeAccess?: PublicLoungeAccess;
+  travelInsuranceLevel?: CardTravelInsuranceLevel;
+  freeCheckedBaggage?: boolean;
+  foreignExchangeCostSource?: CardFxSource;
+  foreignExchangeSpreadPercent?: number;
+  pointsExpirationMonths?: number;
+  welcomeBonusPoints?: number;
+  benefits?: PublicCardBenefit[];
+  verifiedTier?: CardVerifiedTier;
+  lastVerified?: string;
+}
+
+export interface CatalogFilters {
+  bank?: string;
+  tier?: string;
+  brand?: string;
+  hasLounge?: boolean;
+  hasCashback?: boolean;
+  maxAnnualFee?: number;
+  search?: string;
+}
+
+export interface CardCatalogResponse {
+  cards: PublicCatalogCard[];
+  catalogVersion: string;
+  count: number;
+  filters: CatalogFilters;
 }
