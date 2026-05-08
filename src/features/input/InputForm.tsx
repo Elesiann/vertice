@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { useSession } from "@/context/SessionContext";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
-import type { CardOption, ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
+import type {
+  CardOption,
+  ProgramId,
+  RedemptionPreference,
+  SpendingProfile,
+  TravelFrequency,
+} from "@/types";
 
 const MILES_PROGRAMS = ["smiles", "latam-pass", "tudoazul"] as const satisfies ProgramId[];
 
@@ -17,6 +23,12 @@ const REDEMPTION_OPTIONS: { value: string; label: string }[] = [
   { value: "miles:latam-pass", label: "Milhas Latam Pass" },
   { value: "miles:tudoazul", label: "Milhas TudoAzul" },
   { value: "cashback", label: "Cashback" },
+];
+
+const TRAVEL_FREQUENCY_OPTIONS: { value: TravelFrequency; label: string }[] = [
+  { value: "none", label: "Não viajo internacional" },
+  { value: "occasional", label: "Esporadicamente (≈2 viagens/ano)" },
+  { value: "frequent", label: "Frequentemente (5+ viagens/ano)" },
 ];
 
 const inputSchema = z.object({
@@ -31,6 +43,7 @@ const inputSchema = z.object({
     z.number().min(0, "Não pode ser negativo").optional(),
   ),
   redemptionRaw: z.string().min(1, "Selecione uma preferência"),
+  travelFrequency: z.enum(["none", "occasional", "frequent"]),
   currentCardIds: z.array(z.string()),
 });
 
@@ -89,6 +102,7 @@ export const InputForm = (): JSX.Element => {
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
       redemptionRaw: "any",
+      travelFrequency: "none",
       currentCardIds: [],
     },
   });
@@ -104,6 +118,7 @@ export const InputForm = (): JSX.Element => {
         ? { availableToInvestBrl: values.availableToInvestBrl }
         : {}),
       redemption: parseRedemption(values.redemptionRaw),
+      ...(values.travelFrequency !== "none" ? { travelFrequency: values.travelFrequency } : {}),
       ...(values.currentCardIds.length > 0 ? { currentCardIds: values.currentCardIds } : {}),
     };
     setProfile(profile);
@@ -230,6 +245,27 @@ export const InputForm = (): JSX.Element => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="travel-frequency" className="field-label">
+                Com que frequência você viaja?
+              </label>
+              <select
+                id="travel-frequency"
+                className="field-control"
+                {...register("travelFrequency")}
+              >
+                {TRAVEL_FREQUENCY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-ink-subtle">
+                Alimenta o cálculo de benefícios de viagem (sala VIP, seguro, bagagem) na
+                recomendação.
+              </p>
             </div>
           </section>
 

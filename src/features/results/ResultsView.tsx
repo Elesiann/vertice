@@ -312,6 +312,14 @@ export const ResultsView = (): JSX.Element => {
                     {formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
                   </dd>
                 </div>
+                {scoreLab.modeledAnnual.benefitUtilityBrl > 0 ? (
+                  <div className="results-rule flex items-baseline justify-between border-b py-3">
+                    <dt className="text-[color:var(--ink-faint)]">Benefício de viagem</dt>
+                    <dd className="results-num font-semibold">
+                      {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
+                    </dd>
+                  </div>
+                ) : null}
                 <div className="results-rule flex items-baseline justify-between border-b py-3">
                   <dt className="text-[color:var(--ink-faint)]">Score-lab</dt>
                   <dd className="results-num font-semibold">{scoreText(scoreLab.score)}</dd>
@@ -378,7 +386,7 @@ export const ResultsView = (): JSX.Element => {
                   stacks.
                 </p>
               </div>
-              <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-4">
+              <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-5">
                 <div>
                   <dt className="text-[color:var(--ink-faint)]">Retorno bruto</dt>
                   <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
@@ -395,6 +403,12 @@ export const ResultsView = (): JSX.Element => {
                   <dt className="text-[color:var(--ink-faint)]">FX/IOF</dt>
                   <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
                     {formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[color:var(--ink-faint)]">Benefício viagem</dt>
+                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
+                    {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
                   </dd>
                 </div>
                 <div>
