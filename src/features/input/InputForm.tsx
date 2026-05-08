@@ -3,10 +3,11 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Button } from "@/components/ui/Button";
+import { Button, Checkbox, Disclosure, Field, Input, Select } from "@/components/ui";
 import { useSession } from "@/context/SessionContext";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
+import { cn } from "@/lib/cn";
 import type {
   CardOption,
   ProgramId,
@@ -132,163 +133,105 @@ export const InputForm = (): JSX.Element => {
           onSubmit={(e) => {
             void handleSubmit(onSubmit)(e);
           }}
-          className="panel space-y-8 p-6 sm:p-8"
+          className="border-line bg-surface-raised space-y-8 rounded-lg border p-6 sm:p-8"
           noValidate
         >
           <header className="space-y-2">
-            <h1 className="text-3xl font-semibold tracking-[-0.01em] text-ink">Diga seu gasto</h1>
-            <p className="max-w-2xl text-sm leading-relaxed text-ink-muted">
+            <h1 className="text-display-3 text-ink">Diga seu gasto</h1>
+            <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">
               Preencha os campos para receber uma recomendação objetiva por retorno, liquidez,
               anuidade, simplicidade e acessibilidade.
             </p>
           </header>
 
           <section className="grid gap-5 md:grid-cols-2">
-            <div>
-              <label htmlFor="brl" className="field-label">
-                Gasto doméstico por mês (R$)
-              </label>
-              <input
-                id="brl"
+            <Field label="Gasto doméstico por mês (R$)" error={errors.monthlyDomesticBrl?.message}>
+              <Input
                 type="number"
                 step="100"
                 min="0"
-                aria-invalid={errors.monthlyDomesticBrl ? true : undefined}
-                aria-describedby={errors.monthlyDomesticBrl ? "brl-error" : undefined}
-                className="field-control tabular"
+                className="tabular"
                 {...register("monthlyDomesticBrl")}
               />
-              {errors.monthlyDomesticBrl ? (
-                <p id="brl-error" role="alert" className="mt-1.5 text-sm text-rose-700">
-                  {errors.monthlyDomesticBrl.message}
-                </p>
-              ) : null}
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="usd" className="field-label">
-                Gasto internacional por mês (US$)
-              </label>
-              <input
-                id="usd"
+            <Field
+              label="Gasto internacional por mês (US$)"
+              error={errors.monthlyInternationalUsd?.message}
+            >
+              <Input
                 type="number"
                 step="10"
                 min="0"
-                aria-invalid={errors.monthlyInternationalUsd ? true : undefined}
-                aria-describedby={errors.monthlyInternationalUsd ? "usd-error" : undefined}
-                className="field-control tabular"
+                className="tabular"
                 {...register("monthlyInternationalUsd")}
               />
-              {errors.monthlyInternationalUsd ? (
-                <p id="usd-error" role="alert" className="mt-1.5 text-sm text-rose-700">
-                  {errors.monthlyInternationalUsd.message}
-                </p>
-              ) : null}
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="income" className="field-label">
-                Renda mensal (R$) - opcional
-              </label>
-              <input
-                id="income"
+            <Field label="Renda mensal (R$) - opcional" error={errors.monthlyIncomeBrl?.message}>
+              <Input
                 type="number"
                 step="500"
                 min="0"
-                aria-invalid={errors.monthlyIncomeBrl ? true : undefined}
-                aria-describedby={errors.monthlyIncomeBrl ? "income-error" : undefined}
-                className="field-control tabular"
+                className="tabular"
                 {...register("monthlyIncomeBrl")}
               />
-              {errors.monthlyIncomeBrl ? (
-                <p id="income-error" role="alert" className="mt-1.5 text-sm text-rose-700">
-                  {errors.monthlyIncomeBrl.message}
-                </p>
-              ) : null}
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="available-investment" className="field-label">
-                Quanto você tem disponível para investir? (R$) - opcional
-              </label>
-              <input
-                id="available-investment"
+            <Field
+              label="Quanto você tem disponível para investir? (R$) - opcional"
+              error={errors.availableToInvestBrl?.message}
+            >
+              <Input
                 type="number"
                 step="1000"
                 min="0"
-                aria-invalid={errors.availableToInvestBrl ? true : undefined}
-                aria-describedby={
-                  errors.availableToInvestBrl ? "available-investment-error" : undefined
-                }
-                className="field-control tabular"
+                className="tabular"
                 {...register("availableToInvestBrl")}
               />
-              {errors.availableToInvestBrl ? (
-                <p
-                  id="available-investment-error"
-                  role="alert"
-                  className="mt-1.5 text-sm text-rose-700"
-                >
-                  {errors.availableToInvestBrl.message}
-                </p>
-              ) : null}
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="redemption" className="field-label">
-                Como você prefere resgatar?
-              </label>
-              <select id="redemption" className="field-control" {...register("redemptionRaw")}>
+            <Field label="Como você prefere resgatar?">
+              <Select {...register("redemptionRaw")}>
                 {REDEMPTION_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
 
-            <div>
-              <label htmlFor="travel-frequency" className="field-label">
-                Com que frequência você viaja?
-              </label>
-              <select
-                id="travel-frequency"
-                className="field-control"
-                {...register("travelFrequency")}
-              >
+            <Field
+              label="Com que frequência você viaja?"
+              hint="Alimenta o cálculo de benefícios de viagem (sala VIP, seguro, bagagem) na recomendação."
+            >
+              <Select {...register("travelFrequency")}>
                 {TRAVEL_FREQUENCY_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
-              </select>
-              <p className="mt-1.5 text-xs text-ink-subtle">
-                Alimenta o cálculo de benefícios de viagem (sala VIP, seguro, bagagem) na
-                recomendação.
-              </p>
-            </div>
+              </Select>
+            </Field>
           </section>
 
           <section className="space-y-2">
-            <span className="field-label">Cartões que você já tem (opcional)</span>
-            <p className="text-sm text-ink-muted">
+            <h2 className="text-ink text-sm font-semibold">Cartões que você já tem (opcional)</h2>
+            <p className="text-ink-muted text-sm">
               Quando preenchido, comparamos seu stack atual com o recomendado.
             </p>
             <Controller
               control={control}
               name="currentCardIds"
               render={({ field }) => (
-                <details className="panel-muted">
-                  <summary className="details-summary px-4 py-3">
-                    {selectedCardsLabel(field.value.length)}
-                  </summary>
-                  <div className="max-h-64 space-y-1.5 overflow-y-auto border-t border-line/50 px-4 py-3">
+                <Disclosure summary={selectedCardsLabel(field.value.length)}>
+                  <div className="border-line/50 max-h-64 space-y-1.5 overflow-y-auto border-t px-4 py-3">
                     {cardOptions.map((card) => {
                       const checked = field.value.includes(card.id);
                       return (
-                        <label key={card.id} className="flex items-start gap-2.5 text-sm text-ink">
-                          <input
-                            type="checkbox"
+                        <label key={card.id} className="text-ink flex items-start gap-2.5 text-sm">
+                          <Checkbox
+                            className="mt-1"
                             checked={checked}
                             onChange={(e) => {
                               const next = e.target.checked
@@ -296,7 +239,6 @@ export const InputForm = (): JSX.Element => {
                                 : field.value.filter((id) => id !== card.id);
                               field.onChange(next);
                             }}
-                            className="mt-1 rounded border-line text-accent focus:ring-accent"
                           />
                           <span>
                             {card.name} <span className="text-ink-subtle">({card.bank})</span>
@@ -306,7 +248,12 @@ export const InputForm = (): JSX.Element => {
                     })}
                     {cardOptions.length === 0 ? (
                       <p
-                        className={`rounded-md border px-3 py-2 text-sm ${cardOptionsError ? "border-rose-300 bg-rose-50/80 text-rose-800" : "border-line/60 bg-surface-raised text-ink-subtle"}`}
+                        className={cn(
+                          "rounded-md border px-3 py-2 text-sm",
+                          cardOptionsError
+                            ? "border-danger/40 bg-danger-soft text-danger"
+                            : "border-line/60 bg-surface-raised text-ink-subtle",
+                        )}
                       >
                         {cardOptionsError
                           ? "Não foi possível carregar a lista de cartões."
@@ -314,12 +261,12 @@ export const InputForm = (): JSX.Element => {
                       </p>
                     ) : null}
                   </div>
-                </details>
+                </Disclosure>
               )}
             />
           </section>
 
-          <footer className="flex flex-col-reverse items-start justify-between gap-3 border-t border-line/60 pt-5 sm:flex-row sm:items-center">
+          <footer className="border-line/60 flex flex-col-reverse items-start justify-between gap-3 border-t pt-5 sm:flex-row sm:items-center">
             <Link to={ROUTES.HOME} className="plain-link">
               Voltar para a home
             </Link>
