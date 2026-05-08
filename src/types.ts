@@ -321,6 +321,7 @@ export interface PublicCatalogCard {
   hasTravelInsurance: boolean;
   hasFreeCheckedBaggage: boolean;
   hasZeroIof: boolean;
+  hasInvestback?: boolean;
   cashbackRatePercent?: number;
   pointsPerUsdDomestic?: number;
   pointsPerUsdInternational?: number;

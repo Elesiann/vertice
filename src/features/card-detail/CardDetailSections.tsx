@@ -82,7 +82,10 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
             />
           )}
           {card.cashbackRatePercent !== undefined && (
-            <Stat label="Cashback" value={`${card.cashbackRatePercent.toFixed(2)}%`} />
+            <Stat
+              label={card.hasInvestback ? "Investback" : "Cashback"}
+              value={`${card.cashbackRatePercent.toFixed(2)}%`}
+            />
           )}
           {card.pointsExpirationMonths !== undefined && (
             <Stat

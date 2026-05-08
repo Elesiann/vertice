@@ -133,10 +133,12 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
           />
           <Row label="Programa" cells={cards.map((c) => c.pointsProgram)} />
           <Row
-            label="Cashback"
-            cells={cards.map((c) =>
-              c.cashbackRatePercent !== undefined ? `${String(c.cashbackRatePercent)}%` : "—",
-            )}
+            label={cards.some((c) => c.hasInvestback) ? "Cashback / Investback" : "Cashback"}
+            cells={cards.map((c) => {
+              if (c.cashbackRatePercent === undefined) return "—";
+              const kind = c.hasInvestback ? "investback" : "cashback";
+              return `${String(c.cashbackRatePercent)}% ${kind}`;
+            })}
             winners={cashbackWinners}
           />
           <Row label="Lounge" cells={cards.map(loungeSummary)} winners={loungeWinners} />

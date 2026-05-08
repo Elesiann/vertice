@@ -49,7 +49,9 @@ export const CatalogCard = ({
     <div className="flex flex-wrap gap-1">
       {card.hasLoungeAccess && <Badge tone="accent">Lounge</Badge>}
       {card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0 && (
-        <Badge tone="neutral">Cashback {card.cashbackRatePercent}%</Badge>
+        <Badge tone="neutral">
+          {card.hasInvestback ? "Investback" : "Cashback"} {card.cashbackRatePercent}%
+        </Badge>
       )}
       {card.annualFeeBrl === 0 && <Badge tone="neutral">Sem anuidade</Badge>}
     </div>
