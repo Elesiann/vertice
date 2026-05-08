@@ -150,7 +150,7 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
           />
           <Row
             label="Bagagem"
-            cells={cards.map((c) => (c.freeCheckedBaggage === true ? "Grátis" : "Não"))}
+            cells={cards.map((c) => (c.hasFreeCheckedBaggage ? "Grátis" : "Não"))}
           />
           <Row
             label="Câmbio"
