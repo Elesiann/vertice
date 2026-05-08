@@ -1,9 +1,17 @@
 export const BUTTON_BASE =
-  "inline-flex min-h-11 items-center justify-center rounded-md font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
+  "focus-visible:ring-accent inline-flex items-center justify-center rounded-md font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const BUTTON_VARIANT = {
   primary: "bg-accent text-white hover:bg-accent-hover",
-  ghost: "bg-transparent text-ink hover:bg-surface-sunken",
+  secondary: "border-line text-ink bg-surface-raised hover:bg-surface-sunken border",
+  ghost: "text-ink hover:bg-surface-sunken bg-transparent",
+} as const;
+
+export const BUTTON_SIZE = {
+  sm: "min-h-9 px-3 text-sm",
+  md: "min-h-11 px-4 text-base",
+  lg: "min-h-12 px-6 text-base",
 } as const;
 
 export type ButtonVariant = keyof typeof BUTTON_VARIANT;
+export type ButtonSize = keyof typeof BUTTON_SIZE;
