@@ -55,28 +55,27 @@ describe("InputForm", () => {
     window.localStorage.clear();
   });
 
-  it("renders spending, income and preference controls", async () => {
+  it("renders spending, income and preference controls", () => {
     renderForm(() => undefined);
 
-    expect(screen.getByLabelText(/Gasto doméstico/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Gasto internacional/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Gasto mensal no Brasil/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Gasto mensal em viagens/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Renda mensal/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/disponível para investir/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/prefere resgatar/i)).toBeInTheDocument();
-    expect(screen.getByText(/Cartões que você já tem/i)).toBeInTheDocument();
-    expect(screen.getByText(/Selecionar cartões/i)).toBeInTheDocument();
-    expect(await screen.findByText(/Sample Card/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Disponível para investir/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Forma de resgate/i)).toBeInTheDocument();
+    expect(screen.getByText(/Cartões atuais/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Buscar por nome/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /análise/i })).toBeInTheDocument();
   });
 
-  it("shows selected cards count in dropdown trigger", async () => {
+  it("selects a card via combobox and renders it as a chip", async () => {
     renderForm(() => undefined);
 
-    await userEvent.click(screen.getByText(/Selecionar cartões/i));
-    const firstCheckbox = await screen.findByRole("checkbox");
-    await userEvent.click(firstCheckbox);
+    await userEvent.click(screen.getByPlaceholderText(/Buscar por nome/i));
+    const option = await screen.findByRole("option", { name: /Sample Card/i });
+    await userEvent.click(option);
 
-    expect(screen.getByText(/1 cartão selecionado/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Remover Sample Card/i)).toBeInTheDocument();
   });
 
   it("submits profile and navigates to /results", async () => {
@@ -85,9 +84,9 @@ describe("InputForm", () => {
       latest = p;
     });
 
-    const brl = screen.getByLabelText(/Gasto doméstico/i);
-    const usd = screen.getByLabelText(/Gasto internacional/i);
-    const redemption = screen.getByLabelText(/prefere resgatar/i);
+    const brl = screen.getByLabelText(/Gasto mensal no Brasil/i);
+    const usd = screen.getByLabelText(/Gasto mensal em viagens/i);
+    const redemption = screen.getByLabelText(/Forma de resgate/i);
 
     await userEvent.clear(brl);
     await userEvent.type(brl, "8000");
@@ -130,7 +129,7 @@ describe("InputForm", () => {
       latest = p;
     });
 
-    const availableToInvest = screen.getByLabelText(/disponível para investir/i);
+    const availableToInvest = screen.getByLabelText(/Disponível para investir/i);
     await userEvent.clear(availableToInvest);
     await userEvent.type(availableToInvest, "50000");
     await userEvent.click(screen.getByRole("button", { name: /análise/i }));
@@ -146,7 +145,7 @@ describe("InputForm", () => {
   it("rejects negative values via zod", async () => {
     renderForm(() => undefined);
 
-    const brl = screen.getByLabelText(/Gasto doméstico/i);
+    const brl = screen.getByLabelText(/Gasto mensal no Brasil/i);
     await userEvent.clear(brl);
     await userEvent.type(brl, "-1");
     await userEvent.click(screen.getByRole("button", { name: /análise/i }));
@@ -171,10 +170,10 @@ describe("InputForm", () => {
 
     renderForm(() => undefined);
 
-    expect(await screen.findByLabelText(/Gasto doméstico/i)).toHaveValue(7000);
-    expect(screen.getByLabelText(/Gasto internacional/i)).toHaveValue(350);
-    expect(screen.getByLabelText(/prefere resgatar/i)).toHaveValue("miles:smiles");
-    expect(screen.getByLabelText(/frequência você viaja/i)).toHaveValue("frequent");
+    expect(await screen.findByLabelText(/Gasto mensal no Brasil/i)).toHaveValue(7000);
+    expect(screen.getByLabelText(/Gasto mensal em viagens/i)).toHaveValue(350);
+    expect(screen.getByLabelText(/Forma de resgate/i)).toHaveValue("miles:smiles");
+    expect(screen.getByLabelText(/Frequência de viagens/i)).toHaveValue("frequent");
     expect(screen.getByText(/Última edição/i)).toBeInTheDocument();
   });
 
@@ -198,6 +197,6 @@ describe("InputForm", () => {
 
     expect(window.localStorage.getItem("stackr.profile.v1")).toBeNull();
     expect(screen.queryByText(/Última edição/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Gasto doméstico/i)).toHaveValue(5000);
+    expect(screen.getByLabelText(/Gasto mensal no Brasil/i)).toHaveValue(5000);
   });
 });

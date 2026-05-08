@@ -35,12 +35,15 @@ export const Field = ({ label, children, id, hint, error, className }: FieldProp
   return (
     <FieldContext.Provider value={ctx}>
       <div className={cn("flex flex-col", className)}>
-        <label htmlFor={finalId} className="text-ink mb-1.5 block text-sm font-semibold">
-          {label}
-        </label>
+        <div className="mb-1.5 flex items-center gap-1.5">
+          <label htmlFor={finalId} className="text-ink block text-sm font-semibold">
+            {label}
+          </label>
+          {hasHint ? <HintTooltip hint={hint} /> : null}
+        </div>
         {children}
         {hasHint ? (
-          <p id={hintId} className="text-ink-subtle mt-1.5 text-xs">
+          <p id={hintId} className="text-ink-subtle mt-1.5 text-xs leading-relaxed sm:sr-only">
             {hint}
           </p>
         ) : null}
@@ -53,3 +56,21 @@ export const Field = ({ label, children, id, hint, error, className }: FieldProp
     </FieldContext.Provider>
   );
 };
+
+const HintTooltip = ({ hint }: { hint: ReactNode }): JSX.Element => (
+  <span className="group relative hidden sm:inline-flex">
+    <button
+      type="button"
+      aria-label="Mais informação"
+      className="text-ink-subtle hover:text-accent focus-visible:text-accent focus-visible:ring-accent inline-flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px] leading-none font-bold transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+    >
+      ?
+    </button>
+    <span
+      role="tooltip"
+      className="border-line bg-surface-raised text-ink pointer-events-none invisible absolute bottom-full left-1/2 z-30 mb-2 w-64 -translate-x-1/2 rounded-md border px-3 py-2 text-xs leading-relaxed opacity-0 shadow-md transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+    >
+      {hint}
+    </span>
+  </span>
+);

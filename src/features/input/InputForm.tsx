@@ -1,13 +1,13 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
-import { Button, Checkbox, Disclosure, Field, Input, Select } from "@/components/ui";
+import { Button, Field, Input, Select } from "@/components/ui";
 import { useSession } from "@/context/SessionContext";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
-import { cn } from "@/lib/cn";
+import { CardCombobox } from "@/features/input/CardCombobox";
 import type {
   CardOption,
   ProgramId,
@@ -33,17 +33,17 @@ const TRAVEL_FREQUENCY_OPTIONS: { value: TravelFrequency; label: string }[] = [
 ];
 
 const inputSchema = z.object({
-  monthlyDomesticBrl: z.coerce.number().min(0, "Não pode ser negativo"),
-  monthlyInternationalUsd: z.coerce.number().min(0, "Não pode ser negativo"),
+  monthlyDomesticBrl: z.coerce.number().min(0, "O valor não pode ser negativo."),
+  monthlyInternationalUsd: z.coerce.number().min(0, "O valor não pode ser negativo."),
   monthlyIncomeBrl: z.preprocess(
     (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
-    z.number().min(0, "Não pode ser negativo").optional(),
+    z.number().min(0, "O valor não pode ser negativo.").optional(),
   ),
   availableToInvestBrl: z.preprocess(
     (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
-    z.number().min(0, "Não pode ser negativo").optional(),
+    z.number().min(0, "O valor não pode ser negativo.").optional(),
   ),
-  redemptionRaw: z.string().min(1, "Selecione uma preferência"),
+  redemptionRaw: z.string().min(1, "Selecione uma preferência."),
   travelFrequency: z.enum(["none", "occasional", "frequent"]),
   currentCardIds: z.array(z.string()),
 });
@@ -108,29 +108,69 @@ const formatRelative = (savedAt: string, now: number = Date.now()): string => {
   return date.toLocaleDateString("pt-BR");
 };
 
-const selectedCardsLabel = (selectedCount: number): string =>
-  selectedCount > 0
-    ? `${String(selectedCount)} cartão${selectedCount > 1 ? "ões" : ""} selecionado${selectedCount > 1 ? "s" : ""}`
-    : "Selecionar cartões";
+interface FieldGroupProps {
+  index: string;
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}
+
+const MobileBackLink = (): JSX.Element => (
+  <Link
+    to={ROUTES.HOME}
+    aria-label="Voltar para a home"
+    className="border-line text-ink-muted hover:border-line-strong hover:text-accent focus-visible:ring-accent inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none sm:hidden"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden
+    >
+      <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  </Link>
+);
+
+const FieldGroup = ({ index, title, hint, children }: FieldGroupProps): JSX.Element => (
+  <section className="mt-10 first:mt-0 sm:mt-12">
+    <header className="mb-4 flex items-baseline gap-3">
+      <span className="text-num text-ink-subtle text-base">{index}</span>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+        <h2 className="text-heading text-ink">{title}</h2>
+        {hint !== undefined ? (
+          <p className="text-ink-muted text-sm leading-relaxed">{hint}</p>
+        ) : null}
+      </div>
+    </header>
+    <div className="grid gap-3 sm:grid-cols-2">{children}</div>
+  </section>
+);
 
 export const InputForm = (): JSX.Element => {
   const { profile, setProfile, profileSavedAt, reset: sessionReset } = useSession();
   const navigate = useNavigate();
   const [cardOptions, setCardOptions] = useState<CardOption[]>([]);
+  const [cardOptionsLoading, setCardOptionsLoading] = useState(true);
   const [cardOptionsError, setCardOptionsError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
+    setCardOptionsLoading(true);
     void fetchCardOptions()
       .then((cards) => {
         if (cancelled) return;
         setCardOptions(cards);
         setCardOptionsError(false);
+        setCardOptionsLoading(false);
       })
       .catch(() => {
         if (cancelled) return;
         setCardOptions([]);
         setCardOptionsError(true);
+        setCardOptionsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -149,7 +189,7 @@ export const InputForm = (): JSX.Element => {
   });
 
   const onSubmit = (values: InputFormValues): void => {
-    const profile: SpendingProfile = {
+    const next: SpendingProfile = {
       monthlyDomesticBrl: values.monthlyDomesticBrl,
       monthlyInternationalUsd: values.monthlyInternationalUsd,
       ...(values.monthlyIncomeBrl !== undefined
@@ -162,7 +202,7 @@ export const InputForm = (): JSX.Element => {
       ...(values.travelFrequency !== "none" ? { travelFrequency: values.travelFrequency } : {}),
       ...(values.currentCardIds.length > 0 ? { currentCardIds: values.currentCardIds } : {}),
     };
-    setProfile(profile);
+    setProfile(next);
     void navigate(ROUTES.RESULTS);
   };
 
@@ -172,166 +212,162 @@ export const InputForm = (): JSX.Element => {
   };
 
   return (
-    <main className="app-shell">
-      <div className="app-container max-w-4xl">
+    <main className="bg-surface min-h-screen">
+      <div className="mx-auto max-w-3xl px-6 py-8 sm:pt-10">
         <form
           onSubmit={(e) => {
             void handleSubmit(onSubmit)(e);
           }}
-          className="border-line bg-surface-raised space-y-8 rounded-lg border p-6 sm:p-8"
           noValidate
         >
           {profileSavedAt !== null ? (
-            <div className="border-line/80 -mx-6 -mt-6 flex flex-wrap items-center justify-between gap-2 border-b px-6 py-3 sm:-mx-8 sm:-mt-8 sm:px-8">
-              <p className="text-ink-muted text-sm">
-                <span className="text-caption text-ink-subtle mr-2">Última edição</span>
-                <span className="text-ink font-medium">{formatRelative(profileSavedAt)}</span>
-              </p>
-              <button
-                type="button"
-                onClick={onClearSavedProfile}
-                className="text-ink-muted hover:text-accent focus-visible:ring-accent text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-              >
-                Limpar
-              </button>
+            <div className="border-line flex items-center gap-3 border-b pb-4">
+              <MobileBackLink />
+              <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
+                <p className="text-ink-muted text-sm">
+                  <span className="text-caption text-ink-subtle mr-2">Última edição</span>
+                  <span className="text-ink font-medium">{formatRelative(profileSavedAt)}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={onClearSavedProfile}
+                  className="text-ink-muted hover:text-accent focus-visible:ring-accent text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                >
+                  Limpar
+                </button>
+              </div>
             </div>
-          ) : null}
+          ) : (
+            <MobileBackLink />
+          )}
 
-          <header className="space-y-2">
-            <h1 className="text-display-3 text-ink">Diga seu gasto</h1>
-            <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">
-              Preencha os campos para receber uma recomendação objetiva por retorno, liquidez,
-              anuidade, simplicidade e acessibilidade.
+          <header className="mt-6 mb-8 flex flex-col gap-2 sm:mt-8 sm:mb-6">
+            <h1 className="text-display-3 text-ink">Vamos calcular.</h1>
+            <p className="text-ink-muted max-w-xl text-sm leading-relaxed">
+              O cálculo considera anuidade, retorno por programa, benefícios de viagem e encaixe das
+              condições com seu perfil.
             </p>
           </header>
 
-          <section className="grid gap-5 md:grid-cols-2">
-            <Field label="Gasto doméstico por mês (R$)" error={errors.monthlyDomesticBrl?.message}>
-              <Input
-                type="number"
-                step="100"
-                min="0"
-                className="tabular"
-                {...register("monthlyDomesticBrl")}
-              />
-            </Field>
+          <div className="flex flex-col">
+            <FieldGroup index="01" title="Gasto mensal">
+              <Field label="Gasto mensal no Brasil (R$)" error={errors.monthlyDomesticBrl?.message}>
+                <Input
+                  type="number"
+                  step="100"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="5000"
+                  className="tabular"
+                  {...register("monthlyDomesticBrl")}
+                />
+              </Field>
 
-            <Field
-              label="Gasto internacional por mês (US$)"
-              error={errors.monthlyInternationalUsd?.message}
+              <Field
+                label="Gasto mensal em viagens (US$)"
+                error={errors.monthlyInternationalUsd?.message}
+              >
+                <Input
+                  type="number"
+                  step="10"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="200"
+                  className="tabular"
+                  {...register("monthlyInternationalUsd")}
+                />
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup
+              index="02"
+              title="Perfil financeiro"
+              hint="Opcional. Refina a recomendação."
             >
-              <Input
-                type="number"
-                step="10"
-                min="0"
-                className="tabular"
-                {...register("monthlyInternationalUsd")}
-              />
-            </Field>
+              <Field label="Renda mensal (R$)" error={errors.monthlyIncomeBrl?.message}>
+                <Input
+                  type="number"
+                  step="500"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="12000"
+                  className="tabular"
+                  {...register("monthlyIncomeBrl")}
+                />
+              </Field>
 
-            <Field label="Renda mensal (R$) - opcional" error={errors.monthlyIncomeBrl?.message}>
-              <Input
-                type="number"
-                step="500"
-                min="0"
-                className="tabular"
-                {...register("monthlyIncomeBrl")}
-              />
-            </Field>
+              <Field
+                label="Disponível para investir (R$)"
+                hint="Alguns cartões isentam anuidade por saldo investido no emissor."
+                error={errors.availableToInvestBrl?.message}
+              >
+                <Input
+                  type="number"
+                  step="1000"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="50000"
+                  className="tabular"
+                  {...register("availableToInvestBrl")}
+                />
+              </Field>
+            </FieldGroup>
 
-            <Field
-              label="Quanto você tem disponível para investir? (R$) - opcional"
-              error={errors.availableToInvestBrl?.message}
+            <FieldGroup index="03" title="Preferências">
+              <Field label="Forma de resgate preferida">
+                <Select {...register("redemptionRaw")}>
+                  {REDEMPTION_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field
+                label="Frequência de viagens internacionais"
+                hint="Define o peso de sala VIP, seguro e bagagem na recomendação."
+              >
+                <Select {...register("travelFrequency")}>
+                  {TRAVEL_FREQUENCY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </FieldGroup>
+
+            <FieldGroup
+              index="04"
+              title="Cartões atuais"
+              hint="Quando preenchido, o Stackr compara seu setup atual com a recomendação."
             >
-              <Input
-                type="number"
-                step="1000"
-                min="0"
-                className="tabular"
-                {...register("availableToInvestBrl")}
-              />
-            </Field>
+              <div className="sm:col-span-2">
+                <Controller
+                  control={control}
+                  name="currentCardIds"
+                  render={({ field }) => (
+                    <CardCombobox
+                      options={cardOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      loading={cardOptionsLoading}
+                      error={cardOptionsError}
+                    />
+                  )}
+                />
+              </div>
+            </FieldGroup>
+          </div>
 
-            <Field label="Como você prefere resgatar?">
-              <Select {...register("redemptionRaw")}>
-                {REDEMPTION_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-
-            <Field
-              label="Com que frequência você viaja?"
-              hint="Alimenta o cálculo de benefícios de viagem (sala VIP, seguro, bagagem) na recomendação."
-            >
-              <Select {...register("travelFrequency")}>
-                {TRAVEL_FREQUENCY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </section>
-
-          <section className="space-y-2">
-            <h2 className="text-ink text-sm font-semibold">Cartões que você já tem (opcional)</h2>
-            <p className="text-ink-muted text-sm">
-              Quando preenchido, comparamos seu stack atual com o recomendado.
-            </p>
-            <Controller
-              control={control}
-              name="currentCardIds"
-              render={({ field }) => (
-                <Disclosure summary={selectedCardsLabel(field.value.length)}>
-                  <div className="border-line/50 max-h-64 space-y-1.5 overflow-y-auto border-t px-4 py-3">
-                    {cardOptions.map((card) => {
-                      const checked = field.value.includes(card.id);
-                      return (
-                        <label key={card.id} className="text-ink flex items-start gap-2.5 text-sm">
-                          <Checkbox
-                            className="mt-1"
-                            checked={checked}
-                            onChange={(e) => {
-                              const next = e.target.checked
-                                ? [...field.value, card.id]
-                                : field.value.filter((id) => id !== card.id);
-                              field.onChange(next);
-                            }}
-                          />
-                          <span>
-                            {card.name} <span className="text-ink-subtle">({card.bank})</span>
-                          </span>
-                        </label>
-                      );
-                    })}
-                    {cardOptions.length === 0 ? (
-                      <p
-                        className={cn(
-                          "rounded-md border px-3 py-2 text-sm",
-                          cardOptionsError
-                            ? "border-danger/40 bg-danger-soft text-danger"
-                            : "border-line/60 bg-surface-raised text-ink-subtle",
-                        )}
-                      >
-                        {cardOptionsError
-                          ? "Não foi possível carregar a lista de cartões."
-                          : "Carregando cartões..."}
-                      </p>
-                    ) : null}
-                  </div>
-                </Disclosure>
-              )}
-            />
-          </section>
-
-          <footer className="border-line/60 flex flex-col-reverse items-start justify-between gap-3 border-t pt-5 sm:flex-row sm:items-center">
-            <Link to={ROUTES.HOME} className="plain-link">
-              Voltar para a home
+          <footer className="border-line mt-6 flex flex-col-reverse justify-between gap-4 border-t pt-6 sm:mt-6 sm:flex-row sm:items-center">
+            <Link to={ROUTES.HOME} className="plain-link hidden sm:inline">
+              ← Voltar para a home
             </Link>
-            <Button type="submit">Ver análise</Button>
+            <Button type="submit" size="lg" className="w-full sm:w-auto">
+              Ver análise →
+            </Button>
           </footer>
         </form>
       </div>
