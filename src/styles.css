@@ -2,22 +2,127 @@
 
 @import "tailwindcss";
 
+/* =============================================================================
+   Design tokens
+   -----------------------------------------------------------------------------
+   Tier 1 (primitives) — literal hex values, prefixed `--_color-*`.
+                          Components MUST NOT consume these directly.
+   Tier 2 (semantics)  — named for their role (surface/ink/accent/line/danger).
+                          Components consume these via Tailwind utilities
+                          (`bg-surface`, `text-ink-muted`) or `var(--color-*)`.
+   Dark mode is prepared via a `:root[data-theme="dark"]` block below but not
+   activated in production. To enable, toggle the attribute on <html>.
+   ========================================================================== */
+
 @theme {
+  /* --- Tier 1: primitives (do not consume in components) --- */
+  --_color-green-50: #e5efe9;
+  --_color-green-700: #166f4f;
+  --_color-green-800: #10583f;
+
+  --_color-sand-50: #fffefa;
+  --_color-sand-100: #f8f7f2;
+  --_color-sand-200: #f1f0ea;
+  --_color-sand-300: #d7ddd5;
+  --_color-sand-400: #bcc8bf;
+
+  --_color-slate-300: #8a978f;
+  --_color-slate-500: #5f6f65;
+  --_color-slate-900: #1f2a24;
+
+  --_color-rose-100: #ffe4e6;
+  --_color-rose-700: #be123c;
+
+  --_color-amber-100: #fef3c7;
+  --_color-amber-800: #92400e;
+
+  /* --- Tier 2: semantic colors (components consume these) --- */
+  --color-ink: var(--_color-slate-900);
+  --color-ink-muted: var(--_color-slate-500);
+  --color-ink-subtle: var(--_color-slate-300);
+
+  --color-surface: var(--_color-sand-100);
+  --color-surface-raised: var(--_color-sand-50);
+  --color-surface-sunken: var(--_color-sand-200);
+
+  --color-line: var(--_color-sand-300);
+  --color-line-strong: var(--_color-sand-400);
+
+  --color-accent: var(--_color-green-700);
+  --color-accent-hover: var(--_color-green-800);
+  --color-accent-soft: var(--_color-green-50);
+
+  --color-danger: var(--_color-rose-700);
+  --color-danger-soft: var(--_color-rose-100);
+
+  --color-warning: var(--_color-amber-800);
+  --color-warning-soft: var(--_color-amber-100);
+
+  /* --- Typography families --- */
   --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Newsreader", Georgia, serif;
 
-  --color-ink: #1f2a24;
-  --color-ink-muted: #5f6f65;
-  --color-ink-subtle: #8a978f;
+  /* --- Radius --- */
+  --radius-sm: 0.25rem; /* 4px */
+  --radius-md: 0.375rem; /* 6px */
+  --radius-lg: 0.5rem; /* 8px */
+  --radius-xl: 0.75rem; /* 12px */
+  --radius-pill: 9999px;
 
-  --color-surface: #f8f7f2;
-  --color-surface-raised: #fffefa;
-  --color-surface-sunken: #f1f0ea;
+  /* --- Motion --- */
+  --ease-snappy: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-glide: cubic-bezier(0.3, 0, 0, 1);
 
-  --color-line: #d7ddd5;
-
-  --color-accent: #166f4f;
-  --color-accent-hover: #10583f;
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
+  --duration-slow: 360ms;
 }
+
+/* =============================================================================
+   Dark theme override (prepared, not activated)
+   To activate, set <html data-theme="dark">. Light tokens stay as default.
+   ========================================================================== */
+:root[data-theme="dark"] {
+  --color-ink: #e7eee9;
+  --color-ink-muted: #b3bdb6;
+  --color-ink-subtle: #6e7972;
+
+  --color-surface: #0e1411;
+  --color-surface-raised: #161d19;
+  --color-surface-sunken: #0a0f0c;
+
+  --color-line: #233028;
+  --color-line-strong: #2f3d34;
+
+  --color-accent: #4dba91;
+  --color-accent-hover: #6dcfa9;
+  --color-accent-soft: #163027;
+
+  --color-danger: #f87171;
+  --color-danger-soft: #3a1a1d;
+
+  --color-warning: #fbbf24;
+  --color-warning-soft: #3a2a10;
+}
+
+/* =============================================================================
+   Reduced motion — globally lighten transitions when requested.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =============================================================================
+   Layer order (explicit). Reset → tokens (handled by Tailwind) →
+   components → utilities. Tailwind injects its layers; ours are appended.
+   ========================================================================== */
 
 @layer base {
   html {
@@ -40,6 +145,12 @@
   .app-container {
     @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8;
   }
+
+  /* -----------------------------------------------------------------
+     Legacy class layer — kept until consumers migrate to primitives.
+     Each block below is scheduled for removal in a follow-up commit
+     once the React component that uses it is refactored.
+     ----------------------------------------------------------------- */
 
   .panel {
     @apply border-line bg-surface-raised rounded-lg border;
@@ -70,57 +181,57 @@
   }
 
   .kpi-value {
-    font-family: "Newsreader", Georgia, serif;
+    font-family: var(--font-display);
     font-size: clamp(2.4rem, 7vw, 4.2rem);
     font-weight: 700;
     letter-spacing: -0.035em;
     line-height: 1;
   }
 
-  .tabular {
-    font-variant-numeric: tabular-nums lining-nums;
-  }
-
+  /* `.results-page` keeps scoped aliases mapped to global tokens for the
+     ResultsView during this transitional period. ResultsView is refactored
+     to use semantic utilities directly in a follow-up commit, then this
+     block can shrink to just `background`/`color`/`font-family`.            */
   .results-page {
-    --paper: #f8f7f2;
-    --paper-2: #fffefa;
-    --ink: #1f2a24;
-    --ink-soft: #5f6f65;
-    --ink-faint: #8a978f;
-    --rule: #d7ddd5;
-    --rule-strong: #bcc8bf;
-    --accent: #166f4f;
-    --accent-soft: #e5efe9;
-    background: var(--paper);
-    color: var(--ink-soft);
-    font-family: "Manrope", "Avenir Next", sans-serif;
+    --paper: var(--color-surface);
+    --paper-2: var(--color-surface-raised);
+    --ink: var(--color-ink);
+    --ink-soft: var(--color-ink-muted);
+    --ink-faint: var(--color-ink-subtle);
+    --rule: var(--color-line);
+    --rule-strong: var(--color-line-strong);
+    --accent: var(--color-accent);
+    --accent-soft: var(--color-accent-soft);
+    background: var(--color-surface);
+    color: var(--color-ink-muted);
+    font-family: var(--font-sans);
   }
 
   .results-display {
-    font-family: "Newsreader", Georgia, serif;
-    color: var(--ink);
+    font-family: var(--font-display);
+    color: var(--color-ink);
     font-feature-settings: "ss01", "lnum";
   }
 
   .results-num {
-    font-family: "Newsreader", Georgia, serif;
+    font-family: var(--font-display);
     font-variant-numeric: tabular-nums lining-nums;
-    color: var(--ink);
+    color: var(--color-ink);
     letter-spacing: -0.015em;
   }
 
   .results-eyebrow {
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--ink-faint);
+    color: var(--color-ink-subtle);
   }
 
   .results-rule {
-    border-color: var(--rule);
+    border-color: var(--color-line);
   }
 
   .results-rule-strong {
-    border-color: var(--rule-strong);
+    border-color: var(--color-line-strong);
   }
 
   .results-pill {
@@ -128,9 +239,9 @@
     align-items: center;
     gap: 0.3rem;
     padding: 0.16rem 0.55rem;
-    border-radius: 6px;
-    background: color-mix(in oklch, var(--accent) 12%, var(--paper));
-    color: color-mix(in oklch, var(--accent) 80%, black);
+    border-radius: var(--radius-md);
+    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-surface));
+    color: color-mix(in oklch, var(--color-accent) 80%, black);
     font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.02em;
@@ -141,14 +252,14 @@
   .results-disclosure > summary {
     cursor: pointer;
     list-style: none;
-    color: var(--ink-soft);
+    color: var(--color-ink-muted);
     font-size: 0.82rem;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
     padding: 0.2rem 0;
-    transition: color 160ms ease-out;
+    transition: color var(--duration-fast) ease-out;
   }
 
   .results-disclosure > summary::-webkit-details-marker {
@@ -161,48 +272,54 @@
     place-items: center;
     width: 1.05rem;
     height: 1.05rem;
-    border: 1px solid var(--rule-strong);
-    border-radius: 999px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: var(--radius-pill);
     font-size: 0.78rem;
     line-height: 1;
-    color: var(--ink-faint);
+    color: var(--color-ink-subtle);
     transition:
-      transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
-      color 160ms ease-out;
+      transform var(--duration-base) var(--ease-snappy),
+      color var(--duration-fast) ease-out;
   }
 
   .results-disclosure[open] > summary::after {
     content: "−";
-    color: var(--accent);
+    color: var(--color-accent);
   }
 
   .results-disclosure > summary:hover {
-    color: var(--accent);
+    color: var(--color-accent);
   }
 
   .results-disclosure > summary:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--color-accent);
     outline-offset: 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
   }
 
   .results-link {
-    color: var(--ink-soft);
+    color: var(--color-ink-muted);
     text-decoration: none;
     border-bottom: 1px solid transparent;
     transition:
-      color 160ms ease-out,
-      border-color 160ms ease-out;
+      color var(--duration-fast) ease-out,
+      border-color var(--duration-fast) ease-out;
   }
 
   .results-link:hover {
-    color: var(--accent);
-    border-bottom-color: color-mix(in oklch, var(--accent) 50%, transparent);
+    color: var(--color-accent);
+    border-bottom-color: color-mix(in oklch, var(--color-accent) 50%, transparent);
   }
 
   .results-link:focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--color-accent);
     outline-offset: 4px;
     border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
   }
 }
