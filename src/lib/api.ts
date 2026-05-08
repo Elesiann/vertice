@@ -1,5 +1,13 @@
 import { fail, ok, type Result } from "@/lib/result";
-import type { CardOption, Recommendation, SolverError, SpendingProfile } from "@/types";
+import type {
+  CardCatalogResponse,
+  CardOption,
+  CatalogFilters,
+  PublicCardDetail,
+  Recommendation,
+  SolverError,
+  SpendingProfile,
+} from "@/types";
 
 const getApiUrl = (): string => {
   const value: unknown = Reflect.get(import.meta.env, "VITE_API_URL");
@@ -63,5 +71,41 @@ export const fetchRecommendation = async (
     return ok(body.data);
   } catch {
     return fail(networkError());
+  }
+};
+
+export const fetchCardCatalog = async (
+  filters: CatalogFilters = {},
+): Promise<CardCatalogResponse> => {
+  const params = new URLSearchParams();
+  if (filters.bank !== undefined) params.set("bank", filters.bank);
+  if (filters.tier !== undefined) params.set("tier", filters.tier);
+  if (filters.brand !== undefined) params.set("brand", filters.brand);
+  if (filters.hasLounge !== undefined) params.set("hasLounge", String(filters.hasLounge));
+  if (filters.hasCashback !== undefined) params.set("hasCashback", String(filters.hasCashback));
+  if (filters.maxAnnualFee !== undefined) params.set("maxAnnualFee", String(filters.maxAnnualFee));
+  if (filters.search !== undefined && filters.search.length > 0)
+    params.set("search", filters.search);
+  const qs = params.toString();
+  const response = await fetch(apiUrl(`/cards/catalog${qs ? `?${qs}` : ""}`));
+  if (!response.ok) throw new Error("Failed to fetch card catalog");
+  return response.json() as Promise<CardCatalogResponse>;
+};
+
+export const fetchCardDetail = async (
+  id: string,
+): Promise<Result<PublicCardDetail, SolverError>> => {
+  try {
+    const response = await fetch(apiUrl(`/cards/${encodeURIComponent(id)}`));
+    if (response.status === 404) {
+      return fail({ code: "CARD_NOT_FOUND", message: "Cartão não encontrado." });
+    }
+    if (!response.ok) {
+      return fail({ code: "NETWORK_ERROR", message: "Não foi possível carregar o cartão." });
+    }
+    const data = (await response.json()) as PublicCardDetail;
+    return ok(data);
+  } catch {
+    return fail({ code: "NETWORK_ERROR", message: "Não foi possível conectar à API." });
   }
 };
