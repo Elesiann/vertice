@@ -9,6 +9,7 @@ import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { cn } from "@/lib/cn";
+import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatUsd } from "@/lib/format";
 import { ROUTES } from "@/routes";
 import type { LeaderboardAxisId, SpendingProfile, StackEvaluation } from "@/types";
@@ -640,10 +641,26 @@ export const ResultsView = (): JSX.Element => {
           <TravelTranslation translation={recommendation.travelTranslation} />
         </div>
 
-        <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
           <Link to={ROUTES.INPUT} className="plain-link">
             Ajustar dados
           </Link>
+          <a
+            href={buildErrorReportUrl({
+              stackLabel: stackLabel(topStack),
+              scenarioId: scoreLabMeta?.scenarioId,
+              scoreLabVersion: scoreLabMeta?.scoreLabVersion,
+              ptaxRate: scoreLabMeta?.ptaxRate,
+              ptaxSource: scoreLabMeta?.ptaxSource,
+              ptaxFetchedAt: scoreLabMeta?.ptaxFetchedAt,
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ink-subtle hover:text-accent focus-visible:ring-accent text-xs transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            Encontrou um erro nos dados?{" "}
+            <span className="underline underline-offset-4">Reportar no GitHub →</span>
+          </a>
         </footer>
       </div>
     </main>
