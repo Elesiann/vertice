@@ -576,24 +576,26 @@ export const ResultsView = (): JSX.Element => {
                     return (
                       <div
                         key={axis.axisId}
-                        className="grid gap-x-6 gap-y-1.5 py-4 sm:grid-cols-[140px_1fr_auto] sm:items-baseline"
+                        className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 py-4 sm:grid-cols-[140px_1fr_auto] sm:items-baseline sm:gap-y-0"
                       >
-                        <dt className="text-caption text-ink-subtle">{AXIS_LABEL[axis.axisId]}</dt>
-                        <dd className="text-sm">
+                        <dt className="text-caption text-ink-subtle col-start-1 row-start-1 self-baseline">
+                          {AXIS_LABEL[axis.axisId]}
+                        </dt>
+                        <dd
+                          className={cn(
+                            "text-num col-start-2 row-start-1 self-baseline text-right text-xs sm:col-start-3",
+                            isRecommended ? "text-accent" : "text-ink-muted",
+                          )}
+                        >
+                          {isRecommended ? "Recomendado" : currencyDelta(deltaVsTop)}
+                        </dd>
+                        <dd className="col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:self-baseline">
                           <span className="text-ink font-semibold">{stackLabel(leader)}</span>
                           <span className="text-ink-subtle mt-0.5 block text-xs leading-snug sm:mt-1">
                             {axis.axisId === "net-return"
                               ? `${axisMetric(axis.axisId, leader)} · liquidez ${LIQUIDITY_LABEL[leader.liquidity].toLowerCase()}`
                               : `${axisMetric(axis.axisId, leader)} · ${formatBrl(leader.yearOneNetValueBrl)} líquido · liquidez ${LIQUIDITY_LABEL[leader.liquidity].toLowerCase()}`}
                           </span>
-                        </dd>
-                        <dd
-                          className={cn(
-                            "text-num text-xs sm:text-right",
-                            isRecommended ? "text-accent" : "text-ink-muted",
-                          )}
-                        >
-                          {isRecommended ? "Recomendado" : currencyDelta(deltaVsTop)}
                         </dd>
                       </div>
                     );
