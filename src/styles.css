@@ -11,7 +11,7 @@
                           Components consume these via Tailwind utilities
                           (`bg-surface`, `text-ink-muted`) or `var(--color-*)`.
    Dark mode is prepared via a `:root[data-theme="dark"]` block below but not
-   activated in production. To enable, toggle the attribute on <html>.
+   activated in production. Toggle the attribute on <html> to enable.
    ========================================================================== */
 
 @theme {
@@ -106,7 +106,7 @@
 }
 
 /* =============================================================================
-   Reduced motion — globally lighten transitions when requested.
+   Reduced motion — collapse animations and transitions when requested.
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -120,8 +120,10 @@
 }
 
 /* =============================================================================
-   Layer order (explicit). Reset → tokens (handled by Tailwind) →
-   components → utilities. Tailwind injects its layers; ours are appended.
+   Layer order: Tailwind injects base/components/utilities. Our additions
+   live in the same layers; component-class consumers (app-shell,
+   plain-link, disclosure-inline) sit in `components`; tabular-nums in
+   `utilities`. Typography utilities are exposed via `@utility` blocks below.
    ========================================================================== */
 
 @layer base {
@@ -146,51 +148,13 @@
     @apply mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8;
   }
 
-  /* -----------------------------------------------------------------
-     Legacy class layer — kept until consumers migrate to primitives.
-     Each block below is scheduled for removal in a follow-up commit
-     once the React component that uses it is refactored.
-     ----------------------------------------------------------------- */
-
-  .panel {
-    @apply border-line bg-surface-raised rounded-lg border;
-  }
-
-  .panel-muted {
-    @apply border-line bg-surface-sunken rounded-md border;
-  }
-
-  .field-label {
-    @apply text-ink mb-1.5 block text-sm font-semibold;
-  }
-
-  .field-control {
-    @apply border-line text-ink placeholder:text-ink-subtle focus:border-accent focus:ring-accent/20 w-full rounded-md border bg-white px-3 py-2 text-base transition outline-none focus:ring-2 aria-[invalid=true]:border-rose-600 aria-[invalid=true]:focus:ring-rose-200 sm:text-sm;
-  }
-
-  .details-summary {
-    @apply text-ink hover:text-accent focus-visible:ring-accent cursor-pointer list-none font-semibold transition outline-none select-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-offset-2;
-  }
-
-  .details-summary::-webkit-details-marker {
-    display: none;
-  }
-
   .plain-link {
     @apply text-ink-muted decoration-line hover:text-accent hover:decoration-accent focus-visible:ring-accent text-sm font-semibold underline underline-offset-4 transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none;
   }
 
-  .kpi-value {
-    font-family: var(--font-display);
-    font-size: clamp(2.4rem, 7vw, 4.2rem);
-    font-weight: 700;
-    letter-spacing: -0.035em;
-    line-height: 1;
-  }
-
-  /* Inline disclosure summary with +/- chevron. Used by <Disclosure
-     variant="inline" />. Replaces .results-disclosure — same indicator
-     pattern with token-based colors and motion.                            */
+  /* Inline disclosure summary with +/- chevron. Consumed by
+     <Disclosure variant="inline" />. The +/- toggle is CSS-driven
+     via the [open] state, so no JS required.                              */
   .disclosure-inline > summary {
     cursor: pointer;
     list-style: none;
@@ -237,135 +201,6 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 4px;
     border-radius: var(--radius-sm);
-  }
-
-  /* `.results-page` keeps scoped aliases mapped to global tokens for the
-     ResultsView during this transitional period. ResultsView is refactored
-     to use semantic utilities directly in a follow-up commit, then this
-     block can shrink to just `background`/`color`/`font-family`.            */
-  .results-page {
-    --paper: var(--color-surface);
-    --paper-2: var(--color-surface-raised);
-    --ink: var(--color-ink);
-    --ink-soft: var(--color-ink-muted);
-    --ink-faint: var(--color-ink-subtle);
-    --rule: var(--color-line);
-    --rule-strong: var(--color-line-strong);
-    --accent: var(--color-accent);
-    --accent-soft: var(--color-accent-soft);
-    background: var(--color-surface);
-    color: var(--color-ink-muted);
-    font-family: var(--font-sans);
-  }
-
-  .results-display {
-    font-family: var(--font-display);
-    color: var(--color-ink);
-    font-feature-settings: "ss01", "lnum";
-  }
-
-  .results-num {
-    font-family: var(--font-display);
-    font-variant-numeric: tabular-nums lining-nums;
-    color: var(--color-ink);
-    letter-spacing: -0.015em;
-  }
-
-  .results-eyebrow {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--color-ink-subtle);
-  }
-
-  .results-rule {
-    border-color: var(--color-line);
-  }
-
-  .results-rule-strong {
-    border-color: var(--color-line-strong);
-  }
-
-  .results-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.16rem 0.55rem;
-    border-radius: var(--radius-md);
-    background: color-mix(in oklch, var(--color-accent) 12%, var(--color-surface));
-    color: color-mix(in oklch, var(--color-accent) 80%, black);
-    font-size: 0.68rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    line-height: 1.4;
-    white-space: nowrap;
-  }
-
-  .results-disclosure > summary {
-    cursor: pointer;
-    list-style: none;
-    color: var(--color-ink-muted);
-    font-size: 0.82rem;
-    font-weight: 500;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.2rem 0;
-    transition: color var(--duration-fast) ease-out;
-  }
-
-  .results-disclosure > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .results-disclosure > summary::after {
-    content: "+";
-    display: inline-grid;
-    place-items: center;
-    width: 1.05rem;
-    height: 1.05rem;
-    border: 1px solid var(--color-line-strong);
-    border-radius: var(--radius-pill);
-    font-size: 0.78rem;
-    line-height: 1;
-    color: var(--color-ink-subtle);
-    transition:
-      transform var(--duration-base) var(--ease-snappy),
-      color var(--duration-fast) ease-out;
-  }
-
-  .results-disclosure[open] > summary::after {
-    content: "−";
-    color: var(--color-accent);
-  }
-
-  .results-disclosure > summary:hover {
-    color: var(--color-accent);
-  }
-
-  .results-disclosure > summary:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 4px;
-    border-radius: var(--radius-sm);
-  }
-
-  .results-link {
-    color: var(--color-ink-muted);
-    text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition:
-      color var(--duration-fast) ease-out,
-      border-color var(--duration-fast) ease-out;
-  }
-
-  .results-link:hover {
-    color: var(--color-accent);
-    border-bottom-color: color-mix(in oklch, var(--color-accent) 50%, transparent);
-  }
-
-  .results-link:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 4px;
-    border-radius: 2px;
   }
 }
 
