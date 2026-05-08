@@ -2,6 +2,9 @@ import type { JSX } from "react";
 import { Link } from "react-router-dom";
 import { TravelTranslation } from "@/components/domain/TravelTranslation";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Disclosure } from "@/components/ui/Disclosure";
+import { Panel } from "@/components/ui/Panel";
+import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { formatBrl, formatUsd } from "@/lib/format";
@@ -177,9 +180,9 @@ const scoreLabReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation):
 const scoreText = (value: number): string => value.toFixed(2);
 
 const VERDICT_TONE: Record<"strong" | "viable" | "negative", string> = {
-  strong: "text-[color:var(--accent)]",
-  viable: "text-[color:var(--ink)]",
-  negative: "text-amber-800",
+  strong: "text-accent",
+  viable: "text-ink",
+  negative: "text-warning",
 };
 
 const PTAX_SOURCE_LABEL: Record<"awesomeapi" | "fallback" | "manual", string> = {
@@ -204,13 +207,13 @@ export const ResultsView = (): JSX.Element => {
     return (
       <main className="app-shell">
         <div className="app-container max-w-3xl">
-          <section className="panel space-y-4 p-6 text-center sm:p-8">
-            <h1 className="text-3xl font-semibold text-ink">Nada para mostrar ainda</h1>
-            <p className="text-sm text-ink-muted">Preencha seus dados para gerar a recomendação.</p>
+          <Panel className="space-y-4 p-6 text-center sm:p-8">
+            <h1 className="text-display-3 text-ink">Nada para mostrar ainda</h1>
+            <p className="text-ink-muted text-sm">Preencha seus dados para gerar a recomendação.</p>
             <div>
               <ButtonLink to={ROUTES.INPUT}>Ir para o formulário</ButtonLink>
             </div>
-          </section>
+          </Panel>
         </div>
       </main>
     );
@@ -220,9 +223,9 @@ export const ResultsView = (): JSX.Element => {
     return (
       <main className="app-shell">
         <div className="app-container max-w-3xl">
-          <section className="panel p-6 text-center text-ink-muted sm:p-8">
+          <Panel className="text-ink-muted p-6 text-center sm:p-8">
             Calculando recomendação...
-          </section>
+          </Panel>
         </div>
       </main>
     );
@@ -232,15 +235,15 @@ export const ResultsView = (): JSX.Element => {
     return (
       <main className="app-shell">
         <div className="app-container max-w-3xl">
-          <section className="panel space-y-4 p-6 text-center sm:p-8">
-            <h1 className="text-3xl font-semibold text-ink">Não conseguimos recomendar</h1>
-            <p className="text-sm text-ink-muted">{result.error.message}</p>
+          <Panel className="space-y-4 p-6 text-center sm:p-8">
+            <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
+            <p className="text-ink-muted text-sm">{result.error.message}</p>
             <div>
               <Link to={ROUTES.INPUT} className="plain-link">
                 Voltar e ajustar os dados
               </Link>
             </div>
-          </section>
+          </Panel>
         </div>
       </main>
     );
@@ -267,108 +270,108 @@ export const ResultsView = (): JSX.Element => {
       : null;
 
   return (
-    <main className="results-page min-h-screen">
+    <main className="bg-surface text-ink-muted min-h-screen">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
         <header className="max-w-4xl">
-          <h1 className="results-display text-[clamp(2rem,4.6vw,3.45rem)] font-semibold leading-[1.02] tracking-[-0.025em]">
-            Stack recomendado: {stackLabel(topStack)}
-          </h1>
+          <h1 className="text-display-2 text-ink">Stack recomendado: {stackLabel(topStack)}</h1>
           {scoreLab?.verdict ? (
             <p className="mt-3 max-w-3xl text-sm leading-relaxed">
               <span className={`font-semibold ${VERDICT_TONE[scoreLab.verdict.kind]}`}>
                 {scoreLab.verdict.label}.
               </span>{" "}
-              <span className="text-[color:var(--ink-soft)]">{scoreLab.verdict.detail}</span>
+              <span className="text-ink-muted">{scoreLab.verdict.detail}</span>
             </p>
           ) : null}
         </header>
 
-        <section className="results-rule mt-10 grid grid-cols-1 gap-y-8 border-b border-t py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10">
+        <section className="border-line mt-10 grid grid-cols-1 gap-y-8 border-t border-b py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10">
           <div>
-            <p className="results-num text-[clamp(3rem,7vw,4.8rem)] font-semibold leading-none text-[color:var(--accent)]">
-              {formatBrl(topStack.yearOneNetValueBrl)}
-            </p>
-            <p className="mt-3 text-sm text-[color:var(--ink-faint)]">
-              valor líquido estimado em 12 meses
-            </p>
+            <p className="text-kpi text-accent">{formatBrl(topStack.yearOneNetValueBrl)}</p>
+            <p className="text-ink-subtle mt-3 text-sm">valor líquido estimado em 12 meses</p>
             {recommendation.isReturnDecisionTight ? (
-              <p className="mt-5 border-l-2 border-amber-700/70 bg-amber-50/40 py-1 pl-3 pr-2 text-xs leading-relaxed text-amber-900">
+              <p className="border-warning/70 bg-warning-soft/40 text-warning mt-5 border-l-2 py-1 pr-2 pl-3 text-xs leading-relaxed">
                 Decisão apertada: a diferença de retorno para o segundo lugar está abaixo de 10%.
               </p>
             ) : null}
           </div>
           <dl className="grid content-end gap-0 self-end text-sm">
-            <div className="results-rule flex items-baseline justify-between border-b py-3">
-              <dt className="text-[color:var(--ink-faint)]">Anuidade total</dt>
-              <dd className="results-num font-semibold">
-                {formatBrl(topStack.yearOneAnnualFeeBrl)}
-              </dd>
-            </div>
+            <Stat
+              label="Anuidade total"
+              value={formatBrl(topStack.yearOneAnnualFeeBrl)}
+              labelClassName="text-ink-subtle"
+              className="border-line border-b py-3"
+            />
             {scoreLab ? (
               <>
-                <div className="results-rule flex items-baseline justify-between border-b py-3">
-                  <dt className="text-[color:var(--ink-faint)]">Custo FX/IOF</dt>
-                  <dd className="results-num font-semibold">
-                    {formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
-                  </dd>
-                </div>
+                <Stat
+                  label="Custo FX/IOF"
+                  value={formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  labelClassName="text-ink-subtle"
+                  className="border-line border-b py-3"
+                />
                 {scoreLab.modeledAnnual.benefitUtilityBrl > 0 ? (
-                  <div className="results-rule flex items-baseline justify-between border-b py-3">
-                    <dt className="text-[color:var(--ink-faint)]">Benefício de viagem</dt>
-                    <dd className="results-num font-semibold">
-                      {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
-                    </dd>
-                  </div>
+                  <Stat
+                    label="Benefício de viagem"
+                    value={formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
+                    labelClassName="text-ink-subtle"
+                    className="border-line border-b py-3"
+                  />
                 ) : null}
-                <div className="results-rule flex items-baseline justify-between border-b py-3">
-                  <dt className="text-[color:var(--ink-faint)]">Score-lab</dt>
-                  <dd className="results-num font-semibold">{scoreText(scoreLab.score)}</dd>
-                </div>
+                <Stat
+                  label="Score-lab"
+                  value={scoreText(scoreLab.score)}
+                  labelClassName="text-ink-subtle"
+                  className="border-line border-b py-3"
+                />
                 {scoreLab.breakEvenMonthlySpendBrl !== null ? (
-                  <div className="results-rule flex items-baseline justify-between border-b py-3">
-                    <dt className="text-[color:var(--ink-faint)]">Break-even mensal</dt>
-                    <dd className="results-num font-semibold">
-                      {formatBrl(scoreLab.breakEvenMonthlySpendBrl)}
-                    </dd>
-                  </div>
+                  <Stat
+                    label="Break-even mensal"
+                    value={formatBrl(scoreLab.breakEvenMonthlySpendBrl)}
+                    labelClassName="text-ink-subtle"
+                    className="border-line border-b py-3"
+                  />
                 ) : null}
                 {scoreLab.roiMultiple !== null ? (
-                  <div className="results-rule flex items-baseline justify-between border-b py-3">
-                    <dt className="text-[color:var(--ink-faint)]">ROI sobre anuidade</dt>
-                    <dd className="results-num font-semibold">
-                      {formatRoiMultiple(scoreLab.roiMultiple)}
-                    </dd>
-                  </div>
+                  <Stat
+                    label="ROI sobre anuidade"
+                    value={formatRoiMultiple(scoreLab.roiMultiple)}
+                    labelClassName="text-ink-subtle"
+                    className="border-line border-b py-3"
+                  />
                 ) : null}
               </>
             ) : null}
-            <div className="results-rule flex items-baseline justify-between border-b py-3">
-              <dt className="text-[color:var(--ink-faint)]">Liquidez</dt>
-              <dd className="font-semibold text-[color:var(--ink)]">
-                {LIQUIDITY_LABEL[topStack.liquidity]}
-              </dd>
-            </div>
-            <div className="results-rule flex items-baseline justify-between border-b py-3">
-              <dt className="text-[color:var(--ink-faint)]">Cartões no stack</dt>
-              <dd className="results-num font-semibold">{cardsInUse(topStack).length}</dd>
-            </div>
-            <div className="flex items-baseline justify-between gap-6 py-3">
-              <dt className="text-[color:var(--ink-faint)]">Investimento para acesso/isenção</dt>
-              <dd className="results-num text-right font-semibold">
-                {stackInvestmentRequirementLabel(topStack)}
-              </dd>
-            </div>
+            <Stat
+              label="Liquidez"
+              value={LIQUIDITY_LABEL[topStack.liquidity]}
+              labelClassName="text-ink-subtle"
+              valueClassName="text-ink font-semibold"
+              className="border-line border-b py-3"
+            />
+            <Stat
+              label="Cartões no stack"
+              value={cardsInUse(topStack).length}
+              labelClassName="text-ink-subtle"
+              className="border-line border-b py-3"
+            />
+            <Stat
+              label="Investimento para acesso/isenção"
+              value={stackInvestmentRequirementLabel(topStack)}
+              labelClassName="text-ink-subtle"
+              valueClassName="text-num text-ink text-right font-semibold"
+              className="py-3"
+            />
           </dl>
         </section>
 
         {scoreLab ? (
-          <section aria-label="Auditoria score-lab" className="results-rule border-b py-8">
+          <section aria-label="Auditoria score-lab" className="border-line border-b py-8">
             <div className="grid gap-6 md:grid-cols-[1fr_1.3fr] md:items-start">
               <div>
-                <h2 className="results-display text-xl font-semibold">Auditoria score-lab</h2>
-                <p className="mt-2 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+                <h2 className="text-heading text-ink">Auditoria score-lab</h2>
+                <p className="text-ink-muted mt-2 text-sm leading-relaxed">
                   Motor determinístico com PTAX{" "}
-                  <span className="results-num font-semibold text-[color:var(--ink)]">
+                  <span className="text-num text-ink font-semibold">
                     {scoreLabMeta?.ptaxRate.toFixed(2) ?? "atual"}
                   </span>
                   {scoreLabMeta ? (
@@ -387,42 +390,42 @@ export const ResultsView = (): JSX.Element => {
                 </p>
               </div>
               <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-5">
-                <div>
-                  <dt className="text-[color:var(--ink-faint)]">Retorno bruto</dt>
-                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
-                    {formatBrl(scoreLab.modeledAnnual.grossValueBrl)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[color:var(--ink-faint)]">Anuidade</dt>
-                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
-                    {formatBrl(scoreLab.modeledAnnual.recurringAnnualFeeBrl)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[color:var(--ink-faint)]">FX/IOF</dt>
-                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
-                    {formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[color:var(--ink-faint)]">Benefício viagem</dt>
-                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
-                    {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[color:var(--ink-faint)]">Reliability</dt>
-                  <dd className="results-num mt-1 font-semibold text-[color:var(--ink)]">
-                    {scoreText(scoreLab.productReliabilityScore)}
-                  </dd>
-                </div>
+                <Stat
+                  block
+                  label="Retorno bruto"
+                  value={formatBrl(scoreLab.modeledAnnual.grossValueBrl)}
+                  labelClassName="text-ink-subtle"
+                />
+                <Stat
+                  block
+                  label="Anuidade"
+                  value={formatBrl(scoreLab.modeledAnnual.recurringAnnualFeeBrl)}
+                  labelClassName="text-ink-subtle"
+                />
+                <Stat
+                  block
+                  label="FX/IOF"
+                  value={formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  labelClassName="text-ink-subtle"
+                />
+                <Stat
+                  block
+                  label="Benefício viagem"
+                  value={formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
+                  labelClassName="text-ink-subtle"
+                />
+                <Stat
+                  block
+                  label="Reliability"
+                  value={scoreText(scoreLab.productReliabilityScore)}
+                  labelClassName="text-ink-subtle"
+                />
               </dl>
             </div>
             {scoreLabMeta?.netReturnLeaderDiffers ? (
-              <p className="mt-5 border-l-2 border-[color:var(--rule-strong)] py-1 pl-3 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+              <p className="border-line-strong text-ink-muted mt-5 border-l-2 py-1 pl-3 text-sm leading-relaxed">
                 Maior retorno líquido isolado:{" "}
-                <span className="font-semibold text-[color:var(--ink)]">
+                <span className="text-ink font-semibold">
                   {stackLabel(scoreLabMeta.netReturnLeader)}
                 </span>{" "}
                 ({formatBrl(scoreLabMeta.netReturnLeader.yearOneNetValueBrl)}). O recomendado
@@ -431,9 +434,9 @@ export const ResultsView = (): JSX.Element => {
               </p>
             ) : null}
             {scoreLabMeta?.institutionalAlternative ? (
-              <p className="mt-3 border-l-2 border-[color:var(--rule-strong)] py-1 pl-3 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+              <p className="border-line-strong text-ink-muted mt-3 border-l-2 py-1 pl-3 text-sm leading-relaxed">
                 Alternativa institucional próxima:{" "}
-                <span className="font-semibold text-[color:var(--ink)]">
+                <span className="text-ink font-semibold">
                   {stackLabel(scoreLabMeta.institutionalAlternative.stack)}
                 </span>{" "}
                 ({formatBrl(scoreLabMeta.institutionalAlternative.stack.yearOneNetValueBrl)}).
@@ -443,12 +446,12 @@ export const ResultsView = (): JSX.Element => {
         ) : null}
 
         <section
-          className="results-rule grid grid-cols-1 border-b md:grid-cols-2"
+          className="border-line grid grid-cols-1 border-b md:grid-cols-2"
           aria-label="Resumo do stack recomendado"
         >
           <article className="py-8 md:pr-10">
-            <h2 className="results-display text-xl font-semibold">Como usar</h2>
-            <ul className="mt-5 divide-y divide-[color:var(--rule)] text-sm">
+            <h2 className="text-heading text-ink">Como usar</h2>
+            <ul className="divide-line mt-5 divide-y text-sm">
               {cardsInUse(topStack).map((card) => {
                 const alloc = topStack.allocation.find((entry) => entry.cardId === card.id);
                 return (
@@ -456,11 +459,11 @@ export const ResultsView = (): JSX.Element => {
                     key={card.id}
                     className="grid gap-2 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-baseline sm:gap-5"
                   >
-                    <span className="font-semibold text-[color:var(--ink)]">{card.name}</span>
-                    <span className="results-num text-[color:var(--ink-soft)]">
+                    <span className="text-ink font-semibold">{card.name}</span>
+                    <span className="text-num text-ink-muted">
                       BRL {formatBrl(alloc?.monthlyDomesticBrl ?? 0)}
                     </span>
-                    <span className="results-num text-[color:var(--ink-soft)]">
+                    <span className="text-num text-ink-muted">
                       USD {formatUsd(alloc?.monthlyInternationalUsd ?? 0)}
                     </span>
                   </li>
@@ -469,58 +472,58 @@ export const ResultsView = (): JSX.Element => {
             </ul>
           </article>
 
-          <article className="results-rule border-t py-8 md:border-l md:border-t-0 md:pl-10">
-            <h2 className="results-display text-xl font-semibold">Por que venceu</h2>
-            <ul className="mt-5 space-y-3 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+          <article className="border-line border-t py-8 md:border-t-0 md:border-l md:pl-10">
+            <h2 className="text-heading text-ink">Por que venceu</h2>
+            <ul className="text-ink-muted mt-5 space-y-3 text-sm leading-relaxed">
               {reasons.map((reason) => (
                 <li key={reason}>{reason}</li>
               ))}
             </ul>
-            <p className="results-rule mt-5 border-t pt-4 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+            <p className="border-line text-ink-muted mt-5 border-t pt-4 text-sm leading-relaxed">
               Acessibilidade: {accessibilitySummary}
             </p>
           </article>
         </section>
 
         {currentComparison ? (
-          <section aria-label="Comparar com stack atual" className="results-rule border-b py-8">
-            <h2 className="results-display text-xl font-semibold">Comparar com stack atual</h2>
-            <p className="mt-4 text-sm leading-relaxed text-[color:var(--ink-soft)]">
+          <section aria-label="Comparar com stack atual" className="border-line border-b py-8">
+            <h2 className="text-heading text-ink">Comparar com stack atual</h2>
+            <p className="text-ink-muted mt-4 text-sm leading-relaxed">
               Você está deixando{" "}
-              <span className="results-num font-semibold text-[color:var(--accent)]">
+              <span className="text-num text-accent font-semibold">
                 {formatBrl(currentComparison.moneyOnTheTableBrl)}
               </span>{" "}
               por ano na mesa.
             </p>
-            <p className="mt-2 text-sm text-[color:var(--ink-soft)]">
+            <p className="text-ink-muted mt-2 text-sm">
               Atual:{" "}
-              <span className="results-num font-semibold text-[color:var(--ink)]">
+              <span className="text-num text-ink font-semibold">
                 {formatBrl(currentComparison.stack.yearOneNetValueBrl)}
               </span>{" "}
               · Recomendado:{" "}
-              <span className="results-num font-semibold text-[color:var(--ink)]">
+              <span className="text-num text-ink font-semibold">
                 {formatBrl(topStack.yearOneNetValueBrl)}
               </span>
             </p>
           </section>
         ) : null}
 
-        <section aria-label="Trade-offs por eixo" className="results-rule border-b py-8">
-          <h2 className="results-display text-xl font-semibold">Trade-offs</h2>
-          <p className="mt-2 text-sm text-[color:var(--ink-soft)]">
+        <section aria-label="Trade-offs por eixo" className="border-line border-b py-8">
+          <h2 className="text-heading text-ink">Trade-offs</h2>
+          <p className="text-ink-muted mt-2 text-sm">
             O eixo anuidade mostra custo anual, não retorno líquido.
           </p>
 
           <div className="mt-6 overflow-x-auto">
             <table className="w-full min-w-[860px] border-collapse text-left text-sm">
               <thead>
-                <tr className="results-rule border-b text-[color:var(--ink-faint)]">
-                  <th className="pb-2 pr-4 font-semibold">Eixo</th>
-                  <th className="pb-2 pr-4 font-semibold">Stack vencedor</th>
-                  <th className="pb-2 pr-4 font-semibold">Indicador</th>
-                  <th className="pb-2 pr-4 font-semibold">Retorno líquido</th>
-                  <th className="pb-2 pr-4 font-semibold">Anuidade</th>
-                  <th className="pb-2 pr-4 font-semibold">Liquidez</th>
+                <tr className="border-line text-ink-subtle border-b">
+                  <th className="pr-4 pb-2 font-semibold">Eixo</th>
+                  <th className="pr-4 pb-2 font-semibold">Stack vencedor</th>
+                  <th className="pr-4 pb-2 font-semibold">Indicador</th>
+                  <th className="pr-4 pb-2 font-semibold">Retorno líquido</th>
+                  <th className="pr-4 pb-2 font-semibold">Anuidade</th>
+                  <th className="pr-4 pb-2 font-semibold">Liquidez</th>
                   <th className="pb-2 font-semibold">Diferença</th>
                 </tr>
               </thead>
@@ -530,24 +533,22 @@ export const ResultsView = (): JSX.Element => {
                   if (!leader) return null;
                   const deltaVsTop = leader.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
                   return (
-                    <tr key={axis.axisId} className="results-rule border-b align-top">
-                      <td className="py-3 pr-4 font-semibold text-[color:var(--ink)]">
+                    <tr key={axis.axisId} className="border-line border-b align-top">
+                      <td className="text-ink py-3 pr-4 font-semibold">
                         {AXIS_LABEL[axis.axisId]}
                       </td>
-                      <td className="py-3 pr-4 text-[color:var(--ink)]">{stackLabel(leader)}</td>
-                      <td className="py-3 pr-4 text-[color:var(--ink-soft)]">
+                      <td className="text-ink py-3 pr-4">{stackLabel(leader)}</td>
+                      <td className="text-ink-muted py-3 pr-4">
                         {axisMetric(axis.axisId, leader)}
                       </td>
-                      <td className="results-num py-3 pr-4 text-[color:var(--ink)]">
+                      <td className="text-num text-ink py-3 pr-4">
                         {formatBrl(leader.yearOneNetValueBrl)}
                       </td>
-                      <td className="results-num py-3 pr-4 text-[color:var(--ink)]">
+                      <td className="text-num text-ink py-3 pr-4">
                         {formatBrl(leader.yearOneAnnualFeeBrl)}
                       </td>
-                      <td className="py-3 pr-4 text-[color:var(--ink)]">
-                        {LIQUIDITY_LABEL[leader.liquidity]}
-                      </td>
-                      <td className="results-num py-3 text-[color:var(--ink-soft)]">
+                      <td className="text-ink py-3 pr-4">{LIQUIDITY_LABEL[leader.liquidity]}</td>
+                      <td className="text-num text-ink-muted py-3">
                         {stackId(leader) === stackId(topStack)
                           ? "Recomendado"
                           : currencyDelta(deltaVsTop)}
@@ -563,23 +564,26 @@ export const ResultsView = (): JSX.Element => {
             {recommendation.leaderboardsByAxis.map((axis) => {
               if (axis.stacks.length < 2) return null;
               return (
-                <details key={`details-${axis.axisId}`} className="results-disclosure">
-                  <summary>Outras opções no eixo {AXIS_LABEL[axis.axisId].toLowerCase()}</summary>
-                  <ol className="results-rule mt-3 divide-y divide-[color:var(--rule)] border-t text-sm text-[color:var(--ink-soft)]">
+                <Disclosure
+                  key={`details-${axis.axisId}`}
+                  variant="inline"
+                  summary={`Outras opções no eixo ${AXIS_LABEL[axis.axisId].toLowerCase()}`}
+                >
+                  <ol className="border-line divide-line text-ink-muted mt-3 divide-y border-t text-sm">
                     {axis.stacks.slice(1, 4).map((stack, index) => (
                       <li
                         key={`${axis.axisId}-${stackId(stack)}`}
                         className="grid gap-1 py-3 sm:grid-cols-[40px_1fr_auto] sm:items-baseline sm:gap-3"
                       >
-                        <span className="results-num text-xs text-[color:var(--ink-faint)]">
+                        <span className="text-num text-ink-subtle text-xs">
                           {String(index + 2).padStart(2, "0")}
                         </span>
-                        <span className="text-[color:var(--ink)]">{stackLabel(stack)}</span>
-                        <span className="results-num">{formatBrl(stack.yearOneNetValueBrl)}</span>
+                        <span className="text-ink">{stackLabel(stack)}</span>
+                        <span className="text-num">{formatBrl(stack.yearOneNetValueBrl)}</span>
                       </li>
                     ))}
                   </ol>
-                </details>
+                </Disclosure>
               );
             })}
           </div>
@@ -589,8 +593,8 @@ export const ResultsView = (): JSX.Element => {
           <TravelTranslation translation={recommendation.travelTranslation} />
         </div>
 
-        <footer className="results-rule mt-8 border-t pt-4">
-          <Link to={ROUTES.INPUT} className="results-link text-sm font-medium">
+        <footer className="border-line mt-8 border-t pt-4">
+          <Link to={ROUTES.INPUT} className="plain-link">
             Ajustar dados
           </Link>
         </footer>
