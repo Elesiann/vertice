@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import type { CatalogFilters } from "@/types";
 
 interface CatalogFiltersProps {
@@ -32,6 +33,16 @@ export const CatalogFiltersPanel = ({
     onChange(mergeFilters(filters, update));
   };
 
+  const premiumFreeActive = filters.maxAnnualFee === 0 && filters.hasLounge === true;
+
+  const handlePremiumFree = () => {
+    if (premiumFreeActive) {
+      set({ maxAnnualFee: undefined, hasLounge: undefined });
+      return;
+    }
+    set({ maxAnnualFee: 0, hasLounge: true });
+  };
+
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     set({ search: e.target.value.length > 0 ? e.target.value : undefined });
   };
@@ -58,6 +69,15 @@ export const CatalogFiltersPanel = ({
 
   return (
     <aside className="border-line bg-surface-raised flex flex-col gap-4 rounded-xl border p-4">
+      <button
+        type="button"
+        aria-pressed={premiumFreeActive}
+        className="self-start"
+        onClick={handlePremiumFree}
+      >
+        <Badge tone={premiumFreeActive ? "accent" : "neutral"}>Premium grátis</Badge>
+      </button>
+
       <Field label="Buscar">
         <Input
           type="search"
