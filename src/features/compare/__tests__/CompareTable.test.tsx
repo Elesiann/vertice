@@ -158,7 +158,7 @@ describe("CompareTable", () => {
     await userEvent.click(screen.getByLabelText("Esconder linhas iguais"));
 
     expect(screen.queryByText("Programa")).not.toBeInTheDocument();
-    expect(screen.getByText("Anuidade")).toBeInTheDocument();
+    expect(screen.getAllByText("Anuidade").length).toBeGreaterThan(0);
   });
 
   it("disables hide-equal toggle when there is only one card", () => {

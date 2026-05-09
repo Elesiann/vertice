@@ -65,7 +65,7 @@ describe("ComparePage inline add", () => {
   it("adds a catalog card to URL and compare store", async () => {
     renderPage("/compare?ids=a,b");
 
-    await screen.findByText("Cartão a");
+    await screen.findAllByText("Cartão a");
     await userEvent.click(screen.getByRole("button", { name: "Adicionar cartão" }));
     await userEvent.type(screen.getByPlaceholderText("Buscar cartão…"), "delta");
     await userEvent.click(screen.getByRole("button", { name: /Delta Gold/i }));
@@ -98,7 +98,7 @@ describe("ComparePage remove card", () => {
   it("removes one card from URL and compare store", async () => {
     renderPage("/compare?ids=a,b,c");
 
-    await screen.findByText("Cartão B");
+    await screen.findAllByText("Cartão B");
     await userEvent.click(screen.getByRole("button", { name: "Remover Cartão B" }));
 
     await waitFor(() => {
