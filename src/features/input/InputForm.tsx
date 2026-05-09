@@ -34,7 +34,6 @@ const TRAVEL_FREQUENCY_OPTIONS: { value: TravelFrequency; label: string }[] = [
 
 const inputSchema = z.object({
   monthlyDomesticBrl: z.coerce.number().min(0, "O valor não pode ser negativo."),
-  monthlyInternationalUsd: z.coerce.number().min(0, "O valor não pode ser negativo."),
   monthlyIncomeBrl: z.preprocess(
     (value) => (value === "" || value === null || value === undefined ? undefined : Number(value)),
     z.number().min(0, "O valor não pode ser negativo.").optional(),
@@ -53,7 +52,6 @@ type InputFormValues = z.output<typeof inputSchema>;
 
 const FORM_DEFAULTS: Partial<InputFormInput> = {
   monthlyDomesticBrl: 5000,
-  monthlyInternationalUsd: 200,
   redemptionRaw: "any",
   travelFrequency: "none",
   currentCardIds: [],
@@ -81,7 +79,6 @@ const profileToFormDefaults = (profile: SpendingProfile | null): Partial<InputFo
   if (profile === null) return FORM_DEFAULTS;
   return {
     monthlyDomesticBrl: profile.monthlyDomesticBrl,
-    monthlyInternationalUsd: profile.monthlyInternationalUsd,
     ...(profile.monthlyIncomeBrl !== undefined
       ? { monthlyIncomeBrl: profile.monthlyIncomeBrl }
       : {}),
@@ -112,6 +109,7 @@ interface FieldGroupProps {
   index: string;
   title: string;
   hint?: string;
+  columns?: 1 | 2 | 3;
   children: ReactNode;
 }
 
@@ -134,20 +132,29 @@ const MobileBackLink = (): JSX.Element => (
   </Link>
 );
 
-const FieldGroup = ({ index, title, hint, children }: FieldGroupProps): JSX.Element => (
-  <section className="mt-10 first:mt-0 sm:mt-12">
-    <header className="mb-4 flex items-baseline gap-3">
-      <span className="text-num text-ink-subtle text-base">{index}</span>
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-        <h2 className="text-heading text-ink">{title}</h2>
-        {hint !== undefined ? (
-          <p className="text-ink-muted text-sm leading-relaxed">{hint}</p>
-        ) : null}
-      </div>
-    </header>
-    <div className="grid gap-3 sm:grid-cols-2">{children}</div>
-  </section>
-);
+const FieldGroup = ({
+  index,
+  title,
+  hint,
+  columns = 2,
+  children,
+}: FieldGroupProps): JSX.Element => {
+  const colsClass = columns === 3 ? "sm:grid-cols-3" : columns === 2 ? "sm:grid-cols-2" : "";
+  return (
+    <section className="mt-10 first:mt-0 sm:mt-12">
+      <header className="mb-4 flex items-baseline gap-3">
+        <span className="text-num text-ink-subtle text-base">{index}</span>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
+          <h2 className="text-heading text-ink">{title}</h2>
+          {hint !== undefined ? (
+            <p className="text-ink-muted text-sm leading-relaxed">{hint}</p>
+          ) : null}
+        </div>
+      </header>
+      <div className={`grid gap-3 ${colsClass}`.trim()}>{children}</div>
+    </section>
+  );
+};
 
 export const InputForm = (): JSX.Element => {
   const { profile, setProfile, profileSavedAt, reset: sessionReset } = useSession();
@@ -191,7 +198,7 @@ export const InputForm = (): JSX.Element => {
   const onSubmit = (values: InputFormValues): void => {
     const next: SpendingProfile = {
       monthlyDomesticBrl: values.monthlyDomesticBrl,
-      monthlyInternationalUsd: values.monthlyInternationalUsd,
+      monthlyInternationalUsd: 0,
       ...(values.monthlyIncomeBrl !== undefined
         ? { monthlyIncomeBrl: values.monthlyIncomeBrl }
         : {}),
@@ -250,8 +257,8 @@ export const InputForm = (): JSX.Element => {
           </header>
 
           <div className="flex flex-col">
-            <FieldGroup index="01" title="Gasto mensal">
-              <Field label="Gasto mensal no Brasil (R$)" error={errors.monthlyDomesticBrl?.message}>
+            <FieldGroup index="01" title="Perfil financeiro" columns={3}>
+              <Field label="Gasto mensal (R$)" error={errors.monthlyDomesticBrl?.message}>
                 <Input
                   type="number"
                   step="100"
@@ -264,27 +271,14 @@ export const InputForm = (): JSX.Element => {
               </Field>
 
               <Field
-                label="Gasto mensal em viagens (US$)"
-                error={errors.monthlyInternationalUsd?.message}
+                label={
+                  <>
+                    Renda mensal (R$){" "}
+                    <span className="text-ink-subtle text-xs font-normal">(opcional)</span>
+                  </>
+                }
+                error={errors.monthlyIncomeBrl?.message}
               >
-                <Input
-                  type="number"
-                  step="10"
-                  min="0"
-                  inputMode="numeric"
-                  placeholder="200"
-                  className="tabular"
-                  {...register("monthlyInternationalUsd")}
-                />
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup
-              index="02"
-              title="Perfil financeiro"
-              hint="Opcional. Refina a recomendação."
-            >
-              <Field label="Renda mensal (R$)" error={errors.monthlyIncomeBrl?.message}>
                 <Input
                   type="number"
                   step="500"
@@ -297,8 +291,12 @@ export const InputForm = (): JSX.Element => {
               </Field>
 
               <Field
-                label="Disponível para investir (R$)"
-                hint="Alguns cartões isentam anuidade por saldo investido no emissor."
+                label={
+                  <>
+                    Total em Investimentos
+                    <span className="text-ink-subtle text-xs font-normal">(opcional)</span>
+                  </>
+                }
                 error={errors.availableToInvestBrl?.message}
               >
                 <Input
@@ -313,7 +311,7 @@ export const InputForm = (): JSX.Element => {
               </Field>
             </FieldGroup>
 
-            <FieldGroup index="03" title="Preferências">
+            <FieldGroup index="02" title="Preferências">
               <Field label="Forma de resgate preferida">
                 <Select {...register("redemptionRaw")}>
                   {REDEMPTION_OPTIONS.map((opt) => (
@@ -339,25 +337,24 @@ export const InputForm = (): JSX.Element => {
             </FieldGroup>
 
             <FieldGroup
-              index="04"
+              index="03"
               title="Cartões atuais"
               hint="Quando preenchido, o Stackr compara seu setup atual com a recomendação."
+              columns={1}
             >
-              <div className="sm:col-span-2">
-                <Controller
-                  control={control}
-                  name="currentCardIds"
-                  render={({ field }) => (
-                    <CardCombobox
-                      options={cardOptions}
-                      value={field.value}
-                      onChange={field.onChange}
-                      loading={cardOptionsLoading}
-                      error={cardOptionsError}
-                    />
-                  )}
-                />
-              </div>
+              <Controller
+                control={control}
+                name="currentCardIds"
+                render={({ field }) => (
+                  <CardCombobox
+                    options={cardOptions}
+                    value={field.value}
+                    onChange={field.onChange}
+                    loading={cardOptionsLoading}
+                    error={cardOptionsError}
+                  />
+                )}
+              />
             </FieldGroup>
           </div>
 

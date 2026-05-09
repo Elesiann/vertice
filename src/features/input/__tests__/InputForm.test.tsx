@@ -58,8 +58,8 @@ describe("InputForm", () => {
   it("renders spending, income and preference controls", () => {
     renderForm(() => undefined);
 
-    expect(screen.getByLabelText(/Gasto mensal no Brasil/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Gasto mensal em viagens/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Gasto mensal \(R\$\)/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Gasto mensal em viagens/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Renda mensal/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Disponível para investir/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Forma de resgate/i)).toBeInTheDocument();
@@ -84,21 +84,18 @@ describe("InputForm", () => {
       latest = p;
     });
 
-    const brl = screen.getByLabelText(/Gasto mensal no Brasil/i);
-    const usd = screen.getByLabelText(/Gasto mensal em viagens/i);
+    const brl = screen.getByLabelText(/Gasto mensal \(R\$\)/i);
     const redemption = screen.getByLabelText(/Forma de resgate/i);
 
     await userEvent.clear(brl);
     await userEvent.type(brl, "8000");
-    await userEvent.clear(usd);
-    await userEvent.type(usd, "300");
     await userEvent.selectOptions(redemption, "miles:smiles");
 
     await userEvent.click(screen.getByRole("button", { name: /análise/i }));
 
     expect(latest).toEqual({
       monthlyDomesticBrl: 8000,
-      monthlyInternationalUsd: 300,
+      monthlyInternationalUsd: 0,
       redemption: { kind: "miles", program: "smiles" },
     });
     expect(navigateMock).toHaveBeenCalledWith("/results");
@@ -117,7 +114,7 @@ describe("InputForm", () => {
 
     expect(latest).toEqual({
       monthlyDomesticBrl: 5000,
-      monthlyInternationalUsd: 200,
+      monthlyInternationalUsd: 0,
       monthlyIncomeBrl: 12000,
       redemption: { kind: "any" },
     });
@@ -136,7 +133,7 @@ describe("InputForm", () => {
 
     expect(latest).toEqual({
       monthlyDomesticBrl: 5000,
-      monthlyInternationalUsd: 200,
+      monthlyInternationalUsd: 0,
       availableToInvestBrl: 50000,
       redemption: { kind: "any" },
     });
@@ -145,7 +142,7 @@ describe("InputForm", () => {
   it("rejects negative values via zod", async () => {
     renderForm(() => undefined);
 
-    const brl = screen.getByLabelText(/Gasto mensal no Brasil/i);
+    const brl = screen.getByLabelText(/Gasto mensal \(R\$\)/i);
     await userEvent.clear(brl);
     await userEvent.type(brl, "-1");
     await userEvent.click(screen.getByRole("button", { name: /análise/i }));
@@ -170,8 +167,8 @@ describe("InputForm", () => {
 
     renderForm(() => undefined);
 
-    expect(await screen.findByLabelText(/Gasto mensal no Brasil/i)).toHaveValue(7000);
-    expect(screen.getByLabelText(/Gasto mensal em viagens/i)).toHaveValue(350);
+    expect(await screen.findByLabelText(/Gasto mensal \(R\$\)/i)).toHaveValue(7000);
+    expect(screen.queryByLabelText(/Gasto mensal em viagens/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Forma de resgate/i)).toHaveValue("miles:smiles");
     expect(screen.getByLabelText(/Frequência de viagens/i)).toHaveValue("frequent");
     expect(screen.getByText(/Última edição/i)).toBeInTheDocument();
@@ -197,6 +194,6 @@ describe("InputForm", () => {
 
     expect(window.localStorage.getItem("stackr.profile.v1")).toBeNull();
     expect(screen.queryByText(/Última edição/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/Gasto mensal no Brasil/i)).toHaveValue(5000);
+    expect(screen.getByLabelText(/Gasto mensal \(R\$\)/i)).toHaveValue(5000);
   });
 });
