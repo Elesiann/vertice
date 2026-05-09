@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
+import { WaiverIcon } from "@/components/domain/WaiverIcon";
 import { formatBrl } from "@/lib/format";
 
 interface FeeWaiverBadgeProps {
@@ -21,13 +22,19 @@ export const FeeWaiverBadge = ({
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       {annualFeeWaiverThresholdBrl !== undefined && (
-        <Badge tone="neutral">{formatBrl(annualFeeWaiverThresholdBrl)}/mês de gasto</Badge>
+        <Badge tone="neutral" className="inline-flex items-center gap-1.5">
+          <WaiverIcon category="monthly_spend" />
+          {formatBrl(annualFeeWaiverThresholdBrl)}/mês de gasto
+        </Badge>
       )}
       {annualFeeWaiverThresholdBrl !== undefined && investmentFeeWaiverBrl !== undefined && (
         <span className="text-ink-subtle text-xs font-medium">OU</span>
       )}
       {investmentFeeWaiverBrl !== undefined && (
-        <Badge tone="neutral">{formatBrl(investmentFeeWaiverBrl)} investido</Badge>
+        <Badge tone="neutral" className="inline-flex items-center gap-1.5">
+          <WaiverIcon category="investment" />
+          {formatBrl(investmentFeeWaiverBrl)} investido
+        </Badge>
       )}
     </div>
   );

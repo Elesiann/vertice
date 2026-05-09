@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
+import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { useSession } from "@/context/SessionContext";
 import { formatBrl } from "@/lib/format";
@@ -79,6 +80,14 @@ export const CatalogCard = ({
       <p className="text-body-sm text-ink-muted">
         Anuidade: <span className="text-ink font-semibold">{formatBrl(card.annualFeeBrl)}</span>
       </p>
+      <FeeWaiverBadge
+        {...(card.annualFeeWaiverThresholdBrl !== undefined
+          ? { annualFeeWaiverThresholdBrl: card.annualFeeWaiverThresholdBrl }
+          : {})}
+        {...(card.investmentFeeWaiverBrl !== undefined
+          ? { investmentFeeWaiverBrl: card.investmentFeeWaiverBrl }
+          : {})}
+      />
       <div className="flex flex-wrap gap-1">
         {isCurrentCard && <Badge tone="neutral">Você já tem</Badge>}
         {card.hasLoungeAccess && <Badge tone="accent">Lounge</Badge>}
