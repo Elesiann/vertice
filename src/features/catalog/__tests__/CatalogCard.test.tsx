@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { SessionProvider, useSession } from "@/context/SessionContext";
 import { CatalogCard } from "@/features/catalog/CatalogCard";
-import type { PublicCatalogCard } from "@/types";
+import type { PublicCatalogCard, SpendingProfile } from "@/types";
 
 const card: PublicCatalogCard = {
   id: "test-card",
@@ -19,24 +21,56 @@ const card: PublicCatalogCard = {
   hasZeroIof: false,
 };
 
-const Wrapper = ({ children }: { children: React.ReactNode }) => (
-  <MemoryRouter>{children}</MemoryRouter>
-);
+const profile: SpendingProfile = {
+  monthlyDomesticBrl: 5000,
+  monthlyInternationalUsd: 0,
+  redemption: { kind: "any" },
+  currentCardIds: ["test-card"],
+};
+
+const SeedSession = ({ profile }: { profile: SpendingProfile | null }): null => {
+  const { setProfile } = useSession();
+  useEffect(() => {
+    setProfile(profile);
+  }, [profile, setProfile]);
+  return null;
+};
+
+const renderCard = (currentProfile: SpendingProfile | null = null, props = {}) => {
+  return render(
+    <MemoryRouter>
+      <SessionProvider>
+        <SeedSession profile={currentProfile} />
+        <CatalogCard card={card} {...props} />
+      </SessionProvider>
+    </MemoryRouter>,
+  );
+};
 
 describe("CatalogCard", () => {
   it("renders card name", () => {
-    render(<CatalogCard card={card} />, { wrapper: Wrapper });
+    renderCard();
     expect(screen.getByText("Cartão Teste")).toBeInTheDocument();
   });
 
   it("shows lounge badge when hasLoungeAccess", () => {
-    render(<CatalogCard card={card} />, { wrapper: Wrapper });
+    renderCard();
     expect(screen.getByText(/lounge/i)).toBeInTheDocument();
+  });
+
+  it("shows current-card badge when card is in the session profile", () => {
+    renderCard(profile);
+    expect(screen.getByText("Você já tem")).toBeInTheDocument();
+  });
+
+  it("omits current-card badge when card is not in the session profile", () => {
+    renderCard({ ...profile, currentCardIds: ["other-card"] });
+    expect(screen.queryByText("Você já tem")).not.toBeInTheDocument();
   });
 
   it("calls onCompare when compare button clicked", async () => {
     const onCompare = vi.fn();
-    render(<CatalogCard card={card} onCompare={onCompare} />, { wrapper: Wrapper });
+    renderCard(null, { onCompare });
     await userEvent.click(screen.getByRole("button", { name: /comparar/i }));
     expect(onCompare).toHaveBeenCalledWith("test-card");
   });
