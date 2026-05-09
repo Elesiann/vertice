@@ -8,31 +8,31 @@ interface TravelTranslationProps {
 
 export const TravelTranslation = ({ translation }: TravelTranslationProps): JSX.Element => (
   <section
-    className="rounded-md border border-line bg-surface-sunken p-4"
+    className="border-line bg-surface-sunken rounded-md border p-4"
     aria-label="Tradução em viagens"
   >
-    <p className="text-sm font-medium text-ink-muted">Isso vira</p>
+    <p className="text-ink-muted text-sm font-medium">Isso vira</p>
     {translation.program === "cashback" ? (
-      <p className="mt-1 text-xl font-semibold text-ink">
+      <p className="text-ink mt-1 text-xl font-semibold">
         {formatBrl(translation.compatiblePoints)} de cashback
       </p>
-    ) : (
-      <p className="mt-1 text-xl font-semibold text-ink">
+    ) : translation.trips > 0 ? (
+      <p className="text-ink mt-1 text-xl font-semibold">
         {translation.trips} {translation.trips === 1 ? "passagem" : "passagens"}
       </p>
+    ) : (
+      <p className="text-ink mt-1 text-xl font-semibold">Abaixo de uma passagem</p>
     )}
-    <p className="text-sm text-ink-muted">{translation.flight}</p>
+    <p className="text-ink-muted text-sm">{translation.flight}</p>
     {translation.program === "cashback" ? (
-      <p className="mt-1 text-xs text-ink-subtle">
-        Valor compatível: {formatBrl(translation.compatiblePoints)}
-      </p>
+      <p className="text-ink-subtle mt-1 text-xs">Valor estimado em 12 meses.</p>
     ) : (
       <>
-        <p className="mt-1 text-xs text-ink-subtle">
+        <p className="text-ink-subtle mt-1 text-xs">
           Pontos compatíveis: {formatPoints(translation.compatiblePoints)}
         </p>
         {translation.remainingPoints > 0 ? (
-          <p className="mt-1 text-xs text-ink-subtle">
+          <p className="text-ink-subtle mt-1 text-xs">
             Sobra: {formatPoints(translation.remainingPoints)} pontos
           </p>
         ) : null}

@@ -8,11 +8,17 @@ import { Panel } from "@/components/ui/Panel";
 import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
-import { cn } from "@/lib/cn";
 import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatUsd } from "@/lib/format";
 import { ROUTES } from "@/routes";
-import type { LeaderboardAxisId, SpendingProfile, StackEvaluation } from "@/types";
+import type {
+  LeaderboardAxisId,
+  ProgramId,
+  Recommendation,
+  RedemptionPreference,
+  SpendingProfile,
+  StackEvaluation,
+} from "@/types";
 
 const AXIS_LABEL: Record<LeaderboardAxisId, string> = {
   "net-return": "Retorno",
@@ -28,15 +34,65 @@ const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
   low: "Baixa",
 };
 
-const RELATIONSHIP_LABEL: Record<
-  NonNullable<StackEvaluation["cards"][number]["requiresRelationship"]>,
-  string
-> = {
-  open: "aberto",
-  checking: "correntista",
-  investment: "investimento",
-  private: "private",
+const ALTERNATIVE_THRESHOLD_FLOOR_BRL = 1_500;
+
+const PROGRAM_LABEL: Partial<Record<ProgramId, string>> = {
+  cashback: "cashback",
+  smiles: "Smiles",
+  "latam-pass": "LATAM Pass",
+  tudoazul: "TudoAzul",
+  livelo: "Livelo",
+  esfera: "Esfera",
+  "inter-loop": "Inter Loop",
+  "uau-caixa": "Uau Caixa",
+  atomos: "Átomos",
+  "btg-points": "BTG Points",
+  aadvantage: "AAdvantage",
+  "tap-miles-and-go": "TAP Miles&Go",
+  "pao-de-acucar-mais": "Pão de Açúcar Mais",
+  "cresol-pontos": "Cresol Pontos",
+  coopera: "Coopera",
+  "sisprime-pontos": "Sisprime Pontos",
+  "unicred-unico": "Unicred Único",
+  "safra-rewards": "Safra Rewards",
+  "porto-plus": "PortoPlus",
+  "nomad-pass": "Nomad Pass",
+  revpoints: "RevPoints",
+  "iberia-club": "Iberia Club",
+  "ba-club": "British Airways Club",
+  "qatar-privilege-club": "Qatar Privilege Club",
+  "turkish-miles-smiles": "Turkish Miles&Smiles",
+  "finnair-plus": "Finnair Plus",
+  "aer-lingus-aerclub": "Aer Lingus AerClub",
+  "vueling-club": "Vueling Club",
+  "flying-blue": "Flying Blue",
+  "etihad-guest": "Etihad Guest",
 };
+
+const MILES_PROGRAMS = new Set<ProgramId>([
+  "smiles",
+  "latam-pass",
+  "tudoazul",
+  "aadvantage",
+  "tap-miles-and-go",
+  "nomad-pass",
+  "iberia-club",
+  "ba-club",
+  "qatar-privilege-club",
+  "turkish-miles-smiles",
+  "finnair-plus",
+  "aer-lingus-aerclub",
+  "vueling-club",
+  "flying-blue",
+  "etihad-guest",
+]);
+
+interface CuratedAlternative {
+  slot: "no-barrier" | "conditional-upside" | "institutional" | "net-return" | "axis";
+  label: string;
+  stack: StackEvaluation;
+  detail: string;
+}
 
 const cardsInUse = (stack: StackEvaluation): StackEvaluation["cards"] => {
   const activeCards = stack.cards.filter((card) => {
@@ -60,11 +116,36 @@ const stackLabel = (stack: StackEvaluation): string =>
     .map((card) => card.name)
     .join(" + ");
 
-const stackRelationshipSummary = (stack: StackEvaluation): string => {
-  const levels = Array.from(
-    new Set(stack.cards.map((card) => RELATIONSHIP_LABEL[card.requiresRelationship ?? "checking"])),
-  );
-  return levels.join(" + ");
+const primaryProgram = (stack: StackEvaluation): ProgramId | undefined =>
+  cardsInUse(stack)[0]?.pointsProgram ?? stack.cards[0]?.pointsProgram;
+
+const titleCaseProgram = (program: ProgramId): string =>
+  program
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+
+const programRedemptionLabel = (program: ProgramId | undefined): string => {
+  if (program === undefined) return "outro programa";
+  if (program === "cashback") return "cashback";
+  const brand = PROGRAM_LABEL[program] ?? titleCaseProgram(program);
+  return `${MILES_PROGRAMS.has(program) ? "milhas" : "pontos"} ${brand}`;
+};
+
+const preferenceLabel = (redemption: RedemptionPreference): string => {
+  if (redemption.kind === "cashback") return "cashback";
+  if (redemption.kind === "miles") return programRedemptionLabel(redemption.program);
+  return "sem preferência";
+};
+
+const stackMatchesPreference = (
+  stack: StackEvaluation,
+  redemption: RedemptionPreference,
+): boolean => {
+  if (redemption.kind === "any") return true;
+  const program = primaryProgram(stack);
+  if (redemption.kind === "cashback") return program === "cashback";
+  return program === redemption.program;
 };
 
 const stackFinancialRequirement = (
@@ -123,11 +204,11 @@ const stackAccessibilitySummary = (profile: SpendingProfile, stack: StackEvaluat
   const requirement = stackFinancialRequirement(stack);
   const requiredInvestmentBrl = requirement.aggregateBrl;
   if (requiredInvestmentBrl <= 0 && requirement.requiredInvestmentUsd <= 0) {
-    return "Sem exigência financeira adicional neste stack.";
+    return "Sem exigência financeira adicional neste cartão.";
   }
 
   if (requiredInvestmentBrl <= 0 && requirement.requiredInvestmentUsd > 0) {
-    return `Este stack exige investimento de acesso em dólar: ${formatUsd(requirement.requiredInvestmentUsd)}.`;
+    return `Este cartão exige investimento de acesso em dólar: ${formatUsd(requirement.requiredInvestmentUsd)}.`;
   }
 
   if (profile.availableToInvestBrl === undefined) {
@@ -138,25 +219,7 @@ const stackAccessibilitySummary = (profile: SpendingProfile, stack: StackEvaluat
     return `Seu valor disponível (${formatBrl(profile.availableToInvestBrl)}) cobre a exigência de investimento (${formatBrl(requiredInvestmentBrl)}).`;
   }
 
-  return `A exigência estimada (${formatBrl(requiredInvestmentBrl)}) supera os ${formatBrl(profile.availableToInvestBrl)} informados. O stack segue comparado sem bloqueio automático.`;
-};
-
-const currencyDelta = (value: number): string => {
-  if (value > 0) return `+${formatBrl(value)}`;
-  return formatBrl(value);
-};
-
-const axisMetric = (axisId: LeaderboardAxisId, stack: StackEvaluation): string => {
-  if (axisId === "annual-fee") return `${formatBrl(stack.yearOneAnnualFeeBrl)} de anuidade`;
-  if (axisId === "liquidity") return `${LIQUIDITY_LABEL[stack.liquidity]} liquidez`;
-  if (axisId === "simplicity") {
-    const count = cardsInUse(stack).length;
-    return `${String(count)} cartão${count > 1 ? "es" : ""}`;
-  }
-  if (axisId === "accessibility") {
-    return `${stackRelationshipSummary(stack)} · ${stackInvestmentRequirementLabel(stack).toLowerCase()}`;
-  }
-  return `${formatBrl(stack.yearOneNetValueBrl)} líquido`;
+  return `A exigência estimada (${formatBrl(requiredInvestmentBrl)}) supera os ${formatBrl(profile.availableToInvestBrl)} informados. O cartão segue comparado sem bloqueio automático.`;
 };
 
 const axisReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation): string[] => {
@@ -170,14 +233,9 @@ const axisReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation): str
   reasons.push(
     `Entrega ${formatBrl(topStack.yearOneNetValueBrl)} líquido por ano com ${formatBrl(topStack.yearOneAnnualFeeBrl)} de anuidade total.`,
   );
-  const cards = cardsInUse(topStack).length;
-  reasons.push(
-    `Opera com ${String(cards)} cartão${cards > 1 ? "es" : ""} e liquidez ${LIQUIDITY_LABEL[topStack.liquidity].toLowerCase()}.`,
-  );
+  reasons.push(`Liquidez ${LIQUIDITY_LABEL[topStack.liquidity].toLowerCase()} para resgate.`);
   return reasons;
 };
-
-const scoreText = (value: number): string => value.toFixed(2);
 
 const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral" | "warning"> = {
   strong: "accent",
@@ -185,28 +243,57 @@ const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral
   negative: "warning",
 };
 
-const PTAX_SOURCE_LABEL: Record<"awesomeapi" | "fallback" | "manual", string> = {
-  awesomeapi: "ao vivo",
-  fallback: "fallback",
-  manual: "manual",
-};
-
 const formatRoiMultiple = (value: number): string => `${value.toFixed(2).replace(".", ",")}x`;
 
-const formatPtaxFetchedAt = (iso: string): string => {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+const formatAnnualBrl = (value: number): string => `${formatBrl(value)}/ano`;
+
+const verdictLabel = (
+  kind: NonNullable<StackEvaluation["scoreLab"]>["verdict"]["kind"],
+): string => {
+  if (kind === "strong") return "Retorno alto";
+  if (kind === "viable") return "Retorno positivo";
+  return "Retorno negativo";
+};
+
+const verdictDetail = (
+  kind: NonNullable<StackEvaluation["scoreLab"]>["verdict"]["kind"],
+  netReturnBrl: number,
+): string => {
+  const annual = formatAnnualBrl(netReturnBrl);
+  if (kind === "viable") {
+    return `Retorno líquido de ${annual}. Confirme se seu gasto mensal fica perto do cenário informado.`;
+  }
+  return `Retorno líquido de ${annual} após anuidade e custo internacional.`;
+};
+
+const parseBrlAmount = (raw: string): number | null => {
+  const clean = raw.trim().replace(/\s/g, "").replace(/\.+$/, "");
+  if (clean.length === 0) return null;
+
+  const hasComma = clean.includes(",");
+  const dotCount = (clean.match(/\./g) ?? []).length;
+  const normalized = hasComma
+    ? clean.replace(/\./g, "").replace(",", ".")
+    : dotCount === 1 && /^\d+\.\d{1,2}$/.test(clean)
+      ? clean
+      : clean.replace(/\./g, "");
+
+  const value = Number.parseFloat(normalized);
+  return Number.isFinite(value) ? value : null;
 };
 
 const parseBrlRaw = (raw: string): string | null => {
-  const value = Number.parseFloat(raw.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(value) ? formatBrl(value) : null;
+  const value = parseBrlAmount(raw);
+  return value !== null ? formatBrl(value) : null;
 };
 
-// Tradução leve motor → prosa simples. Cobertura intencionalmente parcial:
-// strings que não casarem nenhum padrão passam direto. Os reasons "score X
-// com retorno Y" são filtrados — agora redundantes com o hero.
+const formatGapValue = (value: number, unit: string): string => {
+  if (unit === "USD") return formatUsd(value);
+  if (unit === "BRL/month") return `${formatBrl(value)}/mês`;
+  if (unit === "BRL/window") return `${formatBrl(value)} no período`;
+  return formatBrl(value);
+};
+
 const humanizeReason = (reason: string): string | null => {
   if (/score\s+[\d.,]+\s+com retorno líquido anual modelado/i.test(reason)) {
     return null;
@@ -214,8 +301,11 @@ const humanizeReason = (reason: string): string | null => {
 
   const annualFee = /^Anuidade recorrente aplicada:\s*R\$\s*([\d.,]+)/i.exec(reason);
   if (annualFee?.[1] !== undefined) {
-    const value = parseBrlRaw(annualFee[1]);
-    if (value !== null) return `Anuidade total ${value}, cobrada todos os anos.`;
+    const amount = parseBrlAmount(annualFee[1]);
+    if (amount !== null) {
+      if (amount === 0) return "Sem anuidade recorrente no cenário.";
+      return `Anuidade total ${formatBrl(amount)}, cobrada todos os anos.`;
+    }
   }
 
   const intlCost = /^Custo internacional modelado:\s*R\$\s*([\d.,]+)\s*\/\s*ano/i.exec(reason);
@@ -231,7 +321,18 @@ const humanizeReason = (reason: string): string | null => {
       return `Benefício de viagem aplicado: ${value} (sala VIP, seguro e bagagem).`;
   }
 
-  return reason;
+  const requirementGap =
+    /^Gap objetivo mais próximo:\s*(.+),\s*faltam\s*([\d.,]+)\s*(BRL(?:\/month|\/window)?|USD)\.?$/i.exec(
+      reason,
+    );
+  if (requirementGap?.[1] !== undefined && requirementGap[2] !== undefined) {
+    const amount = parseBrlAmount(requirementGap[2]);
+    if (amount !== null) {
+      return `Faltam ${formatGapValue(amount, requirementGap[3] ?? "BRL")} para cumprir ${requirementGap[1]}.`;
+    }
+  }
+
+  return null;
 };
 
 const reasonsFor = (topStack: StackEvaluation, runnerUp?: StackEvaluation): string[] => {
@@ -242,6 +343,200 @@ const reasonsFor = (topStack: StackEvaluation, runnerUp?: StackEvaluation): stri
     .slice(0, 3);
   return humanized.length > 0 ? humanized : axisReasons(topStack, runnerUp).slice(0, 3);
 };
+
+const comparisonThreshold = (topStack: StackEvaluation): number =>
+  Math.max(ALTERNATIVE_THRESHOLD_FLOOR_BRL, topStack.yearOneNetValueBrl * 0.25);
+
+const compareCandidate = (a: StackEvaluation, b: StackEvaluation): number => {
+  if (a.yearOneNetValueBrl !== b.yearOneNetValueBrl) {
+    return b.yearOneNetValueBrl - a.yearOneNetValueBrl;
+  }
+  const scoreA = a.scoreLab?.score ?? 0;
+  const scoreB = b.scoreLab?.score ?? 0;
+  if (scoreA !== scoreB) return scoreB - scoreA;
+  return stackId(a).localeCompare(stackId(b));
+};
+
+const uniqueCandidatePool = (recommendation: Recommendation): StackEvaluation[] => {
+  const seen = new Set<string>([stackId(recommendation.topStack)]);
+  const decisionTracks = recommendation.scoreLab?.decisionTracks;
+  const candidates = [
+    ...recommendation.alternatives,
+    ...recommendation.leaderboardsByAxis.flatMap((axis) => axis.stacks),
+    decisionTracks?.recommendedNow,
+    decisionTracks?.actionable,
+    decisionTracks?.nearUnlock,
+    decisionTracks?.stretch,
+    decisionTracks?.conditionalUpside,
+    decisionTracks?.closestActionableSubstitute?.stack,
+    recommendation.scoreLab?.netReturnLeader,
+    recommendation.scoreLab?.institutionalAlternative?.stack,
+  ].filter((stack): stack is StackEvaluation => stack !== undefined && stack !== null);
+
+  return candidates.filter((stack) => {
+    const id = stackId(stack);
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+};
+
+const hasNoInvestmentBarrier = (stack: StackEvaluation): boolean =>
+  cardsInUse(stack).every(
+    (card) =>
+      (card.minInvestmentBrl ?? 0) <= 0 &&
+      (card.minInvestmentUsd ?? 0) <= 0 &&
+      (card.requiredInvestmentBrl ?? 0) <= 0 &&
+      (card.requiredInvestmentUsd ?? 0) <= 0,
+  );
+
+const withinThreshold = (
+  topStack: StackEvaluation,
+  candidate: StackEvaluation | undefined,
+  threshold: number,
+): candidate is StackEvaluation =>
+  candidate !== undefined &&
+  topStack.yearOneNetValueBrl - candidate.yearOneNetValueBrl <= threshold;
+
+const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluation): string => {
+  const delta = stack.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
+  if (Math.abs(delta) < 0.01) return "Mesmo retorno líquido anual do recomendado.";
+  if (delta > 0) return `${formatAnnualBrl(delta)} acima do recomendado.`;
+  return `${formatAnnualBrl(Math.abs(delta))} abaixo do recomendado.`;
+};
+
+const buildCuratedAlternatives = (recommendation: Recommendation): CuratedAlternative[] => {
+  const topStack = recommendation.topStack;
+  const threshold = comparisonThreshold(topStack);
+  const pool = uniqueCandidatePool(recommendation);
+  const picked = new Set<string>();
+
+  const take = (stack: StackEvaluation | undefined): StackEvaluation | undefined => {
+    if (!withinThreshold(topStack, stack, threshold)) return undefined;
+    const id = stackId(stack);
+    if (id === stackId(topStack)) return undefined;
+    if (picked.has(id)) return undefined;
+    picked.add(id);
+    return stack;
+  };
+
+  const slots: CuratedAlternative[] = [];
+  const noBarrier = take(pool.filter(hasNoInvestmentBarrier).sort(compareCandidate)[0]);
+  if (noBarrier !== undefined) {
+    slots.push({
+      slot: "no-barrier",
+      label: "Sem barreira",
+      stack: noBarrier,
+      detail: `Sem investimento mínimo de acesso. ${returnGapSentence(topStack, noBarrier)}`,
+    });
+  }
+
+  const conditionalUpside = take(recommendation.scoreLab?.decisionTracks?.conditionalUpside);
+  if (conditionalUpside !== undefined) {
+    slots.push({
+      slot: "conditional-upside",
+      label: "Retorno condicionado",
+      stack: conditionalUpside,
+      detail: `Maior retorno modelado, mas depende de requisito de acesso. ${returnGapSentence(topStack, conditionalUpside)}`,
+    });
+  }
+
+  const topReliability = topStack.scoreLab?.productReliabilityScore ?? 100;
+  const institutional =
+    recommendation.scoreLab?.institutionalAlternative?.stack ??
+    (topReliability < 85
+      ? pool
+          .filter((stack) => (stack.scoreLab?.productReliabilityScore ?? 0) >= 90)
+          .sort(compareCandidate)[0]
+      : undefined);
+  const institutionalChoice = take(institutional);
+  if (institutionalChoice !== undefined) {
+    slots.push({
+      slot: "institutional",
+      label: "Institucional",
+      stack: institutionalChoice,
+      detail: `Opção institucional próxima. ${returnGapSentence(topStack, institutionalChoice)}`,
+    });
+  }
+
+  const netLeader =
+    recommendation.scoreLab?.netReturnLeader ?? pool.slice().sort(compareCandidate)[0];
+  const netReturn = take(netLeader);
+  if (netReturn !== undefined) {
+    slots.push({
+      slot: "net-return",
+      label: "Maior retorno",
+      stack: netReturn,
+      detail: `Maior retorno líquido no catálogo. ${returnGapSentence(topStack, netReturn)}`,
+    });
+  }
+
+  const axisLeader = recommendation.leaderboardsByAxis
+    .filter((axis) => axis.axisId !== "net-return")
+    .map((axis) => ({ axisId: axis.axisId, stack: axis.stacks[0] }))
+    .filter((item): item is { axisId: LeaderboardAxisId; stack: StackEvaluation } => {
+      if (!withinThreshold(topStack, item.stack, threshold)) return false;
+      const id = stackId(item.stack);
+      return id !== stackId(topStack) && !picked.has(id);
+    })
+    .sort((a, b) => compareCandidate(a.stack, b.stack))[0];
+  const axisChoice = take(axisLeader?.stack);
+  if (axisChoice !== undefined && axisLeader !== undefined) {
+    slots.push({
+      slot: "axis",
+      label: AXIS_LABEL[axisLeader.axisId],
+      stack: axisChoice,
+      detail: `Lidera ${AXIS_LABEL[axisLeader.axisId].toLowerCase()} neste perfil. ${returnGapSentence(topStack, axisChoice)}`,
+    });
+  }
+
+  return slots;
+};
+
+const alternativesHeroSentence = (
+  alternatives: CuratedAlternative[],
+  threshold: number,
+): string => {
+  const alternative = alternatives[0];
+  if (alternative === undefined) {
+    return `Nenhuma combinação do catálogo chega a ${formatAnnualBrl(threshold)} de diferença.`;
+  }
+  return `Outra escolha próxima: ${alternative.label.toLowerCase()}, ${stackLabel(alternative.stack)} entrega ${formatAnnualBrl(alternative.stack.yearOneNetValueBrl)}.`;
+};
+
+const preferenceDivergenceNotice = (
+  profile: SpendingProfile,
+  recommendation: Recommendation,
+  threshold: number,
+): string | null => {
+  if (profile.redemption.kind === "any") return null;
+
+  const topProgram = primaryProgram(recommendation.topStack);
+  if (stackMatchesPreference(recommendation.topStack, profile.redemption)) return null;
+
+  const preferred = preferenceLabel(profile.redemption);
+  const topRedemption = programRedemptionLabel(topProgram);
+  const bestOfPreference = recommendation.alternatives
+    .filter((stack) => stackMatchesPreference(stack, profile.redemption))
+    .sort(compareCandidate)[0];
+
+  if (bestOfPreference !== undefined) {
+    return `Você marcou ${preferred}. O recomendado é ${topRedemption}: ${formatAnnualBrl(recommendation.topStack.yearOneNetValueBrl)} contra ${formatAnnualBrl(bestOfPreference.yearOneNetValueBrl)} do melhor de ${preferred}.`;
+  }
+
+  return `Você marcou ${preferred}. O recomendado é ${topRedemption}: nenhum cartão de ${preferred} chega a ${formatAnnualBrl(threshold)} do retorno dele.`;
+};
+
+const displayStackFor = (recommendation: Recommendation): StackEvaluation =>
+  recommendation.scoreLab?.decisionTracks?.recommendedNow ?? recommendation.topStack;
+
+const recommendationWithTopStack = (
+  recommendation: Recommendation,
+  topStack: StackEvaluation,
+): Recommendation =>
+  stackId(topStack) === stackId(recommendation.topStack)
+    ? recommendation
+    : { ...recommendation, topStack };
 
 export const ResultsView = (): JSX.Element => {
   const { profile } = useSession();
@@ -294,14 +589,34 @@ export const ResultsView = (): JSX.Element => {
   }
 
   const recommendation = result.value;
-  const topStack = recommendation.topStack;
-  const scoreLab = topStack.scoreLab;
   const scoreLabMeta = recommendation.scoreLab;
+  const decisionTracks = scoreLabMeta?.decisionTracks;
+  const topStack = displayStackFor(recommendation);
+  const displayRecommendation = recommendationWithTopStack(recommendation, topStack);
+  const scoreLab = topStack.scoreLab;
   const netReturnAxis = recommendation.leaderboardsByAxis.find(
     (axis) => axis.axisId === "net-return",
   );
   const reasons = reasonsFor(topStack, netReturnAxis?.stacks[1]);
   const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
+  const threshold = comparisonThreshold(topStack);
+  const curatedAlternatives = buildCuratedAlternatives(displayRecommendation);
+  const divergenceNotice = preferenceDivergenceNotice(profile, displayRecommendation, threshold);
+  const conditionalUpside = decisionTracks?.conditionalUpside;
+  const conditionalUpsideNotice =
+    conditionalUpside !== undefined && stackId(conditionalUpside) !== stackId(topStack)
+      ? `Maior retorno modelado: ${stackLabel(conditionalUpside)} entrega ${formatAnnualBrl(conditionalUpside.yearOneNetValueBrl)}, mas depende de requisito de acesso.`
+      : null;
+  const noRecommendationReason =
+    decisionTracks?.recommendedNow === null ? decisionTracks.noRecommendationReason : undefined;
+  const recommendationEyebrow =
+    noRecommendationReason !== undefined ? "Melhor acionável encontrado" : "Stack recomendado";
+  const noRecommendationNotice =
+    noRecommendationReason === "no-positive-actionable-return"
+      ? "Não encontramos uma recomendação acionável com retorno positivo relevante; exibindo o melhor cartão acionável para comparação."
+      : noRecommendationReason === "insufficient-access-data"
+        ? "Faltam dados para confirmar acesso em alguns cartões; exibindo o melhor cartão acionável conhecido."
+        : null;
   const benefitBreakdown = scoreLab?.modeledAnnual.benefitBreakdown;
   const benefitParts =
     benefitBreakdown !== undefined
@@ -317,18 +632,31 @@ export const ResultsView = (): JSX.Element => {
             : null,
         ].filter((part): part is string => part !== null)
       : [];
+  const heroNotes = [
+    noRecommendationNotice,
+    conditionalUpsideNotice,
+    divergenceNotice,
+    curatedAlternatives.length < 2
+      ? alternativesHeroSentence(curatedAlternatives, threshold)
+      : null,
+  ].filter((note): note is string => note !== null);
+  const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
+  const displayMoneyOnTheTableBrl =
+    recommendation.currentStack !== undefined
+      ? Math.max(0, topStack.yearOneNetValueBrl - recommendation.currentStack.yearOneNetValueBrl)
+      : recommendation.moneyOnTheTableBrl;
 
   const hasCurrentComparison =
     (profile.currentCardIds?.length ?? 0) > 0 &&
     recommendation.currentStack !== undefined &&
-    recommendation.moneyOnTheTableBrl !== undefined &&
-    recommendation.moneyOnTheTableBrl > 0;
+    displayMoneyOnTheTableBrl !== undefined &&
+    displayMoneyOnTheTableBrl > 0;
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
         <header className="max-w-4xl">
-          <p className="text-caption text-ink-subtle">Stack recomendado</p>
+          <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
           <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
         </header>
 
@@ -344,10 +672,10 @@ export const ResultsView = (): JSX.Element => {
                   Você está deixando na mesa
                 </p>
                 <p className="text-kpi text-danger tabular mt-3">
-                  {formatBrl(recommendation.moneyOnTheTableBrl ?? 0)}
+                  {formatBrl(displayMoneyOnTheTableBrl)}
                 </p>
                 <p className="text-ink-muted mt-4 max-w-xl text-sm leading-relaxed">
-                  por ano com seu stack atual. O recomendado entrega{" "}
+                  por ano com seu cartão atual. O recomendado entrega{" "}
                   <span className="text-num text-ink font-semibold">
                     {formatBrl(topStack.yearOneNetValueBrl)}
                   </span>{" "}
@@ -363,9 +691,9 @@ export const ResultsView = (): JSX.Element => {
                 <p className="text-kpi text-accent tabular mt-3">
                   {formatBrl(topStack.yearOneNetValueBrl)}
                 </p>
-                {scoreLab?.verdict.detail !== undefined && scoreLab.verdict.detail !== "" ? (
+                {scoreLab?.verdict !== undefined ? (
                   <p className="text-ink-muted mt-4 max-w-xl text-sm leading-relaxed">
-                    {scoreLab.verdict.detail}
+                    {verdictDetail(scoreLab.verdict.kind, topStack.yearOneNetValueBrl)}
                   </p>
                 ) : null}
               </>
@@ -373,11 +701,20 @@ export const ResultsView = (): JSX.Element => {
             {scoreLab?.verdict !== undefined || recommendation.isReturnDecisionTight ? (
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {scoreLab?.verdict !== undefined ? (
-                  <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>{scoreLab.verdict.label}</Badge>
+                  <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
+                    {verdictLabel(scoreLab.verdict.kind)}
+                  </Badge>
                 ) : null}
                 {recommendation.isReturnDecisionTight ? (
                   <Badge tone="warning">Decisão apertada</Badge>
                 ) : null}
+              </div>
+            ) : null}
+            {heroNotes.length > 0 ? (
+              <div className="text-ink-muted mt-5 space-y-2 text-sm leading-relaxed">
+                {heroNotes.map((note) => (
+                  <p key={note}>{note}</p>
+                ))}
               </div>
             ) : null}
           </div>
@@ -412,43 +749,38 @@ export const ResultsView = (): JSX.Element => {
                 ) : null}
               </div>
             ) : null}
-            <Stat
-              label="Cartões no stack"
-              value={cardsInUse(topStack).length}
-              labelClassName="text-ink-subtle"
-              className="py-3"
-            />
           </dl>
         </section>
 
-        <section
-          className="border-line grid grid-cols-1 border-b md:grid-cols-2"
-          aria-label="Resumo do stack recomendado"
-        >
-          <article className="py-8 md:pr-10">
-            <h2 className="text-heading text-ink">Como usar</h2>
-            <ul className="divide-line mt-5 divide-y text-sm">
-              {cardsInUse(topStack).map((card) => {
-                const alloc = topStack.allocation.find((entry) => entry.cardId === card.id);
-                return (
-                  <li
-                    key={card.id}
-                    className="grid gap-2 py-3 sm:grid-cols-[1fr_auto_auto] sm:items-baseline sm:gap-5"
-                  >
-                    <span className="text-ink font-semibold">{card.name}</span>
-                    <span className="text-num text-ink-muted">
-                      BRL {formatBrl(alloc?.monthlyDomesticBrl ?? 0)}
+        {curatedAlternatives.length >= 2 ? (
+          <section className="border-line border-b py-8" aria-label="Outras escolhas">
+            <h2 className="text-heading text-ink">Outras escolhas</h2>
+            <ol className="divide-line mt-5 divide-y text-sm">
+              {curatedAlternatives.map((alternative) => (
+                <li
+                  key={`${alternative.slot}-${stackId(alternative.stack)}`}
+                  className="grid gap-2 py-4 sm:grid-cols-[136px_1fr_auto] sm:items-baseline sm:gap-5"
+                >
+                  <span className="text-caption text-ink-subtle">{alternative.label}</span>
+                  <span>
+                    <span className="text-ink block font-semibold">
+                      {stackLabel(alternative.stack)}
                     </span>
-                    <span className="text-num text-ink-muted">
-                      USD {formatUsd(alloc?.monthlyInternationalUsd ?? 0)}
+                    <span className="text-ink-subtle mt-1 block text-xs leading-relaxed">
+                      {alternative.detail}
                     </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </article>
+                  </span>
+                  <span className="text-num text-ink font-semibold">
+                    {formatAnnualBrl(alternative.stack.yearOneNetValueBrl)}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
 
-          <article className="border-line border-t py-8 md:border-t-0 md:border-l md:pl-10">
+        <section className="border-line border-b" aria-label="Resumo do cartão recomendado">
+          <article className="py-8">
             <h2 className="text-heading text-ink">Por que venceu</h2>
             <ul className="text-ink-muted mt-6 space-y-4 text-sm leading-relaxed">
               {reasons.map((reason) => (
@@ -458,7 +790,7 @@ export const ResultsView = (): JSX.Element => {
               ))}
             </ul>
             <p className="border-line text-ink-muted mt-6 border-t pt-5 text-sm leading-relaxed">
-              <span className="text-caption text-ink-subtle mr-2">Acesso</span>
+              <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
               {accessibilitySummary}
             </p>
           </article>
@@ -471,49 +803,25 @@ export const ResultsView = (): JSX.Element => {
                 <div>
                   <h3 className="text-subheading text-ink">Score-lab</h3>
                   <p className="text-ink-muted mt-2 text-sm leading-relaxed">
-                    Motor determinístico com PTAX{" "}
+                    Cálculo determinístico com câmbio do dia{" "}
                     <span className="text-num text-ink font-semibold">
-                      {scoreLabMeta?.ptaxRate.toFixed(2) ?? "atual"}
-                    </span>
-                    {scoreLabMeta ? (
-                      <>
-                        {" "}
-                        ({PTAX_SOURCE_LABEL[scoreLabMeta.ptaxSource]}
-                        {scoreLabMeta.ptaxSource === "awesomeapi" &&
-                        formatPtaxFetchedAt(scoreLabMeta.ptaxFetchedAt) !== ""
-                          ? `, ${formatPtaxFetchedAt(scoreLabMeta.ptaxFetchedAt)}`
-                          : null}
-                        )
-                      </>
-                    ) : null}
-                    , comparando {scoreLabMeta?.evaluatedStacks.toLocaleString("pt-BR") ?? "os"}{" "}
-                    stacks.
+                      {scoreLabMeta ? formatBrl(scoreLabMeta.ptaxRate) : "atual"}
+                    </span>{" "}
+                    por US$ 1.
                   </p>
                   <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
-                    <Stat
-                      block
-                      label="Score"
-                      value={scoreText(scoreLab.score)}
-                      labelClassName="text-ink-subtle"
-                    />
-                    <Stat
-                      block
-                      label="Reliability"
-                      value={scoreText(scoreLab.productReliabilityScore)}
-                      labelClassName="text-ink-subtle"
-                    />
                     {scoreLab.breakEvenMonthlySpendBrl !== null ? (
                       <Stat
                         block
-                        label="Break-even mensal"
-                        value={formatBrl(scoreLab.breakEvenMonthlySpendBrl)}
+                        label="Stack se paga a partir de"
+                        value={`${formatBrl(scoreLab.breakEvenMonthlySpendBrl)}/mês`}
                         labelClassName="text-ink-subtle"
                       />
                     ) : null}
                     {scoreLab.roiMultiple !== null ? (
                       <Stat
                         block
-                        label="ROI sobre anuidade"
+                        label="Retorno por real de anuidade"
                         value={formatRoiMultiple(scoreLab.roiMultiple)}
                         labelClassName="text-ink-subtle"
                       />
@@ -532,7 +840,7 @@ export const ResultsView = (): JSX.Element => {
                     />
                     <Stat
                       block
-                      label="Investimento de acesso"
+                      label="Condição financeira"
                       value={stackInvestmentRequirementLabel(topStack)}
                       labelClassName="text-ink-subtle"
                     />
@@ -547,8 +855,7 @@ export const ResultsView = (): JSX.Element => {
                     {stackLabel(scoreLabMeta.netReturnLeader)}
                   </span>{" "}
                   ({formatBrl(scoreLabMeta.netReturnLeader.yearOneNetValueBrl)}). O recomendado
-                  pondera retorno, condições, custo, objetivo, allocation, reliability e confiança
-                  de dados.
+                  pondera retorno, condições de acesso, custo, objetivo e distribuição do gasto.
                 </p>
               ) : null}
 
@@ -557,89 +864,21 @@ export const ResultsView = (): JSX.Element => {
                   Alternativa institucional próxima:{" "}
                   <span className="text-ink font-semibold">
                     {stackLabel(scoreLabMeta.institutionalAlternative.stack)}
-                  </span>{" "}
-                  ({formatBrl(scoreLabMeta.institutionalAlternative.stack.yearOneNetValueBrl)}).
+                  </span>
+                  . Entrega{" "}
+                  {formatAnnualBrl(scoreLabMeta.institutionalAlternative.stack.yearOneNetValueBrl)}.{" "}
+                  {returnGapSentence(topStack, scoreLabMeta.institutionalAlternative.stack)}
                 </p>
               ) : null}
-
-              <div>
-                <h3 className="text-subheading text-ink">Trade-offs por eixo</h3>
-                <p className="text-ink-muted mt-2 text-sm">
-                  O eixo anuidade mostra custo anual, não retorno líquido.
-                </p>
-
-                <dl className="divide-line border-line mt-5 divide-y border-t border-b">
-                  {recommendation.leaderboardsByAxis.map((axis) => {
-                    const leader = axis.stacks[0];
-                    if (!leader) return null;
-                    const deltaVsTop = leader.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
-                    const isRecommended = stackId(leader) === stackId(topStack);
-                    return (
-                      <div
-                        key={axis.axisId}
-                        className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 py-4 sm:grid-cols-[140px_1fr_auto] sm:items-baseline sm:gap-y-0"
-                      >
-                        <dt className="text-caption text-ink-subtle col-start-1 row-start-1 self-baseline">
-                          {AXIS_LABEL[axis.axisId]}
-                        </dt>
-                        <dd
-                          className={cn(
-                            "text-num col-start-2 row-start-1 self-baseline text-right text-xs sm:col-start-3",
-                            isRecommended ? "text-accent" : "text-ink-muted",
-                          )}
-                        >
-                          {isRecommended ? "Recomendado" : currencyDelta(deltaVsTop)}
-                        </dd>
-                        <dd className="col-span-2 row-start-2 text-sm sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:self-baseline">
-                          <span className="text-ink font-semibold">{stackLabel(leader)}</span>
-                          <span className="text-ink-subtle mt-0.5 block text-xs leading-snug sm:mt-1">
-                            {axis.axisId === "net-return"
-                              ? `${axisMetric(axis.axisId, leader)} · liquidez ${LIQUIDITY_LABEL[leader.liquidity].toLowerCase()}`
-                              : `${axisMetric(axis.axisId, leader)} · ${formatBrl(leader.yearOneNetValueBrl)} líquido · liquidez ${LIQUIDITY_LABEL[leader.liquidity].toLowerCase()}`}
-                          </span>
-                        </dd>
-                      </div>
-                    );
-                  })}
-                </dl>
-
-                <div className="mt-6 space-y-2">
-                  {recommendation.leaderboardsByAxis.map((axis) => {
-                    if (axis.stacks.length < 2) return null;
-                    return (
-                      <Disclosure
-                        key={`details-${axis.axisId}`}
-                        variant="inline"
-                        summary={`Outras opções no eixo ${AXIS_LABEL[axis.axisId].toLowerCase()}`}
-                      >
-                        <ol className="border-line divide-line text-ink-muted mt-3 divide-y border-t text-sm">
-                          {axis.stacks.slice(1, 4).map((stack, index) => (
-                            <li
-                              key={`${axis.axisId}-${stackId(stack)}`}
-                              className="grid gap-1 py-3 sm:grid-cols-[40px_1fr_auto] sm:items-baseline sm:gap-3"
-                            >
-                              <span className="text-num text-ink-subtle text-xs">
-                                {String(index + 2).padStart(2, "0")}
-                              </span>
-                              <span className="text-ink">{stackLabel(stack)}</span>
-                              <span className="text-num">
-                                {formatBrl(stack.yearOneNetValueBrl)}
-                              </span>
-                            </li>
-                          ))}
-                        </ol>
-                      </Disclosure>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </Disclosure>
         </section>
 
-        <div className="mt-8">
-          <TravelTranslation translation={recommendation.travelTranslation} />
-        </div>
+        {travelTranslationMatchesTopStack ? (
+          <div className="mt-8">
+            <TravelTranslation translation={recommendation.travelTranslation} />
+          </div>
+        ) : null}
 
         <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
           <Link to={ROUTES.INPUT} className="plain-link">

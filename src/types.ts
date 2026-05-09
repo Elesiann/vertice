@@ -237,6 +237,20 @@ export interface AxisLeaderboard {
   stacks: StackEvaluation[];
 }
 
+export interface ScoreLabDecisionTracks {
+  recommendedNow: StackEvaluation | null;
+  actionable: StackEvaluation | null;
+  nearUnlock: StackEvaluation | null;
+  stretch: StackEvaluation | null;
+  conditionalUpside: StackEvaluation;
+  closestActionableSubstitute: {
+    stack: StackEvaluation;
+    similarity: number;
+    reasons: string[];
+  } | null;
+  noRecommendationReason?: "no-positive-actionable-return" | "insufficient-access-data";
+}
+
 export interface Recommendation {
   topStack: StackEvaluation;
   alternatives: StackEvaluation[];
@@ -264,6 +278,7 @@ export interface Recommendation {
       scoreDelta: number;
       reason: string;
     };
+    decisionTracks?: ScoreLabDecisionTracks;
     nearUnlocks: StackEvaluation[];
     notes: string[];
   };

@@ -231,7 +231,7 @@ export const InputForm = (): JSX.Element => {
                 <button
                   type="button"
                   onClick={onClearSavedProfile}
-                  className="text-ink-muted hover:text-accent focus-visible:ring-accent text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                  className="text-ink-muted hover:text-accent focus-visible:ring-accent cursor-pointer text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                   Limpar
                 </button>
@@ -365,7 +365,7 @@ export const InputForm = (): JSX.Element => {
             <Link to={ROUTES.HOME} className="plain-link hidden sm:inline">
               ← Voltar para a home
             </Link>
-            <Button type="submit" size="lg" className="w-full sm:w-auto">
+            <Button type="submit" size="lg" className="w-full cursor-pointer sm:w-auto">
               Ver análise →
             </Button>
           </footer>
