@@ -18,6 +18,21 @@ type State =
 
 const SKELETON_COUNT = 9;
 
+const searchTerms = (search: string | undefined): string[] => {
+  return (search ?? "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((term) => term.length > 0);
+};
+
+const matchesSearchTerms = (card: PublicCatalogCard, terms: string[]): boolean => {
+  if (terms.length <= 1) return true;
+
+  const fields = [card.name, card.bank, card.tier, card.brand].map((field) => field.toLowerCase());
+  return terms.every((term) => fields.some((field) => field.includes(term)));
+};
+
 export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.Element => {
   const [state, setState] = useState<State>({ status: "loading" });
   const { add, remove, has } = useCompareStore();
@@ -26,8 +41,14 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
   const load = useCallback(async (f: CatalogFilters) => {
     setState({ status: "loading" });
     try {
-      const res = await fetchCardCatalog(f);
-      setState({ status: "ok", cards: res.cards });
+      const terms = searchTerms(f.search);
+      const { search: _search, ...filtersWithoutSearch } = f;
+      const requestFilters = terms.length > 1 ? filtersWithoutSearch : f;
+      const res = await fetchCardCatalog(requestFilters);
+      setState({
+        status: "ok",
+        cards: res.cards.filter((card) => matchesSearchTerms(card, terms)),
+      });
     } catch {
       setState({ status: "error", message: "Não foi possível carregar o catálogo." });
     }
