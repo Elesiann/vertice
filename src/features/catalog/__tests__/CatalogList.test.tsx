@@ -12,12 +12,17 @@ vi.mock("@/lib/api", () => ({
     fetchCardCatalog(filters),
 }));
 
-const makeCard = (id: string): PublicCatalogCard => ({
+const makeCard = (
+  id: string,
+  name = `Cartão ${id}`,
+  bank: PublicCatalogCard["bank"] = "nubank",
+  tier: PublicCatalogCard["tier"] = "gold",
+): PublicCatalogCard => ({
   id,
-  name: `Cartão ${id}`,
-  bank: "nubank",
+  name,
+  bank,
   brand: "mastercard",
-  tier: "gold",
+  tier,
   pointsProgram: "smiles",
   annualFeeBrl: 1200,
   hasLoungeAccess: false,
@@ -41,7 +46,7 @@ const renderList = (filters: CatalogFilters, onClearFilters = vi.fn()): void => 
   );
 };
 
-describe("CatalogList", () => {
+describe("CatalogList counts and clear-filters", () => {
   beforeEach(() => {
     fetchCardCatalog.mockReset();
   });
@@ -77,5 +82,33 @@ describe("CatalogList", () => {
     await waitFor(() => {
       expect(screen.queryByRole("button", { name: "Limpar filtros" })).not.toBeInTheDocument();
     });
+  });
+});
+
+describe("CatalogList search", () => {
+  beforeEach(() => {
+    fetchCardCatalog.mockResolvedValue(
+      response([
+        makeCard("itau-platinum", "Itaú Platinum", "itau", "platinum"),
+        makeCard("itau-gold", "Itaú Gold", "itau", "gold"),
+        makeCard("other-platinum", "Outro Platinum", "other", "platinum"),
+      ]),
+    );
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("matches multi-keyword search across card fields with AND semantics", async () => {
+    render(
+      <MemoryRouter>
+        <CatalogList filters={{ search: "itau platinum" }} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Itaú Platinum")).toBeInTheDocument();
+    expect(screen.queryByText("Itaú Gold")).not.toBeInTheDocument();
+    expect(screen.queryByText("Outro Platinum")).not.toBeInTheDocument();
   });
 });
