@@ -5,11 +5,17 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
+import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { formatBrl } from "@/lib/format";
-import type { PublicCatalogCard } from "@/types";
+import type { CardVerifiedTier, PublicCatalogCard } from "@/types";
+
+type CatalogCardWithVerification = PublicCatalogCard & {
+  lastVerified?: string;
+  verifiedTier?: CardVerifiedTier;
+};
 
 interface CatalogCardProps {
-  card: PublicCatalogCard;
+  card: CatalogCardWithVerification;
   onCompare?: (id: string) => void;
   inCompare?: boolean;
   className?: string;
@@ -43,6 +49,10 @@ export const CatalogCard = ({
       <p className="text-caption text-ink-subtle tracking-wide uppercase">
         {card.bank} · {card.tier}
       </p>
+      <VerifiedMark
+        {...(card.lastVerified !== undefined ? { lastVerified: card.lastVerified } : {})}
+        {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
+      />
     </div>
     <p className="text-body-sm text-ink-muted">
       Anuidade: <span className="text-ink font-semibold">{formatBrl(card.annualFeeBrl)}</span>

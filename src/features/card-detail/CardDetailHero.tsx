@@ -1,12 +1,17 @@
 import type { JSX } from "react";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
+import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { Button } from "@/components/ui/Button";
 import { useCompareStore } from "@/lib/compare-store";
 import type { PublicCardDetail } from "@/types";
 
+type PublicCardDetailWithVerificationSources = PublicCardDetail & {
+  verifiedSources?: string[];
+};
+
 interface CardDetailHeroProps {
-  card: PublicCardDetail;
+  card: PublicCardDetailWithVerificationSources;
 }
 
 export const CardDetailHero = ({ card }: CardDetailHeroProps): JSX.Element => {
@@ -22,6 +27,29 @@ export const CardDetailHero = ({ card }: CardDetailHeroProps): JSX.Element => {
           {card.bank} · {card.tier} · {card.brand}
         </p>
         <FeeTierBadge annualFeeBrl={card.annualFeeBrl} />
+        <VerifiedMark
+          {...(card.lastVerified !== undefined ? { lastVerified: card.lastVerified } : {})}
+          {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
+        />
+        {card.verifiedSources !== undefined && card.verifiedSources.length > 0 ? (
+          <div className="text-body-sm text-ink-muted">
+            <p>Fontes:</p>
+            <ul className="mt-1 flex flex-col gap-1">
+              {card.verifiedSources.map((source) => (
+                <li key={source}>
+                  <a
+                    href={source}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="plain-link break-all"
+                  >
+                    {source}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <Button
           variant={inCompare ? "secondary" : "primary"}
           size="sm"
