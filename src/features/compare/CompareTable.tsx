@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
+import { Button } from "@/components/ui/Button";
 import { formatBrl } from "@/lib/format";
 import type { PublicCardDetail } from "@/types";
 
 interface CompareTableProps {
   cards: PublicCardDetail[];
+  onRemoveCard?: (id: string) => void;
 }
 
 const FX_SOURCE_LABEL: Record<string, string> = {
@@ -83,7 +85,7 @@ const Row = ({ label, cells, winners = new Set<number>() }: RowProps): JSX.Eleme
   </tr>
 );
 
-export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
+export const CompareTable = ({ cards, onRemoveCard }: CompareTableProps): JSX.Element => {
   const feeWinners = lowestFeeWinners(cards);
   const loungeWinners = bestLoungeWinners(cards);
   const cashbackWinners = highestCashbackWinners(cards);
@@ -97,7 +99,21 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
             {cards.map((card) => (
               <th key={card.id} className="px-2 py-3 text-left align-bottom">
                 <div className="flex flex-col gap-2">
-                  <CardArt brand={card.brand} tier={card.tier} bank={card.bank} size="sm" />
+                  <div className="flex items-start justify-between gap-2">
+                    <CardArt brand={card.brand} tier={card.tier} bank={card.bank} size="sm" />
+                    {onRemoveCard !== undefined ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        ariaLabel={`Remover ${card.name}`}
+                        onClick={() => {
+                          onRemoveCard(card.id);
+                        }}
+                      >
+                        ×
+                      </Button>
+                    ) : null}
+                  </div>
                   <Link
                     to={`/cards/${card.id}`}
                     className="text-subheading text-ink hover:text-accent font-semibold"
