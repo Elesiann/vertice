@@ -76,3 +76,34 @@ describe("ComparePage inline add", () => {
     expect(useCompareStore.getState().ids).toContain("d");
   });
 });
+
+describe("ComparePage remove card", () => {
+  beforeEach(() => {
+    useCompareStore.setState({ ids: ["a", "b", "c"] });
+    fetchCardDetail.mockImplementation((id) =>
+      Promise.resolve(ok(makeCard(id, `Cartão ${id.toUpperCase()}`))),
+    );
+    fetchCardCatalog.mockResolvedValue({
+      cards: [],
+      catalogVersion: "test",
+      count: 0,
+      filters: {},
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("removes one card from URL and compare store", async () => {
+    renderPage("/compare?ids=a,b,c");
+
+    await screen.findByText("Cartão B");
+    await userEvent.click(screen.getByRole("button", { name: "Remover Cartão B" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("?ids=a%2Cc");
+    });
+    expect(useCompareStore.getState().ids).not.toContain("b");
+  });
+});

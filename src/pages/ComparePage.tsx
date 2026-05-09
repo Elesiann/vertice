@@ -43,6 +43,15 @@ export const ComparePage = (): JSX.Element => {
     [effectiveIds, writeIds],
   );
 
+  const handleRemoveCard = useCallback(
+    (id: string) => {
+      const next = effectiveIds.filter((cardId) => cardId !== id);
+      useCompareStore.getState().remove(id);
+      setSearchParams({ ids: next.join(",") });
+    },
+    [effectiveIds, setSearchParams],
+  );
+
   useEffect(() => {
     if (urlIds.length > 0) {
       urlIds.forEach((id) => {
@@ -112,7 +121,12 @@ export const ComparePage = (): JSX.Element => {
           </p>
         ))}
       {!hasAnyLoading && loadedCards.length >= 2 && (
-        <CompareTable cards={loadedCards} catalogCards={catalogCards} onAddCard={handleAddCard} />
+        <CompareTable
+          cards={loadedCards}
+          catalogCards={catalogCards}
+          onAddCard={handleAddCard}
+          onRemoveCard={handleRemoveCard}
+        />
       )}
       {!hasAnyLoading && loadedCards.length === 1 && (
         <p className="text-body-sm text-ink-muted">Selecione pelo menos 2 cartões para comparar.</p>
