@@ -33,6 +33,16 @@ const matchesSearchTerms = (card: PublicCatalogCard, terms: string[]): boolean =
   return terms.every((term) => fields.some((field) => field.includes(term)));
 };
 
+const emptySuggestion = (filters: CatalogFilters): string => {
+  if (filters.maxAnnualFee !== undefined && filters.maxAnnualFee <= 200) {
+    return "Tente ampliar a anuidade até R$ 500.";
+  }
+  if (filters.hasLounge === true) {
+    return "Tente sem o filtro de lounge.";
+  }
+  return "Tente ampliar a busca.";
+};
+
 export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.Element => {
   const [state, setState] = useState<State>({ status: "loading" });
   const { add, remove, has } = useCompareStore();
@@ -98,6 +108,20 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
     );
   }
 
+  if (state.cards.length === 0) {
+    return (
+      <Panel tone="sunken" className="p-6 text-center">
+        <p className="text-body text-ink-muted">Nenhum cartão com esses filtros.</p>
+        <p className="text-body-sm text-ink-subtle mt-2">{emptySuggestion(filters)}</p>
+        {onClearFilters !== undefined && (
+          <Button variant="ghost" size="sm" className="mt-4" onClick={onClearFilters}>
+            Limpar filtros
+          </Button>
+        )}
+      </Panel>
+    );
+  }
+
   const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
   const countSummary = `Mostrando ${String(state.cards.length)} de ${String(state.total)} cartões`;
 
@@ -111,28 +135,22 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
           </Button>
         ) : null}
       </div>
-      {state.cards.length === 0 ? (
-        <Panel tone="sunken" className="p-6 text-center">
-          <p className="text-body text-ink-muted">Nenhum cartão atende esses filtros.</p>
-        </Panel>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {state.cards.map((card) => (
-            <CatalogCard
-              key={card.id}
-              card={card}
-              inCompare={has(card.id)}
-              onCompare={(id) => {
-                if (has(id)) {
-                  remove(id);
-                } else {
-                  add(id);
-                }
-              }}
-            />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {state.cards.map((card) => (
+          <CatalogCard
+            key={card.id}
+            card={card}
+            inCompare={has(card.id)}
+            onCompare={(id) => {
+              if (has(id)) {
+                remove(id);
+              } else {
+                add(id);
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };

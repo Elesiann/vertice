@@ -39,6 +39,13 @@ const response = (cards: PublicCatalogCard[]): CardCatalogResponse => ({
   filters: {},
 });
 
+const emptyResponse: CardCatalogResponse = {
+  cards: [],
+  catalogVersion: "test",
+  count: 0,
+  filters: {},
+};
+
 const renderList = (filters: CatalogFilters, onClearFilters = vi.fn()): void => {
   render(
     <MemoryRouter>
@@ -115,5 +122,34 @@ describe("CatalogList search", () => {
     expect(await screen.findByText("Itaú Platinum")).toBeInTheDocument();
     expect(screen.queryByText("Itaú Gold")).not.toBeInTheDocument();
     expect(screen.queryByText("Outro Platinum")).not.toBeInTheDocument();
+  });
+});
+
+describe("CatalogList empty state", () => {
+  beforeEach(() => {
+    fetchCardCatalog.mockResolvedValue(emptyResponse);
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("suggests raising the fee cap when max annual fee is low", async () => {
+    renderList({ maxAnnualFee: 100, hasLounge: true });
+
+    expect(await screen.findByText("Nenhum cartão com esses filtros.")).toBeInTheDocument();
+    expect(screen.getByText("Tente ampliar a anuidade até R$ 500.")).toBeInTheDocument();
+  });
+
+  it("suggests removing lounge filter when lounge is active", async () => {
+    renderList({ hasLounge: true });
+
+    expect(await screen.findByText("Tente sem o filtro de lounge.")).toBeInTheDocument();
+  });
+
+  it("uses generic suggestion when no specific filter applies", async () => {
+    renderList({ search: "xyz" });
+
+    expect(await screen.findByText("Tente ampliar a busca.")).toBeInTheDocument();
   });
 });
