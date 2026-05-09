@@ -122,6 +122,20 @@ describe("CompareTable", () => {
     expect(screen.getAllByText(/R\$/i).length).toBeGreaterThan(0);
   });
 
+  it("renders an Imprimir button that triggers window.print", () => {
+    const printSpy = vi.fn();
+    vi.stubGlobal("print", printSpy);
+    render(
+      <Wrap profile={null}>
+        <CompareTable cards={cards} />
+      </Wrap>,
+    );
+    const button = screen.getByRole("button", { name: /imprimir/i });
+    expect(button).toBeInTheDocument();
+    button.click();
+    expect(printSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("hides the modeled-return row when profile is null", () => {
     render(
       <Wrap profile={null}>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
+import { Button } from "@/components/ui/Button";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl } from "@/lib/format";
 import type { PublicCardDetail } from "@/types";
@@ -70,7 +71,7 @@ interface RowProps {
 }
 
 const Row = ({ label, cells, winners = new Set<number>() }: RowProps): JSX.Element => (
-  <tr className="border-line border-b">
+  <tr className="compare-print-row border-line border-b print:break-inside-avoid">
     <th
       scope="row"
       className="text-body-sm text-ink-muted w-32 shrink-0 py-3 pr-4 text-left align-top font-medium"
@@ -131,6 +132,18 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
 
   return (
     <div className="overflow-x-auto">
+      <div className="mb-3 flex justify-end print:hidden">
+        <Button
+          onClick={() => {
+            window.print();
+          }}
+          variant="ghost"
+          size="sm"
+          ariaLabel="Imprimir comparação"
+        >
+          Imprimir →
+        </Button>
+      </div>
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-line border-b">
