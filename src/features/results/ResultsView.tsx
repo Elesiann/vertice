@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
+import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { TravelTranslation } from "@/components/domain/TravelTranslation";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -698,18 +699,20 @@ export const ResultsView = (): JSX.Element => {
                 ) : null}
               </>
             )}
-            {scoreLab?.verdict !== undefined || recommendation.isReturnDecisionTight ? (
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                {scoreLab?.verdict !== undefined ? (
-                  <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
-                    {verdictLabel(scoreLab.verdict.kind)}
-                  </Badge>
-                ) : null}
-                {recommendation.isReturnDecisionTight ? (
-                  <Badge tone="warning">Decisão apertada</Badge>
-                ) : null}
-              </div>
-            ) : null}
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {scoreLab?.verdict !== undefined ? (
+                <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
+                  {verdictLabel(scoreLab.verdict.kind)}
+                </Badge>
+              ) : null}
+              {recommendation.isReturnDecisionTight ? (
+                <Badge tone="warning">Decisão apertada</Badge>
+              ) : null}
+              <FeeTierBadge
+                annualFeeBrl={topStack.yearOneAnnualFeeBrl}
+                yearOneNetValueBrl={topStack.yearOneNetValueBrl}
+              />
+            </div>
             {heroNotes.length > 0 ? (
               <div className="text-ink-muted mt-5 space-y-2 text-sm leading-relaxed">
                 {heroNotes.map((note) => (

@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { CardArt } from "@/components/domain/CardArt";
+import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { Button } from "@/components/ui/Button";
 import { useCompareStore } from "@/lib/compare-store";
 import type { PublicCardDetail } from "@/types";
@@ -20,6 +21,7 @@ export const CardDetailHero = ({ card }: CardDetailHeroProps): JSX.Element => {
         <p className="text-caption text-ink-subtle tracking-wide uppercase">
           {card.bank} · {card.tier} · {card.brand}
         </p>
+        <FeeTierBadge annualFeeBrl={card.annualFeeBrl} />
         <Button
           variant={inCompare ? "secondary" : "primary"}
           size="sm"
