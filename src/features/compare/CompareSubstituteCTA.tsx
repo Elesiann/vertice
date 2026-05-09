@@ -57,7 +57,7 @@ export const CompareSubstituteCTA = ({ cards }: CompareSubstituteCTAProps): JSX.
   const delta = leader.ret - currentReturn;
 
   return (
-    <div className="border-line mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+    <div className="border-line mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4 print:hidden">
       <p className="text-body-sm text-ink-muted">
         Substituir <span className="text-ink font-semibold">{currentName}</span> por{" "}
         <span className="text-ink font-semibold">{leader.card.name}</span>:{" "}
