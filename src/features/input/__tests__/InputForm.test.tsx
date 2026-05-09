@@ -61,7 +61,7 @@ describe("InputForm", () => {
     expect(screen.getByLabelText(/Gasto mensal \(R\$\)/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Gasto mensal em viagens/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Renda mensal/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Investimentos \(R\$\)/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Investimentos/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Forma de resgate/i)).toBeInTheDocument();
     expect(screen.getByText(/Cartões atuais/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Buscar por nome/i)).toBeInTheDocument();
@@ -126,7 +126,7 @@ describe("InputForm", () => {
       latest = p;
     });
 
-    const availableToInvest = screen.getByLabelText(/Investimentos \(R\$\)/i);
+    const availableToInvest = screen.getByLabelText(/Investimentos/i);
     await userEvent.clear(availableToInvest);
     await userEvent.type(availableToInvest, "50000");
     await userEvent.click(screen.getByRole("button", { name: /análise/i }));
