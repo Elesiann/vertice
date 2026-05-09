@@ -4,11 +4,13 @@ import { useCompareStore } from "@/lib/compare-store";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { CatalogCard } from "./CatalogCard";
+import type { CatalogSort } from "./CatalogFilters";
 import type { CatalogFilters, PublicCatalogCard } from "@/types";
 
 interface CatalogListProps {
   filters: CatalogFilters;
   onClearFilters?: () => void;
+  sort?: CatalogSort;
 }
 
 type State =
@@ -17,8 +19,26 @@ type State =
   | { status: "ok"; cards: PublicCatalogCard[] };
 
 const SKELETON_COUNT = 9;
+const DEFAULT_SORT: CatalogSort = "fee_asc";
 
-export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.Element => {
+const byName = (a: PublicCatalogCard, b: PublicCatalogCard): number =>
+  a.name.localeCompare(b.name, "pt-BR");
+
+const sortCatalogCards = (
+  cards: readonly PublicCatalogCard[],
+  sort: CatalogSort,
+): PublicCatalogCard[] =>
+  [...cards].sort((a, b) => {
+    if (sort === "fee_desc") return b.annualFeeBrl - a.annualFeeBrl || byName(a, b);
+    if (sort === "name_asc") return byName(a, b);
+    return a.annualFeeBrl - b.annualFeeBrl || byName(a, b);
+  });
+
+export const CatalogList = ({
+  filters,
+  onClearFilters,
+  sort = DEFAULT_SORT,
+}: CatalogListProps): JSX.Element => {
   const [state, setState] = useState<State>({ status: "loading" });
   const { add, remove, has } = useCompareStore();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,9 +99,11 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
     );
   }
 
+  const sortedCards = sortCatalogCards(state.cards, sort);
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {state.cards.map((card) => (
+      {sortedCards.map((card) => (
         <CatalogCard
           key={card.id}
           card={card}
