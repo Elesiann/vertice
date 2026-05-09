@@ -1,4 +1,5 @@
-import { type JSX, useState, useCallback } from "react";
+import { type JSX, useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { CatalogFiltersPanel } from "@/features/catalog/CatalogFilters";
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { useCompareStore } from "@/lib/compare-store";
@@ -8,12 +9,74 @@ import type { CatalogFilters } from "@/types";
 
 const EMPTY_FILTERS: CatalogFilters = {};
 
+const parseBoolean = (value: string | null): true | undefined => {
+  return value === "true" ? true : undefined;
+};
+
+const parseNumber = (value: string | null): number | undefined => {
+  if (value === null || value.length === 0) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const filtersFromSearchParams = (searchParams: URLSearchParams): CatalogFilters => {
+  const next: CatalogFilters = {};
+  const search = searchParams.get("search");
+  const brand = searchParams.get("brand");
+  const tier = searchParams.get("tier");
+  const maxAnnualFee = parseNumber(searchParams.get("maxAnnualFee"));
+  const hasLounge = parseBoolean(searchParams.get("hasLounge"));
+  const hasCashback = parseBoolean(searchParams.get("hasCashback"));
+
+  if (search !== null && search.length > 0) next.search = search;
+  if (brand !== null && brand.length > 0) next.brand = brand;
+  if (tier !== null && tier.length > 0) next.tier = tier;
+  if (maxAnnualFee !== undefined) next.maxAnnualFee = maxAnnualFee;
+  if (hasLounge !== undefined) next.hasLounge = hasLounge;
+  if (hasCashback !== undefined) next.hasCashback = hasCashback;
+
+  return next;
+};
+
+const searchParamsFromFilters = (filters: CatalogFilters): URLSearchParams => {
+  const params = new URLSearchParams();
+  if (filters.search !== undefined && filters.search.length > 0)
+    params.set("search", filters.search);
+  if (filters.brand !== undefined && filters.brand.length > 0) params.set("brand", filters.brand);
+  if (filters.tier !== undefined && filters.tier.length > 0) params.set("tier", filters.tier);
+  if (filters.maxAnnualFee !== undefined) params.set("maxAnnualFee", String(filters.maxAnnualFee));
+  if (filters.hasLounge !== undefined) params.set("hasLounge", String(filters.hasLounge));
+  if (filters.hasCashback !== undefined) params.set("hasCashback", String(filters.hasCashback));
+  return params;
+};
+
+const filtersKey = (filters: CatalogFilters): string => searchParamsFromFilters(filters).toString();
+
 export const CatalogPage = (): JSX.Element => {
-  const [filters, setFilters] = useState<CatalogFilters>(EMPTY_FILTERS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [filters, setFiltersState] = useState<CatalogFilters>(() =>
+    filtersFromSearchParams(searchParams),
+  );
   const { ids } = useCompareStore();
+
+  useEffect(() => {
+    const next = filtersFromSearchParams(searchParams);
+    if (filtersKey(next) !== filtersKey(filters)) {
+      setFiltersState(next);
+    }
+  }, [filters, searchParams]);
+
+  const setFilters = useCallback(
+    (next: CatalogFilters) => {
+      setFiltersState(next);
+      setSearchParams(searchParamsFromFilters(next));
+    },
+    [setSearchParams],
+  );
+
   const handleClear = useCallback(() => {
     setFilters(EMPTY_FILTERS);
-  }, []);
+  }, [setFilters]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
