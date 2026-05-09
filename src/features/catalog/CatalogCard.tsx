@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -28,8 +28,19 @@ export const CatalogCard = ({
   inCompare = false,
   className,
 }: CatalogCardProps): JSX.Element => {
+  const navigate = useNavigate();
   const { profile } = useSession();
   const isCurrentCard = profile?.currentCardIds?.includes(card.id) === true;
+
+  const handleCompare = (): void => {
+    const currentCardId = profile?.currentCardIds?.[0];
+    if (currentCardId !== undefined) {
+      const ids = currentCardId === card.id ? [currentCardId] : [currentCardId, card.id];
+      void navigate(`/compare?ids=${ids.join(",")}`);
+      return;
+    }
+    onCompare?.(card.id);
+  };
 
   return (
     <article
@@ -78,11 +89,7 @@ export const CatalogCard = ({
         )}
         <FeeTierBadge annualFeeBrl={card.annualFeeBrl} />
       </div>
-      <Button
-        size="sm"
-        variant={inCompare ? "secondary" : "ghost"}
-        onClick={() => onCompare?.(card.id)}
-      >
+      <Button size="sm" variant={inCompare ? "secondary" : "ghost"} onClick={handleCompare}>
         {inCompare ? "Na comparação" : "Comparar"}
       </Button>
     </article>

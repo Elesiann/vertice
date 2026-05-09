@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
 import { CatalogCard } from "@/features/catalog/CatalogCard";
 import type { PublicCatalogCard, SpendingProfile } from "@/types";
@@ -21,11 +21,18 @@ const card: PublicCatalogCard = {
   hasZeroIof: false,
 };
 
-const profile: SpendingProfile = {
+const ownedProfile: SpendingProfile = {
   monthlyDomesticBrl: 5000,
   monthlyInternationalUsd: 0,
   redemption: { kind: "any" },
   currentCardIds: ["test-card"],
+};
+
+const otherCardProfile: SpendingProfile = {
+  monthlyDomesticBrl: 5000,
+  monthlyInternationalUsd: 0,
+  redemption: { kind: "any" },
+  currentCardIds: ["current-card"],
 };
 
 const SeedSession = ({ profile }: { profile: SpendingProfile | null }): null => {
@@ -34,6 +41,11 @@ const SeedSession = ({ profile }: { profile: SpendingProfile | null }): null => 
     setProfile(profile);
   }, [profile, setProfile]);
   return null;
+};
+
+const LocationProbe = (): React.JSX.Element => {
+  const location = useLocation();
+  return <span data-testid="location">{location.pathname + location.search}</span>;
 };
 
 const renderCard = (
@@ -46,6 +58,7 @@ const renderCard = (
       <SessionProvider>
         <SeedSession profile={currentProfile} />
         <CatalogCard card={cardOverride} {...props} />
+        <LocationProbe />
       </SessionProvider>
     </MemoryRouter>,
   );
@@ -73,19 +86,35 @@ describe("CatalogCard", () => {
   });
 
   it("shows current-card badge when card is in the session profile", () => {
-    renderCard(profile);
+    renderCard(ownedProfile);
     expect(screen.getByText("Você já tem")).toBeInTheDocument();
   });
 
   it("omits current-card badge when card is not in the session profile", () => {
-    renderCard({ ...profile, currentCardIds: ["other-card"] });
+    renderCard(otherCardProfile);
     expect(screen.queryByText("Você já tem")).not.toBeInTheDocument();
   });
 
-  it("calls onCompare when compare button clicked", async () => {
+  it("calls onCompare when compare button clicked without a current card", async () => {
     const onCompare = vi.fn();
     renderCard(null, card, { onCompare });
     await userEvent.click(screen.getByRole("button", { name: /comparar/i }));
     expect(onCompare).toHaveBeenCalledWith("test-card");
+  });
+
+  it("navigates to compare with current card first when profile has currentCardIds", async () => {
+    renderCard(otherCardProfile);
+
+    await userEvent.click(screen.getByRole("button", { name: /comparar/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("/compare?ids=current-card,test-card");
+  });
+
+  it("does not duplicate current card when selected card is already current", async () => {
+    renderCard(ownedProfile);
+
+    await userEvent.click(screen.getByRole("button", { name: /comparar/i }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("/compare?ids=test-card");
   });
 });
