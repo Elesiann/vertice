@@ -109,8 +109,8 @@ describe("CompareTable", () => {
         <CompareTable cards={cards} />
       </Wrap>,
     );
-    expect(screen.getByText("Cartão Alpha")).toBeInTheDocument();
-    expect(screen.getByText("Cartão Beta")).toBeInTheDocument();
+    expect(screen.getAllByText("Cartão Alpha").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Cartão Beta").length).toBeGreaterThan(0);
   });
 
   it("renders the annual fee row", () => {
@@ -162,8 +162,8 @@ describe("CompareTable", () => {
       </Wrap>,
     );
 
-    const label = await screen.findByText(/Retorno modelado pro seu perfil/i);
-    const row = label.closest("tr");
+    const labels = await screen.findAllByText(/Retorno modelado pro seu perfil/i);
+    const row = labels.map((el) => el.closest("tr")).find((tr) => tr !== null);
     expect(row).not.toBeNull();
     expect(row?.textContent).toMatch(/500,00\/ano/);
     expect(row?.textContent).toMatch(/1\.500,00\/ano/);
@@ -196,8 +196,8 @@ describe("CompareTable", () => {
       </Wrap>,
     );
 
-    const label = await screen.findByText(/Retorno modelado pro seu perfil/i);
-    const row = label.closest("tr");
+    const labels = await screen.findAllByText(/Retorno modelado pro seu perfil/i);
+    const row = labels.map((el) => el.closest("tr")).find((tr) => tr !== null);
     expect(row?.querySelectorAll(".animate-pulse").length).toBe(cards.length);
 
     // Flush the pending promise to avoid leak warnings
@@ -205,5 +205,35 @@ describe("CompareTable", () => {
       ok: true,
       json: () => Promise.resolve({ ok: true, data: recommendation() }),
     });
+  });
+
+  it("renders mobile cards layout with same data", () => {
+    render(
+      <Wrap profile={null}>
+        <CompareTable cards={cards} />
+      </Wrap>,
+    );
+    // Mobile layout exists: each card is a <section> with the card's aria-label
+    expect(screen.getByRole("region", { name: "Cartão Alpha" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Cartão Beta" })).toBeInTheDocument();
+  });
+
+  it("mobile layout marks winner cells with text-accent", () => {
+    render(
+      <Wrap profile={null}>
+        <CompareTable cards={cards} />
+      </Wrap>,
+    );
+    const beta = screen.getByRole("region", { name: "Cartão Beta" });
+    // Beta has the lower fee (800 vs 1200) → it's the fee winner
+    const betaFeeRow = Array.from(beta.querySelectorAll("dd")).find((el) =>
+      el.textContent.includes("800"),
+    );
+    expect(betaFeeRow?.className).toMatch(/text-accent/);
+    const alpha = screen.getByRole("region", { name: "Cartão Alpha" });
+    const alphaFeeRow = Array.from(alpha.querySelectorAll("dd")).find((el) =>
+      el.textContent.includes("1.200"),
+    );
+    expect(alphaFeeRow?.className).not.toMatch(/text-accent/);
   });
 });
