@@ -4,6 +4,7 @@ import type {
   CardOption,
   CatalogFilters,
   PublicCardDetail,
+  PublicCatalogCard,
   Recommendation,
   SolverError,
   SpendingProfile,
@@ -83,14 +84,58 @@ export const fetchCardCatalog = async (
   if (filters.brand !== undefined) params.set("brand", filters.brand);
   if (filters.hasLounge !== undefined) params.set("hasLounge", String(filters.hasLounge));
   if (filters.hasCashback !== undefined) params.set("hasCashback", String(filters.hasCashback));
+  if (filters.hasInvestback !== undefined) {
+    params.set("hasInvestback", String(filters.hasInvestback));
+  }
+  if (filters.requiresRelationship !== undefined && filters.requiresRelationship.length > 0) {
+    params.set("requiresRelationship", filters.requiresRelationship.join(","));
+  }
+  if (filters.minAnnualFee !== undefined) params.set("minAnnualFee", String(filters.minAnnualFee));
   if (filters.maxAnnualFee !== undefined) params.set("maxAnnualFee", String(filters.maxAnnualFee));
   if (filters.search !== undefined && filters.search.length > 0)
     params.set("search", filters.search);
   const qs = params.toString();
   const response = await fetch(apiUrl(`/cards/catalog${qs ? `?${qs}` : ""}`));
   if (!response.ok) throw new Error("Failed to fetch card catalog");
-  return response.json() as Promise<CardCatalogResponse>;
+  const body = (await response.json()) as CardCatalogResponse;
+  const cards = applyClientSideCatalogFilters(body.cards, filters);
+  return {
+    ...body,
+    cards,
+    count: cards.length,
+    filters: { ...body.filters, ...filters },
+  };
 };
+
+const applyClientSideCatalogFilters = (
+  cards: PublicCatalogCard[],
+  filters: CatalogFilters,
+): PublicCatalogCard[] =>
+  cards.filter((card) => {
+    // TODO: backend filter — keep these checks until /cards/catalog applies the expanded filters.
+    if (
+      filters.hasInvestback !== undefined &&
+      (card.hasInvestback === true) !== filters.hasInvestback
+    ) {
+      return false;
+    }
+    if (
+      filters.requiresRelationship !== undefined &&
+      filters.requiresRelationship.length > 0 &&
+      (card.requiresRelationship === undefined ||
+        card.requiresRelationship === "private" ||
+        !filters.requiresRelationship.includes(card.requiresRelationship))
+    ) {
+      return false;
+    }
+    if (filters.minAnnualFee !== undefined && card.annualFeeBrl < filters.minAnnualFee) {
+      return false;
+    }
+    if (filters.maxAnnualFee !== undefined && card.annualFeeBrl > filters.maxAnnualFee) {
+      return false;
+    }
+    return true;
+  });
 
 export const fetchCardDetail = async (
   id: string,

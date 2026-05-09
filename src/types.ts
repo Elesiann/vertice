@@ -280,6 +280,13 @@ export interface Recommendation {
     };
     decisionTracks?: ScoreLabDecisionTracks;
     nearUnlocks: StackEvaluation[];
+    /**
+     * Net return (R$/year) for each card evaluated as a single-card stack
+     * against the caller's profile. Used by surfaces that need a per-card
+     * modeled return (e.g. the comparator) without re-issuing one request
+     * per card. Optional because older backend builds may not include it.
+     */
+    singleCardNetReturnByCardId?: Record<string, number>;
     notes: string[];
   };
 }
@@ -355,12 +362,20 @@ export interface PublicCardDetail extends PublicCatalogCard {
   lastVerified?: string;
 }
 
+export type CatalogRelationshipFilter = Extract<
+  RelationshipLevel,
+  "open" | "checking" | "investment"
+>;
+
 export interface CatalogFilters {
   bank?: string;
   tier?: string;
   brand?: string;
   hasLounge?: boolean;
   hasCashback?: boolean;
+  hasInvestback?: boolean;
+  requiresRelationship?: CatalogRelationshipFilter[];
+  minAnnualFee?: number;
   maxAnnualFee?: number;
   search?: string;
 }

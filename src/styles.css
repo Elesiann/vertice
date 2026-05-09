@@ -299,3 +299,26 @@
   letter-spacing: -0.015em;
   font-feature-settings: "ss01", "lnum";
 }
+
+/* =============================================================================
+   Print rules — used by the compare page (K7).
+   The application is screen-first; only K7 (print/PDF the comparator) needs
+   global print directives. Keep this block scoped and small.
+   ========================================================================== */
+
+@media print {
+  @page {
+    size: portrait;
+    margin: 1.5cm;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  /* Avoid splitting comparator rows across pages. Combined with each row's
+     `print:break-inside-avoid` Tailwind class for redundancy. */
+  .compare-print-row {
+    break-inside: avoid;
+  }
+}

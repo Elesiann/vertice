@@ -31,7 +31,12 @@ export const TravelTranslation = ({ translation }: TravelTranslationProps): JSX.
         <p className="text-ink-subtle mt-1 text-xs">
           Pontos compatíveis: {formatPoints(translation.compatiblePoints)}
         </p>
-        {translation.remainingPoints > 0 ? (
+        {translation.trips === 0 && translation.pointsRequired > translation.compatiblePoints ? (
+          <p className="text-ink-subtle mt-1 text-xs">
+            Faltam {formatPoints(translation.pointsRequired - translation.compatiblePoints)} pontos
+            para a próxima passagem.
+          </p>
+        ) : translation.remainingPoints > 0 ? (
           <p className="text-ink-subtle mt-1 text-xs">
             Sobra: {formatPoints(translation.remainingPoints)} pontos
           </p>

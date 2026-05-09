@@ -4,21 +4,66 @@ import { useCompareStore } from "@/lib/compare-store";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { CatalogCard } from "./CatalogCard";
+import type { CatalogSort } from "./CatalogFilters";
 import type { CatalogFilters, PublicCatalogCard } from "@/types";
 
 interface CatalogListProps {
   filters: CatalogFilters;
   onClearFilters?: () => void;
+  sort?: CatalogSort;
 }
 
 type State =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ok"; cards: PublicCatalogCard[] };
+  | { status: "ok"; cards: PublicCatalogCard[]; total: number };
 
 const SKELETON_COUNT = 9;
+const DEFAULT_SORT: CatalogSort = "fee_asc";
 
-export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.Element => {
+const searchTerms = (search: string | undefined): string[] => {
+  return (search ?? "")
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((term) => term.length > 0);
+};
+
+const matchesSearchTerms = (card: PublicCatalogCard, terms: string[]): boolean => {
+  if (terms.length <= 1) return true;
+
+  const fields = [card.name, card.bank, card.tier, card.brand].map((field) => field.toLowerCase());
+  return terms.every((term) => fields.some((field) => field.includes(term)));
+};
+
+const emptySuggestion = (filters: CatalogFilters): string => {
+  if (filters.maxAnnualFee !== undefined && filters.maxAnnualFee <= 200) {
+    return "Tente ampliar a anuidade até R$ 500.";
+  }
+  if (filters.hasLounge === true) {
+    return "Tente sem o filtro de lounge.";
+  }
+  return "Tente ampliar a busca.";
+};
+
+const byName = (a: PublicCatalogCard, b: PublicCatalogCard): number =>
+  a.name.localeCompare(b.name, "pt-BR");
+
+const sortCatalogCards = (
+  cards: readonly PublicCatalogCard[],
+  sort: CatalogSort,
+): PublicCatalogCard[] =>
+  [...cards].sort((a, b) => {
+    if (sort === "fee_desc") return b.annualFeeBrl - a.annualFeeBrl || byName(a, b);
+    if (sort === "name_asc") return byName(a, b);
+    return a.annualFeeBrl - b.annualFeeBrl || byName(a, b);
+  });
+
+export const CatalogList = ({
+  filters,
+  onClearFilters,
+  sort = DEFAULT_SORT,
+}: CatalogListProps): JSX.Element => {
   const [state, setState] = useState<State>({ status: "loading" });
   const { add, remove, has } = useCompareStore();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -26,8 +71,20 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
   const load = useCallback(async (f: CatalogFilters) => {
     setState({ status: "loading" });
     try {
-      const res = await fetchCardCatalog(f);
-      setState({ status: "ok", cards: res.cards });
+      const terms = searchTerms(f.search);
+      const { search: _search, ...filtersWithoutSearch } = f;
+      const requestFilters = terms.length > 1 ? filtersWithoutSearch : f;
+      const hasFilters = Object.values(f).some((value) => value !== undefined);
+      const [res, totalRes] = await Promise.all([
+        fetchCardCatalog(requestFilters),
+        hasFilters ? fetchCardCatalog({}) : Promise.resolve(null),
+      ]);
+      const filteredCards = res.cards.filter((card) => matchesSearchTerms(card, terms));
+      setState({
+        status: "ok",
+        cards: filteredCards,
+        total: totalRes?.cards.length ?? filteredCards.length,
+      });
     } catch {
       setState({ status: "error", message: "Não foi possível carregar o catálogo." });
     }
@@ -43,14 +100,19 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
 
   if (state.status === "loading") {
     return (
-      <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        aria-busy="true"
-        aria-label="Carregando cartões"
-      >
-        {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-          <div key={i} className="bg-surface-sunken h-64 animate-pulse rounded-xl" />
-        ))}
+      <div className="flex flex-col gap-4">
+        <p className="text-body-sm text-ink-muted">
+          {/* TODO: lint stackr-writing */}Carregando catálogo…
+        </p>
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          aria-busy="true"
+          aria-label="Carregando cartões"
+        >
+          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+            <div key={i} className="bg-surface-sunken h-64 animate-pulse rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -69,7 +131,8 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
   if (state.cards.length === 0) {
     return (
       <Panel tone="sunken" className="p-6 text-center">
-        <p className="text-body text-ink-muted">Nenhum cartão atende esses filtros.</p>
+        <p className="text-body text-ink-muted">Nenhum cartão com esses filtros.</p>
+        <p className="text-body-sm text-ink-subtle mt-2">{emptySuggestion(filters)}</p>
         {onClearFilters !== undefined && (
           <Button variant="ghost" size="sm" className="mt-4" onClick={onClearFilters}>
             Limpar filtros
@@ -79,22 +142,36 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
     );
   }
 
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
+  const countSummary = `Mostrando ${String(state.cards.length)} de ${String(state.total)} cartões`;
+  const sortedCards = sortCatalogCards(state.cards, sort);
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {state.cards.map((card) => (
-        <CatalogCard
-          key={card.id}
-          card={card}
-          inCompare={has(card.id)}
-          onCompare={(id) => {
-            if (has(id)) {
-              remove(id);
-            } else {
-              add(id);
-            }
-          }}
-        />
-      ))}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-body-sm text-ink-muted">{countSummary}</p>
+        {hasActiveFilters && onClearFilters !== undefined ? (
+          <Button variant="ghost" size="sm" onClick={onClearFilters}>
+            Limpar filtros
+          </Button>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {sortedCards.map((card) => (
+          <CatalogCard
+            key={card.id}
+            card={card}
+            inCompare={has(card.id)}
+            onCompare={(id) => {
+              if (has(id)) {
+                remove(id);
+              } else {
+                add(id);
+              }
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 };

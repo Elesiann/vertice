@@ -1,11 +1,12 @@
 import type { JSX } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { fetchCardDetail } from "@/lib/api";
+import { fetchCardCatalog, fetchCardDetail } from "@/lib/api";
 import { useCompareStore } from "@/lib/compare-store";
 import { CompareTable } from "@/features/compare/CompareTable";
 import { CompareEmpty } from "@/features/compare/CompareEmpty";
-import type { PublicCardDetail } from "@/types";
+import { CompareNarrativeBanner } from "@/features/compare/CompareNarrativeBanner";
+import type { PublicCardDetail, PublicCatalogCard } from "@/types";
 
 type CardResult =
   | { status: "loading"; id: string }
@@ -16,12 +17,41 @@ export const ComparePage = (): JSX.Element => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { ids: storeIds, add } = useCompareStore();
   const [results, setResults] = useState<CardResult[]>([]);
+  const [catalogCards, setCatalogCards] = useState<PublicCatalogCard[]>([]);
 
   const urlIds = (searchParams.get("ids") ?? "")
     .split(",")
     .filter((id) => id.length > 0)
     .slice(0, 4);
   const effectiveIds = urlIds.length > 0 ? urlIds : storeIds;
+
+  const writeIds = useCallback(
+    (ids: string[]) => {
+      const next = Array.from(new Set(ids)).slice(0, 4);
+      next.forEach((id) => {
+        add(id);
+      });
+      setSearchParams({ ids: next.join(",") });
+    },
+    [add, setSearchParams],
+  );
+
+  const handleAddCard = useCallback(
+    (id: string) => {
+      if (effectiveIds.includes(id) || effectiveIds.length >= 4) return;
+      writeIds([...effectiveIds, id]);
+    },
+    [effectiveIds, writeIds],
+  );
+
+  const handleRemoveCard = useCallback(
+    (id: string) => {
+      const next = effectiveIds.filter((cardId) => cardId !== id);
+      useCompareStore.getState().remove(id);
+      setSearchParams({ ids: next.join(",") });
+    },
+    [effectiveIds, setSearchParams],
+  );
 
   useEffect(() => {
     if (urlIds.length > 0) {
@@ -32,6 +62,12 @@ export const ComparePage = (): JSX.Element => {
       setSearchParams({ ids: storeIds.join(",") }, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    void fetchCardCatalog({}).then((response) => {
+      setCatalogCards(response.cards);
+    });
   }, []);
 
   useEffect(() => {
@@ -85,7 +121,17 @@ export const ComparePage = (): JSX.Element => {
             {r.id}: {r.message}
           </p>
         ))}
-      {!hasAnyLoading && loadedCards.length >= 2 && <CompareTable cards={loadedCards} />}
+      {!hasAnyLoading && loadedCards.length >= 2 && (
+        <>
+          <CompareNarrativeBanner cards={loadedCards} />
+          <CompareTable
+            cards={loadedCards}
+            catalogCards={catalogCards}
+            onAddCard={handleAddCard}
+            onRemoveCard={handleRemoveCard}
+          />
+        </>
+      )}
       {!hasAnyLoading && loadedCards.length === 1 && (
         <p className="text-body-sm text-ink-muted">Selecione pelo menos 2 cartões para comparar.</p>
       )}

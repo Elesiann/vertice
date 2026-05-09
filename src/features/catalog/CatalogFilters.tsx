@@ -4,12 +4,17 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Button } from "@/components/ui/Button";
-import type { CatalogFilters } from "@/types";
+import { Badge } from "@/components/ui/Badge";
+import type { CatalogFilters, CatalogRelationshipFilter } from "@/types";
+
+export type CatalogSort = "fee_asc" | "fee_desc" | "name_asc";
 
 interface CatalogFiltersProps {
   filters: CatalogFilters;
   onChange: (filters: CatalogFilters) => void;
   onClear: () => void;
+  sort: CatalogSort;
+  onSortChange: (sort: CatalogSort) => void;
 }
 
 // Merge filters, omitting any keys whose value is explicitly undefined.
@@ -18,18 +23,43 @@ type FilterUpdate = {
   [K in keyof CatalogFilters]?: CatalogFilters[K] | undefined;
 };
 
+const RELATIONSHIP_OPTIONS: { value: CatalogRelationshipFilter; label: string }[] = [
+  { value: "open", label: "Sem relacionamento" },
+  { value: "checking", label: "Conta corrente" },
+  { value: "investment", label: "Investidor" },
+];
+
+const MIN_ANNUAL_FEE_LABEL = "Anuidade mínima (R$)"; // TODO: lint stackr-writing
+const MAX_ANNUAL_FEE_LABEL = "Anuidade máxima (R$)";
+
+const isEmptyFilterValue = (value: unknown): boolean =>
+  value === undefined || (Array.isArray(value) && value.length === 0);
+
 const mergeFilters = (base: CatalogFilters, update: FilterUpdate): CatalogFilters => {
   const merged = { ...base, ...update };
-  return Object.fromEntries(Object.entries(merged).filter(([, v]) => v !== undefined));
+  return Object.fromEntries(Object.entries(merged).filter(([, v]) => !isEmptyFilterValue(v)));
 };
 
 export const CatalogFiltersPanel = ({
   filters,
   onChange,
   onClear,
+  sort,
+  onSortChange,
 }: CatalogFiltersProps): JSX.Element => {
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
   const set = (update: FilterUpdate) => {
     onChange(mergeFilters(filters, update));
+  };
+
+  const premiumFreeActive = filters.maxAnnualFee === 0 && filters.hasLounge === true;
+
+  const handlePremiumFree = () => {
+    if (premiumFreeActive) {
+      set({ maxAnnualFee: undefined, hasLounge: undefined });
+      return;
+    }
+    set({ maxAnnualFee: 0, hasLounge: true });
   };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
@@ -48,6 +78,10 @@ export const CatalogFiltersPanel = ({
     set({ maxAnnualFee: e.target.value.length > 0 ? Number(e.target.value) : undefined });
   };
 
+  const handleMinFee = (e: ChangeEvent<HTMLInputElement>) => {
+    set({ minAnnualFee: e.target.value.length > 0 ? Number(e.target.value) : undefined });
+  };
+
   const handleLounge = (e: ChangeEvent<HTMLInputElement>) => {
     set({ hasLounge: e.target.checked ? true : undefined });
   };
@@ -56,8 +90,49 @@ export const CatalogFiltersPanel = ({
     set({ hasCashback: e.target.checked ? true : undefined });
   };
 
+  const handleSort = (e: ChangeEvent<HTMLSelectElement>) => {
+    onSortChange(e.target.value as CatalogSort);
+  };
+
+  const handleInvestback = (e: ChangeEvent<HTMLInputElement>) => {
+    set({ hasInvestback: e.target.checked ? true : undefined });
+  };
+
+  const handleRelationship = (
+    value: CatalogRelationshipFilter,
+    e: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const selected = new Set(filters.requiresRelationship ?? []);
+    if (e.target.checked) {
+      selected.add(value);
+    } else {
+      selected.delete(value);
+    }
+    const next = RELATIONSHIP_OPTIONS.map((option) => option.value).filter((option) =>
+      selected.has(option),
+    );
+    set({ requiresRelationship: next.length > 0 ? next : undefined });
+  };
+
   return (
     <aside className="border-line bg-surface-raised flex flex-col gap-4 rounded-xl border p-4">
+      <Field label="Ordenar por">
+        <Select value={sort} onChange={handleSort}>
+          <option value="fee_asc">Menor anuidade</option>
+          <option value="fee_desc">Maior anuidade</option>
+          <option value="name_asc">Nome (A–Z)</option>
+        </Select>
+      </Field>
+
+      <button
+        type="button"
+        aria-pressed={premiumFreeActive}
+        className="self-start"
+        onClick={handlePremiumFree}
+      >
+        <Badge tone={premiumFreeActive ? "accent" : "neutral"}>Premium grátis</Badge>
+      </button>
+
       <Field label="Buscar">
         <Input
           type="search"
@@ -89,14 +164,25 @@ export const CatalogFiltersPanel = ({
         </Select>
       </Field>
 
-      <Field label="Anuidade máxima (R$)">
-        <Input
-          type="number"
-          min={0}
-          placeholder="Sem limite"
-          value={filters.maxAnnualFee ?? ""}
-          onChange={handleMaxFee}
-        />
+      <Field label="Anuidade entre">
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            type="number"
+            min={0}
+            placeholder="0"
+            aria-label={MIN_ANNUAL_FEE_LABEL}
+            value={filters.minAnnualFee ?? ""}
+            onChange={handleMinFee}
+          />
+          <Input
+            type="number"
+            min={0}
+            placeholder="Sem limite"
+            aria-label={MAX_ANNUAL_FEE_LABEL}
+            value={filters.maxAnnualFee ?? ""}
+            onChange={handleMaxFee}
+          />
+        </div>
       </Field>
 
       <div className="flex flex-col gap-2">
@@ -108,11 +194,36 @@ export const CatalogFiltersPanel = ({
           <Checkbox checked={filters.hasCashback === true} onChange={handleCashback} />
           Com cashback
         </label>
+        <label className="text-ink flex cursor-pointer items-center gap-2 text-sm">
+          <Checkbox checked={filters.hasInvestback === true} onChange={handleInvestback} />
+          Investback (CDB automático)
+        </label>
       </div>
 
-      <Button variant="ghost" size="sm" onClick={onClear}>
-        Limpar filtros
-      </Button>
+      <Field label="Relacionamento">
+        <div className="flex flex-col gap-2">
+          {RELATIONSHIP_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              className="text-ink flex cursor-pointer items-center gap-2 text-sm"
+            >
+              <Checkbox
+                checked={filters.requiresRelationship?.includes(option.value) ?? false}
+                onChange={(event) => {
+                  handleRelationship(option.value, event);
+                }}
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+      </Field>
+
+      {hasActiveFilters ? (
+        <Button variant="ghost" size="sm" onClick={onClear}>
+          Limpar filtros
+        </Button>
+      ) : null}
     </aside>
   );
 };
