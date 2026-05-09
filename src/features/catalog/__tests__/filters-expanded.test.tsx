@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { CatalogPage } from "@/pages/CatalogPage";
+import { SessionProvider } from "@/context/SessionContext";
 import type { PublicCatalogCard } from "@/types";
 
 const cards: PublicCatalogCard[] = [
@@ -61,18 +62,29 @@ const LocationProbe = () => {
 const renderCatalog = (initialEntry = "/cards") =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <CatalogPage />
-      <LocationProbe />
+      <SessionProvider>
+        <CatalogPage />
+        <LocationProbe />
+      </SessionProvider>
     </MemoryRouter>,
   );
 
 const currentSearchParams = () =>
   new URLSearchParams(screen.getByLabelText("url-search").textContent);
 
-const lastRequestParams = (fetchMock: ReturnType<typeof vi.fn>) => {
-  const call = fetchMock.mock.calls.at(-1);
-  const url = new URL(String(call?.[0]));
-  return url.searchParams;
+// Pick the filtered request, ignoring the unfiltered total-count fetch added
+// by C3. Falls back to the last call when no filtered call has the expected key.
+const lastRequestParams = (fetchMock: ReturnType<typeof vi.fn>, expectedKey?: string) => {
+  const calls = fetchMock.mock.calls;
+  const matching = expectedKey
+    ? calls
+        .map((call) => new URL(String(call[0])))
+        .reverse()
+        .find((url) => url.searchParams.has(expectedKey))
+    : undefined;
+  if (matching !== undefined) return matching.searchParams;
+  const fallback = calls.at(-1);
+  return new URL(String(fallback?.[0])).searchParams;
 };
 
 describe("expanded catalog filters", () => {
@@ -105,26 +117,28 @@ describe("expanded catalog filters", () => {
     await user.click(screen.getByLabelText("Investback (CDB automático)"));
     expect(currentSearchParams().get("hasInvestback")).toBe("true");
     await waitFor(() => {
-      expect(lastRequestParams(fetchMock).get("hasInvestback")).toBe("true");
+      expect(lastRequestParams(fetchMock, "hasInvestback").get("hasInvestback")).toBe("true");
     });
 
     await user.click(screen.getByLabelText("Conta corrente"));
     await user.click(screen.getByLabelText("Investidor"));
     expect(currentSearchParams().get("requiresRelationship")).toBe("checking,investment");
     await waitFor(() => {
-      expect(lastRequestParams(fetchMock).get("requiresRelationship")).toBe("checking,investment");
+      expect(lastRequestParams(fetchMock, "requiresRelationship").get("requiresRelationship")).toBe(
+        "checking,investment",
+      );
     });
 
     await user.type(screen.getByLabelText("Anuidade mínima (R$)"), "100");
     expect(currentSearchParams().get("minAnnualFee")).toBe("100");
     await waitFor(() => {
-      expect(lastRequestParams(fetchMock).get("minAnnualFee")).toBe("100");
+      expect(lastRequestParams(fetchMock, "minAnnualFee").get("minAnnualFee")).toBe("100");
     });
 
     await user.type(screen.getByLabelText("Anuidade máxima (R$)"), "700");
     expect(currentSearchParams().get("maxAnnualFee")).toBe("700");
     await waitFor(() => {
-      expect(lastRequestParams(fetchMock).get("maxAnnualFee")).toBe("700");
+      expect(lastRequestParams(fetchMock, "maxAnnualFee").get("maxAnnualFee")).toBe("700");
     });
 
     await screen.findByText("Cartão Investback");
