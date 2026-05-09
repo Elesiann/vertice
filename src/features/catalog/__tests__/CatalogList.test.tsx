@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { CatalogList } from "@/features/catalog/CatalogList";
+import { SessionProvider } from "@/context/SessionContext";
 import type { CardCatalogResponse, CatalogFilters, PublicCatalogCard } from "@/types";
 
 const fetchCardCatalog = vi.fn<(filters?: CatalogFilters) => Promise<CardCatalogResponse>>();
@@ -41,7 +42,9 @@ const response = (cards: PublicCatalogCard[]): CardCatalogResponse => ({
 const renderList = (filters: CatalogFilters, onClearFilters = vi.fn()): void => {
   render(
     <MemoryRouter>
-      <CatalogList filters={filters} onClearFilters={onClearFilters} />
+      <SessionProvider>
+        <CatalogList filters={filters} onClearFilters={onClearFilters} />
+      </SessionProvider>
     </MemoryRouter>,
   );
 };
@@ -103,7 +106,9 @@ describe("CatalogList search", () => {
   it("matches multi-keyword search across card fields with AND semantics", async () => {
     render(
       <MemoryRouter>
-        <CatalogList filters={{ search: "itau platinum" }} />
+        <SessionProvider>
+          <CatalogList filters={{ search: "itau platinum" }} />
+        </SessionProvider>
       </MemoryRouter>,
     );
 
