@@ -4,10 +4,13 @@ import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { formatBrl } from "@/lib/format";
-import type { PublicCardDetail } from "@/types";
+import { CompareCardCombobox } from "./CompareCardCombobox";
+import type { PublicCardDetail, PublicCatalogCard } from "@/types";
 
 interface CompareTableProps {
   cards: PublicCardDetail[];
+  catalogCards?: PublicCatalogCard[];
+  onAddCard?: (id: string) => void;
 }
 
 const FX_SOURCE_LABEL: Record<string, string> = {
@@ -83,17 +86,30 @@ const Row = ({ label, cells, winners = new Set<number>() }: RowProps): JSX.Eleme
   </tr>
 );
 
-export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
+export const CompareTable = ({
+  cards,
+  catalogCards = [],
+  onAddCard,
+}: CompareTableProps): JSX.Element => {
   const feeWinners = lowestFeeWinners(cards);
   const loungeWinners = bestLoungeWinners(cards);
   const cashbackWinners = highestCashbackWinners(cards);
+  const selectedIds = cards.map((card) => card.id);
+  const addDisabled = selectedIds.length >= 4 || onAddCard === undefined;
 
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-line border-b">
-            <th className="w-32 shrink-0" />
+            <th className="w-32 shrink-0 px-2 py-3 text-left align-bottom">
+              <CompareCardCombobox
+                cards={catalogCards}
+                selectedIds={selectedIds}
+                disabled={addDisabled}
+                onSelect={(id) => onAddCard?.(id)}
+              />
+            </th>
             {cards.map((card) => (
               <th key={card.id} className="px-2 py-3 text-left align-bottom">
                 <div className="flex flex-col gap-2">
