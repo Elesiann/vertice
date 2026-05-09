@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useSession } from "@/context/SessionContext";
+import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl } from "@/lib/format";
 import { CompareCardCombobox } from "./CompareCardCombobox";
@@ -330,6 +331,7 @@ export const CompareTable = ({
             ))}
           </tbody>
         </table>
+        <CompareSubstituteCTA cards={cards} />
       </div>
     </div>
   );
