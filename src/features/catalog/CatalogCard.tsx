@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CardArt } from "@/components/domain/CardArt";
+import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { formatBrl } from "@/lib/format";
 import type { PublicCatalogCard } from "@/types";
 
@@ -53,7 +54,7 @@ export const CatalogCard = ({
           {card.hasInvestback ? "Investback" : "Cashback"} {card.cashbackRatePercent}%
         </Badge>
       )}
-      {card.annualFeeBrl === 0 && <Badge tone="neutral">Sem anuidade</Badge>}
+      <FeeTierBadge annualFeeBrl={card.annualFeeBrl} />
     </div>
     <Button
       size="sm"

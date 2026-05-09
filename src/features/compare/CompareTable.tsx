@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
+import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { formatBrl } from "@/lib/format";
 import type { PublicCardDetail } from "@/types";
@@ -116,8 +117,9 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
           <Row
             label="Anuidade"
             cells={cards.map((c) => (
-              <span key={c.id}>
+              <span key={c.id} className="flex flex-col items-start gap-1">
                 {formatBrl(c.annualFeeBrl)}
+                <FeeTierBadge annualFeeBrl={c.annualFeeBrl} />
                 <FeeWaiverBadge
                   className="mt-1"
                   {...(c.annualFeeWaiverThresholdBrl !== undefined
