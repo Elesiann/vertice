@@ -179,7 +179,7 @@ const Row = ({
   if (hidden) return null;
 
   return (
-    <tr className="border-line border-b">
+    <tr className="compare-print-row border-line border-b print:break-inside-avoid">
       <th
         scope="row"
         className="text-body-sm text-ink-muted w-32 shrink-0 py-3 pr-4 text-left align-top font-medium"
@@ -364,16 +364,28 @@ export const CompareTable = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <label className="text-body-sm text-ink flex items-center gap-2">
-        <Checkbox
-          checked={hideEqualRows}
-          disabled={cards.length <= 1}
-          onChange={(event) => {
-            setHideEqualRows(event.target.checked);
+      <div className="flex items-center justify-between gap-3 print:hidden">
+        <label className="text-body-sm text-ink flex items-center gap-2">
+          <Checkbox
+            checked={hideEqualRows}
+            disabled={cards.length <= 1}
+            onChange={(event) => {
+              setHideEqualRows(event.target.checked);
+            }}
+          />
+          Esconder linhas iguais
+        </label>
+        <Button
+          onClick={() => {
+            window.print();
           }}
-        />
-        Esconder linhas iguais
-      </label>
+          variant="ghost"
+          size="sm"
+          ariaLabel="Imprimir comparação"
+        >
+          Imprimir →
+        </Button>
+      </div>
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse">
           <thead>
