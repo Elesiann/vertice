@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import type { CatalogFilters, CatalogRelationshipFilter } from "@/types";
 
 export type CatalogSort = "fee_asc" | "fee_desc" | "name_asc";
@@ -49,6 +50,16 @@ export const CatalogFiltersPanel = ({
   const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
   const set = (update: FilterUpdate) => {
     onChange(mergeFilters(filters, update));
+  };
+
+  const premiumFreeActive = filters.maxAnnualFee === 0 && filters.hasLounge === true;
+
+  const handlePremiumFree = () => {
+    if (premiumFreeActive) {
+      set({ maxAnnualFee: undefined, hasLounge: undefined });
+      return;
+    }
+    set({ maxAnnualFee: 0, hasLounge: true });
   };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +123,15 @@ export const CatalogFiltersPanel = ({
           <option value="name_asc">Nome (A–Z)</option>
         </Select>
       </Field>
+
+      <button
+        type="button"
+        aria-pressed={premiumFreeActive}
+        className="self-start"
+        onClick={handlePremiumFree}
+      >
+        <Badge tone={premiumFreeActive ? "accent" : "neutral"}>Premium grátis</Badge>
+      </button>
 
       <Field label="Buscar">
         <Input
