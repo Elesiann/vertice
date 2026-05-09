@@ -176,7 +176,7 @@ describe("CompareNarrativeBanner", () => {
     expect(banner).toHaveTextContent(/Delta fica R\$\s?500,00 atrás de Charlie/);
   });
 
-  it("truncates card names longer than 30 chars", async () => {
+  it("preserves full card names without truncation", async () => {
     stubFetch({ a: 1000, b: 500 });
     const longName = "A".repeat(40);
     render(
@@ -185,6 +185,7 @@ describe("CompareNarrativeBanner", () => {
       </Wrap>,
     );
     const banner = await screen.findByRole("complementary");
-    expect(banner.textContent).toMatch(/A{29}…/);
+    expect(banner.textContent).toContain(longName);
+    expect(banner.textContent).not.toContain("…");
   });
 });

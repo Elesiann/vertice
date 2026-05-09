@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { AccessRequirementBadge } from "@/components/domain/AccessRequirementBadge";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { useSession } from "@/context/SessionContext";
 import { formatBrl, formatCashbackRate } from "@/lib/format";
+import { formatBankLabel } from "@/lib/labels";
 import type { CardVerifiedTier, PublicCatalogCard } from "@/types";
 
 type CatalogCardWithVerification = PublicCatalogCard & {
@@ -70,7 +72,7 @@ export const CatalogCard = ({
           {card.name}
         </Link>
         <p className="text-caption text-ink-subtle tracking-wide uppercase">
-          {card.bank} · {card.tier}
+          {formatBankLabel(card.bank, card.id)} · {card.tier}
         </p>
         <VerifiedMark
           {...(card.lastVerified !== undefined ? { lastVerified: card.lastVerified } : {})}
@@ -86,6 +88,17 @@ export const CatalogCard = ({
           : {})}
         {...(card.investmentFeeWaiverBrl !== undefined
           ? { investmentFeeWaiverBrl: card.investmentFeeWaiverBrl }
+          : {})}
+      />
+      <AccessRequirementBadge
+        {...(card.requiredInvestmentBrl !== undefined
+          ? { requiredInvestmentBrl: card.requiredInvestmentBrl }
+          : {})}
+        {...(card.minInvestmentBrl !== undefined
+          ? { minInvestmentBrl: card.minInvestmentBrl }
+          : {})}
+        {...(card.requiresRelationship !== undefined
+          ? { requiresRelationship: card.requiresRelationship }
           : {})}
       />
       <div className="flex flex-wrap gap-1">

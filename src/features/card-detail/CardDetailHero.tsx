@@ -1,9 +1,11 @@
 import type { JSX } from "react";
+import { AccessRequirementBadge } from "@/components/domain/AccessRequirementBadge";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { Button } from "@/components/ui/Button";
 import { useCompareStore } from "@/lib/compare-store";
+import { formatBankLabel } from "@/lib/labels";
 import type { PublicCardDetail } from "@/types";
 
 type PublicCardDetailWithVerificationSources = PublicCardDetail & {
@@ -24,9 +26,20 @@ export const CardDetailHero = ({ card }: CardDetailHeroProps): JSX.Element => {
       <div className="flex flex-col gap-2">
         <h1 className="text-display-3 text-ink">{card.name}</h1>
         <p className="text-caption text-ink-subtle tracking-wide uppercase">
-          {card.bank} · {card.tier} · {card.brand}
+          {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
         </p>
         <FeeTierBadge annualFeeBrl={card.annualFeeBrl} />
+        <AccessRequirementBadge
+          {...(card.requiredInvestmentBrl !== undefined
+            ? { requiredInvestmentBrl: card.requiredInvestmentBrl }
+            : {})}
+          {...(card.minInvestmentBrl !== undefined
+            ? { minInvestmentBrl: card.minInvestmentBrl }
+            : {})}
+          {...(card.requiresRelationship !== undefined
+            ? { requiresRelationship: card.requiresRelationship }
+            : {})}
+        />
         <VerifiedMark
           {...(card.lastVerified !== undefined ? { lastVerified: card.lastVerified } : {})}
           {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}

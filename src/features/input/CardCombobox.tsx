@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
 } from "react";
 import { cn } from "@/lib/cn";
+import { formatBankLabel } from "@/lib/labels";
 import type { CardOption } from "@/types";
 
 interface CardComboboxProps {
@@ -248,7 +249,7 @@ export const CardCombobox = ({
                 </span>
                 <span className="min-w-0 flex-1 truncate">
                   <span className="text-ink">{card.name}</span>{" "}
-                  <span className="text-ink-subtle">({card.bank})</span>
+                  <span className="text-ink-subtle">({formatBankLabel(card.bank, card.id)})</span>
                 </span>
               </div>
             );

@@ -2,6 +2,7 @@ import { type ChangeEvent, type JSX, useMemo, useState } from "react";
 import { BUTTON_BASE, BUTTON_SIZE, BUTTON_VARIANT } from "@/components/ui/button-styles";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
+import { formatBankLabel } from "@/lib/labels";
 import type { PublicCatalogCard } from "@/types";
 
 interface CompareCardComboboxProps {
@@ -79,7 +80,7 @@ export const CompareCardCombobox = ({
               >
                 <span className="text-body-sm text-ink font-semibold">{card.name}</span>
                 <span className="text-caption text-ink-subtle tracking-wide uppercase">
-                  {card.bank} · {card.tier}
+                  {formatBankLabel(card.bank, card.id)} · {card.tier}
                   {selectedIds.includes(card.id) ? " · já na comparação" : ""}
                 </span>
               </button>
