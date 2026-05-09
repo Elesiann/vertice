@@ -34,6 +34,18 @@ describe("CatalogCard", () => {
     expect(screen.getByText(/lounge/i)).toBeInTheDocument();
   });
 
+  it("shows verification date when lastVerified is present", () => {
+    render(<CatalogCard card={{ ...card, lastVerified: "2026-05-08T00:00:00.000Z" }} />, {
+      wrapper: Wrapper,
+    });
+    expect(screen.getByText("Verificado em 08/05/2026")).toBeInTheDocument();
+  });
+
+  it("omits verification date when lastVerified is absent", () => {
+    render(<CatalogCard card={card} />, { wrapper: Wrapper });
+    expect(screen.queryByText(/verificado em/i)).not.toBeInTheDocument();
+  });
+
   it("calls onCompare when compare button clicked", async () => {
     const onCompare = vi.fn();
     render(<CatalogCard card={card} onCompare={onCompare} />, { wrapper: Wrapper });
