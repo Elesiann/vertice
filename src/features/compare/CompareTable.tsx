@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
+import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl } from "@/lib/format";
 import type { PublicCardDetail } from "@/types";
 
@@ -55,6 +56,13 @@ const highestCashbackWinners = (cards: PublicCardDetail[]): Set<number> => {
   return winners.size < cards.length ? winners : new Set<number>();
 };
 
+const highestModeledReturnWinners = (returns: number[]): Set<number> => {
+  if (returns.length === 0) return new Set<number>();
+  const max = Math.max(...returns);
+  const winners = new Set(returns.flatMap((v, i) => (v === max ? [i] : [])));
+  return winners.size < returns.length ? winners : new Set<number>();
+};
+
 interface RowProps {
   label: string;
   cells: (string | JSX.Element)[];
@@ -87,6 +95,39 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
   const feeWinners = lowestFeeWinners(cards);
   const loungeWinners = bestLoungeWinners(cards);
   const cashbackWinners = highestCashbackWinners(cards);
+  const modeledReturns = useModeledReturns();
+
+  const modeledRow = (() => {
+    if (modeledReturns.status === "idle" || modeledReturns.status === "error") {
+      return null;
+    }
+    if (modeledReturns.status === "loading") {
+      return (
+        <Row
+          label="Retorno modelado pro seu perfil"
+          cells={cards.map((c) => (
+            <span
+              key={c.id}
+              aria-label="Calculando"
+              className="bg-surface-sunken inline-block h-4 w-20 animate-pulse rounded"
+            />
+          ))}
+        />
+      );
+    }
+    const values = cards.map((c) => modeledReturns.byCardId[c.id]);
+    const known = values.flatMap((v, i) => (v !== undefined ? [{ i, v }] : []));
+    const knownReturns = known.map((entry) => entry.v);
+    const winners = highestModeledReturnWinners(knownReturns);
+    const winnerIdxs = new Set(known.flatMap((entry, j) => (winners.has(j) ? [entry.i] : [])));
+    return (
+      <Row
+        label="Retorno modelado pro seu perfil"
+        cells={values.map((v) => (v !== undefined ? `${formatBrl(v)}/ano` : "—"))}
+        winners={winnerIdxs}
+      />
+    );
+  })();
 
   return (
     <div className="overflow-x-auto">
@@ -113,6 +154,7 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
           </tr>
         </thead>
         <tbody>
+          {modeledRow}
           <Row
             label="Anuidade"
             cells={cards.map((c) => (
