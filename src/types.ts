@@ -355,12 +355,20 @@ export interface PublicCardDetail extends PublicCatalogCard {
   lastVerified?: string;
 }
 
+export type CatalogRelationshipFilter = Extract<
+  RelationshipLevel,
+  "open" | "checking" | "investment"
+>;
+
 export interface CatalogFilters {
   bank?: string;
   tier?: string;
   brand?: string;
   hasLounge?: boolean;
   hasCashback?: boolean;
+  hasInvestback?: boolean;
+  requiresRelationship?: CatalogRelationshipFilter[];
+  minAnnualFee?: number;
   maxAnnualFee?: number;
   search?: string;
 }

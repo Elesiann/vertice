@@ -5,7 +5,12 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
 import { CatalogCard } from "@/features/catalog/CatalogCard";
-import type { PublicCatalogCard, SpendingProfile } from "@/types";
+import type { CardVerifiedTier, PublicCatalogCard, SpendingProfile } from "@/types";
+
+type CatalogCardWithVerification = PublicCatalogCard & {
+  lastVerified?: string;
+  verifiedTier?: CardVerifiedTier;
+};
 
 const card: PublicCatalogCard = {
   id: "test-card",
@@ -50,7 +55,7 @@ const LocationProbe = (): React.JSX.Element => {
 
 const renderCard = (
   currentProfile: SpendingProfile | null = null,
-  cardOverride: PublicCatalogCard = card,
+  cardOverride: CatalogCardWithVerification = card,
   props = {},
 ) => {
   return render(
