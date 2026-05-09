@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
+import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl } from "@/lib/format";
 import type { PublicCardDetail } from "@/types";
@@ -215,6 +216,7 @@ export const CompareTable = ({ cards }: CompareTableProps): JSX.Element => {
           )}
         </tbody>
       </table>
+      <CompareSubstituteCTA cards={cards} />
     </div>
   );
 };
