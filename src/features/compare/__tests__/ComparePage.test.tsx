@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { ComparePage } from "@/pages/ComparePage";
+import { SessionProvider } from "@/context/SessionContext";
 import { ok } from "@/lib/result";
 import { useCompareStore } from "@/lib/compare-store";
 import type { CardCatalogResponse, PublicCardDetail } from "@/types";
@@ -37,8 +38,10 @@ const LocationProbe = (): React.JSX.Element => {
 const renderPage = (entry: string): void => {
   render(
     <MemoryRouter initialEntries={[entry]}>
-      <ComparePage />
-      <LocationProbe />
+      <SessionProvider>
+        <ComparePage />
+        <LocationProbe />
+      </SessionProvider>
     </MemoryRouter>,
   );
 };
