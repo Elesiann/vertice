@@ -6,10 +6,14 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Button } from "@/components/ui/Button";
 import type { CatalogFilters } from "@/types";
 
+export type CatalogSort = "fee_asc" | "fee_desc" | "name_asc";
+
 interface CatalogFiltersProps {
   filters: CatalogFilters;
   onChange: (filters: CatalogFilters) => void;
   onClear: () => void;
+  sort: CatalogSort;
+  onSortChange: (sort: CatalogSort) => void;
 }
 
 // Merge filters, omitting any keys whose value is explicitly undefined.
@@ -27,6 +31,8 @@ export const CatalogFiltersPanel = ({
   filters,
   onChange,
   onClear,
+  sort,
+  onSortChange,
 }: CatalogFiltersProps): JSX.Element => {
   const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
   const set = (update: FilterUpdate) => {
@@ -57,8 +63,20 @@ export const CatalogFiltersPanel = ({
     set({ hasCashback: e.target.checked ? true : undefined });
   };
 
+  const handleSort = (e: ChangeEvent<HTMLSelectElement>) => {
+    onSortChange(e.target.value as CatalogSort);
+  };
+
   return (
     <aside className="border-line bg-surface-raised flex flex-col gap-4 rounded-xl border p-4">
+      <Field label="Ordenar por">
+        <Select value={sort} onChange={handleSort}>
+          <option value="fee_asc">Menor anuidade</option>
+          <option value="fee_desc">Maior anuidade</option>
+          <option value="name_asc">Nome (A–Z)</option>
+        </Select>
+      </Field>
+
       <Field label="Buscar">
         <Input
           type="search"

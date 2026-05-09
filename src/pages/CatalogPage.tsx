@@ -1,6 +1,6 @@
 import { type JSX, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { CatalogFiltersPanel } from "@/features/catalog/CatalogFilters";
+import { CatalogFiltersPanel, type CatalogSort } from "@/features/catalog/CatalogFilters";
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { useCompareStore } from "@/lib/compare-store";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -8,6 +8,15 @@ import { ROUTES } from "@/routes";
 import type { CatalogFilters } from "@/types";
 
 const EMPTY_FILTERS: CatalogFilters = {};
+const DEFAULT_SORT: CatalogSort = "fee_asc";
+const SORT_VALUES: CatalogSort[] = ["fee_asc", "fee_desc", "name_asc"];
+
+const catalogSortFromSearchParams = (searchParams: URLSearchParams): CatalogSort => {
+  const value = searchParams.get("sort");
+  return SORT_VALUES.some((candidate) => candidate === value)
+    ? (value as CatalogSort)
+    : DEFAULT_SORT;
+};
 
 const parseBoolean = (value: string | null): true | undefined => {
   return value === "true" ? true : undefined;
@@ -57,6 +66,7 @@ export const CatalogPage = (): JSX.Element => {
   const [filters, setFiltersState] = useState<CatalogFilters>(() =>
     filtersFromSearchParams(searchParams),
   );
+  const sort = catalogSortFromSearchParams(searchParams);
   const { ids } = useCompareStore();
 
   useEffect(() => {
@@ -78,6 +88,17 @@ export const CatalogPage = (): JSX.Element => {
     setFilters(EMPTY_FILTERS);
   }, [setFilters]);
 
+  const handleSortChange = useCallback(
+    (nextSort: CatalogSort) => {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set("sort", nextSort);
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <header className="mb-6 flex items-center justify-between gap-4">
@@ -90,10 +111,16 @@ export const CatalogPage = (): JSX.Element => {
       </header>
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="lg:w-56 lg:shrink-0">
-          <CatalogFiltersPanel filters={filters} onChange={setFilters} onClear={handleClear} />
+          <CatalogFiltersPanel
+            filters={filters}
+            onChange={setFilters}
+            onClear={handleClear}
+            sort={sort}
+            onSortChange={handleSortChange}
+          />
         </div>
         <div className="min-w-0 flex-1">
-          <CatalogList filters={filters} onClearFilters={handleClear} />
+          <CatalogList filters={filters} onClearFilters={handleClear} sort={sort} />
         </div>
       </div>
     </div>
