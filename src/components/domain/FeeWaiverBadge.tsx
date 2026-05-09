@@ -24,7 +24,7 @@ export const FeeWaiverBadge = ({
       {annualFeeWaiverThresholdBrl !== undefined && (
         <Badge tone="neutral" className="inline-flex items-center gap-1.5">
           <WaiverIcon category="monthly_spend" />
-          {formatBrl(annualFeeWaiverThresholdBrl)}/mês de gasto
+          Gasto {formatBrl(annualFeeWaiverThresholdBrl)}/mês
         </Badge>
       )}
       {annualFeeWaiverThresholdBrl !== undefined && investmentFeeWaiverBrl !== undefined && (
