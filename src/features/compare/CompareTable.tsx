@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useSession } from "@/context/SessionContext";
+import { CompareMobileCards, type MobileRow } from "@/features/compare/CompareMobileCards";
 import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
 import { CompareWinnerTooltip } from "@/features/compare/CompareWinnerTooltip";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
@@ -155,6 +156,11 @@ const modeledReturnTooltips = (
   });
 };
 
+interface CompareRow extends MobileRow {
+  values: string[];
+  tooltips?: (string | undefined)[];
+}
+
 interface RowProps {
   label: string;
   cells: (string | JSX.Element)[];
@@ -202,14 +208,6 @@ const Row = ({
     </tr>
   );
 };
-
-interface CompareRow {
-  label: string;
-  cells: (string | JSX.Element)[];
-  values: string[];
-  winners?: Set<number>;
-  tooltips?: (string | undefined)[];
-}
 
 const isEqualRow = (row: CompareRow): boolean => {
   return row.values.length > 1 && row.values.every((value) => value === row.values[0]);
@@ -266,6 +264,7 @@ export const CompareTable = ({
           />
         )),
         values: cards.map(() => ""),
+        winners: new Set<number>(),
       };
     }
     const values = cards.map((c) => modeledReturns.byCardId[c.id]);
@@ -282,7 +281,7 @@ export const CompareTable = ({
     };
   })();
 
-  const rows: CompareRow[] = [
+  const allRows: CompareRow[] = [
     ...(modeledRow !== null ? [modeledRow] : []),
     {
       label: "Anuidade",
@@ -309,6 +308,7 @@ export const CompareTable = ({
       label: "Programa",
       cells: cards.map((c) => c.pointsProgram),
       values: cards.map((c) => c.pointsProgram),
+      winners: new Set<number>(),
     },
     {
       label: cards.some((c) => c.hasInvestback) ? "Cashback / Investback" : "Cashback",
@@ -328,21 +328,25 @@ export const CompareTable = ({
       label: "Seguro",
       cells: cards.map(insuranceLabel),
       values: cards.map(insuranceLabel),
+      winners: new Set<number>(),
     },
     {
       label: "Bagagem",
       cells: cards.map((c) => (c.hasFreeCheckedBaggage ? "Grátis" : "Não")),
       values: cards.map((c) => (c.hasFreeCheckedBaggage ? "Grátis" : "Não")),
+      winners: new Set<number>(),
     },
     {
       label: "Câmbio",
       cells: cards.map(fxLabel),
       values: cards.map(fxLabel),
+      winners: new Set<number>(),
     },
     {
       label: "IOF zero",
       cells: cards.map((c) => (c.hasZeroIof ? "Sim" : "Não")),
       values: cards.map((c) => (c.hasZeroIof ? "Sim" : "Não")),
+      winners: new Set<number>(),
     },
     ...(cards.some((c) => c.verifiedTier !== undefined)
       ? [
@@ -350,10 +354,13 @@ export const CompareTable = ({
             label: "Verificação",
             cells: cards.map(verifiedLabel),
             values: cards.map(verifiedLabel),
+            winners: new Set<number>(),
           },
         ]
       : []),
   ];
+
+  const visibleRows = hideEqualRows ? allRows.filter((row) => !isEqualRow(row)) : allRows;
 
   return (
     <div className="flex flex-col gap-3">
@@ -367,7 +374,7 @@ export const CompareTable = ({
         />
         Esconder linhas iguais
       </label>
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-line border-b">
@@ -417,20 +424,24 @@ export const CompareTable = ({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {visibleRows.map((row) => (
               <Row
                 key={row.label}
                 label={row.label}
                 cells={row.cells}
-                {...(row.winners !== undefined ? { winners: row.winners } : {})}
+                winners={row.winners}
                 {...(row.tooltips !== undefined ? { tooltips: row.tooltips } : {})}
-                hidden={hideEqualRows && isEqualRow(row)}
               />
             ))}
           </tbody>
         </table>
         <CompareSubstituteCTA cards={cards} />
       </div>
+      <CompareMobileCards
+        cards={cards}
+        rows={visibleRows}
+        footer={<CompareSubstituteCTA cards={cards} />}
+      />
     </div>
   );
 };
