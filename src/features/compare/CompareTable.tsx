@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useSession } from "@/context/SessionContext";
 import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
+import { CompareWinnerTooltip } from "@/features/compare/CompareWinnerTooltip";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl } from "@/lib/format";
 import { CompareCardCombobox } from "./CompareCardCombobox";
@@ -44,14 +45,15 @@ const lowestFeeWinners = (cards: PublicCardDetail[]): Set<number> => {
   return winners.size < cards.length ? winners : new Set<number>();
 };
 
+const loungeRank = (c: PublicCardDetail): number => {
+  if (!c.hasLoungeAccess) return 0;
+  if (c.loungeAccess?.unlimited === true) return Number.POSITIVE_INFINITY;
+  if (c.loungeAccess?.visitsPerYear !== undefined) return c.loungeAccess.visitsPerYear;
+  return 0.5;
+};
+
 const bestLoungeWinners = (cards: PublicCardDetail[]): Set<number> => {
-  const rank = (c: PublicCardDetail): number => {
-    if (!c.hasLoungeAccess) return 0;
-    if (c.loungeAccess?.unlimited === true) return 3;
-    if (c.loungeAccess?.visitsPerYear !== undefined) return 2;
-    return 1;
-  };
-  const ranks = cards.map(rank);
+  const ranks = cards.map(loungeRank);
   const max = Math.max(...ranks);
   if (max === 0) return new Set<number>();
   const winners = new Set(ranks.flatMap((r, i) => (r === max ? [i] : [])));
@@ -73,10 +75,91 @@ const highestModeledReturnWinners = (returns: number[]): Set<number> => {
   return winners.size < returns.length ? winners : new Set<number>();
 };
 
+const lowestFeeTooltips = (
+  cards: PublicCardDetail[],
+  winners: Set<number>,
+): (string | undefined)[] => {
+  const fees = cards.map((c) => c.annualFeeBrl);
+  const nonWinnerFees = fees.flatMap((f, i) => (winners.has(i) ? [] : [f]));
+  if (nonWinnerFees.length === 0) return cards.map(() => undefined);
+  const second = Math.min(...nonWinnerFees);
+  return cards.map((_, i) => {
+    if (!winners.has(i)) return undefined;
+    const winnerFee = fees[i] ?? 0;
+    const delta = second - winnerFee;
+    return `${formatBrl(winnerFee)}/ano. ${formatBrl(delta)} a menos que segundo.`;
+  });
+};
+
+const cashbackTooltips = (
+  cards: PublicCardDetail[],
+  winners: Set<number>,
+  monthlyDomesticBrl: number | undefined,
+): (string | undefined)[] => {
+  const rates = cards.map((c) => c.cashbackRatePercent ?? 0);
+  const nonWinnerRates = rates.flatMap((r, i) => (winners.has(i) ? [] : [r]));
+  const secondRate = nonWinnerRates.length > 0 ? Math.max(...nonWinnerRates) : 0;
+  return cards.map((_, i) => {
+    if (!winners.has(i)) return undefined;
+    const rate = rates[i] ?? 0;
+    if (monthlyDomesticBrl !== undefined && monthlyDomesticBrl > 0) {
+      const annual = (rate * monthlyDomesticBrl * 12) / 100;
+      const secondAnnual = (secondRate * monthlyDomesticBrl * 12) / 100;
+      return `${String(rate)}% × ${formatBrl(monthlyDomesticBrl)}/mês = ${formatBrl(annual)}/ano. Segundo: ${formatBrl(secondAnnual)}/ano.`;
+    }
+    return `${String(rate)}%. Segundo: ${String(secondRate)}%.`;
+  });
+};
+
+const loungeTooltips = (
+  cards: PublicCardDetail[],
+  winners: Set<number>,
+): (string | undefined)[] => {
+  const nonWinnerHasUnlimited = cards.some(
+    (c, i) => !winners.has(i) && c.loungeAccess?.unlimited === true,
+  );
+  const nonWinnerVisits = cards.flatMap((c, i) =>
+    !winners.has(i) && c.loungeAccess?.visitsPerYear !== undefined
+      ? [c.loungeAccess.visitsPerYear]
+      : [],
+  );
+  const segundoStr = nonWinnerHasUnlimited
+    ? "ilimitado"
+    : nonWinnerVisits.length > 0
+      ? `${String(Math.max(...nonWinnerVisits))}/ano`
+      : "sem lounge";
+  return cards.map((c, i) => {
+    if (!winners.has(i)) return undefined;
+    if (c.loungeAccess?.unlimited === true) {
+      return `Ilimitado. Segundo: ${segundoStr}.`;
+    }
+    if (c.loungeAccess?.visitsPerYear !== undefined) {
+      return `${String(c.loungeAccess.visitsPerYear)}/ano. Segundo: ${segundoStr}.`;
+    }
+    return undefined;
+  });
+};
+
+const modeledReturnTooltips = (
+  returns: (number | undefined)[],
+  winners: Set<number>,
+): (string | undefined)[] => {
+  const knownNonWinner = returns.flatMap((v, i) => (!winners.has(i) && v !== undefined ? [v] : []));
+  const second = knownNonWinner.length > 0 ? Math.max(...knownNonWinner) : null;
+  return returns.map((v, i) => {
+    if (!winners.has(i) || v === undefined) return undefined;
+    if (second === null) {
+      return `${formatBrl(v)}/ano modelado.`;
+    }
+    return `${formatBrl(v)}/ano modelado. ${formatBrl(v - second)} a mais que segundo.`;
+  });
+};
+
 interface RowProps {
   label: string;
   cells: (string | JSX.Element)[];
   winners?: Set<number>;
+  tooltips?: (string | undefined)[];
   hidden?: boolean;
 }
 
@@ -84,6 +167,7 @@ const Row = ({
   label,
   cells,
   winners = new Set<number>(),
+  tooltips,
   hidden = false,
 }: RowProps): JSX.Element | null => {
   if (hidden) return null;
@@ -96,17 +180,25 @@ const Row = ({
       >
         {label}
       </th>
-      {cells.map((cell, i) => (
-        <td
-          key={i}
-          className={cn(
-            "text-body-sm text-ink px-2 py-3 align-top",
-            winners.has(i) && "text-accent font-semibold",
-          )}
-        >
-          {cell}
-        </td>
-      ))}
+      {cells.map((cell, i) => {
+        const isWinner = winners.has(i);
+        const tooltipText = tooltips?.[i];
+        return (
+          <td
+            key={i}
+            className={cn(
+              "text-body-sm text-ink px-2 py-3 align-top",
+              isWinner && "text-accent font-semibold",
+            )}
+          >
+            {tooltipText !== undefined && isWinner ? (
+              <CompareWinnerTooltip text={tooltipText}>{cell}</CompareWinnerTooltip>
+            ) : (
+              cell
+            )}
+          </td>
+        );
+      })}
     </tr>
   );
 };
@@ -116,6 +208,7 @@ interface CompareRow {
   cells: (string | JSX.Element)[];
   values: string[];
   winners?: Set<number>;
+  tooltips?: (string | undefined)[];
 }
 
 const isEqualRow = (row: CompareRow): boolean => {
@@ -185,6 +278,7 @@ export const CompareTable = ({
       cells: values.map((v) => (v !== undefined ? `${formatBrl(v)}/ano` : "—")),
       values: values.map((v) => (v !== undefined ? `${formatBrl(v)}/ano` : "—")),
       winners: winnerSet,
+      tooltips: modeledReturnTooltips(values, winnerSet),
     };
   })();
 
@@ -209,6 +303,7 @@ export const CompareTable = ({
       )),
       values: cards.map((c) => formatBrl(c.annualFeeBrl)),
       winners: feeWinners,
+      tooltips: lowestFeeTooltips(cards, feeWinners),
     },
     {
       label: "Programa",
@@ -220,12 +315,14 @@ export const CompareTable = ({
       cells: cards.map(cashbackLabel),
       values: cards.map(cashbackLabel),
       winners: cashbackWinners,
+      tooltips: cashbackTooltips(cards, cashbackWinners, profile?.monthlyDomesticBrl),
     },
     {
       label: "Lounge",
       cells: cards.map(loungeSummary),
       values: cards.map(loungeSummary),
       winners: loungeWinners,
+      tooltips: loungeTooltips(cards, loungeWinners),
     },
     {
       label: "Seguro",
@@ -326,6 +423,7 @@ export const CompareTable = ({
                 label={row.label}
                 cells={row.cells}
                 {...(row.winners !== undefined ? { winners: row.winners } : {})}
+                {...(row.tooltips !== undefined ? { tooltips: row.tooltips } : {})}
                 hidden={hideEqualRows && isEqualRow(row)}
               />
             ))}
