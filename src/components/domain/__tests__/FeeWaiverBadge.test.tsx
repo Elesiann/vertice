@@ -8,20 +8,26 @@ describe("FeeWaiverBadge", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders monthly spend chip", () => {
-    render(<FeeWaiverBadge annualFeeWaiverThresholdBrl={5000} />);
+  it("renders monthly spend chip with wallet icon", () => {
+    const { container } = render(<FeeWaiverBadge annualFeeWaiverThresholdBrl={5000} />);
     expect(screen.getByText(/5\.000/)).toBeInTheDocument();
     expect(screen.getByText(/mês/i)).toBeInTheDocument();
+    expect(container.querySelector(".lucide-wallet")).not.toBeNull();
   });
 
-  it("renders investment chip", () => {
-    render(<FeeWaiverBadge investmentFeeWaiverBrl={50000} />);
+  it("renders investment chip with piggy-bank icon", () => {
+    const { container } = render(<FeeWaiverBadge investmentFeeWaiverBrl={50000} />);
     expect(screen.getByText(/50\.000/)).toBeInTheDocument();
     expect(screen.getByText(/investido/i)).toBeInTheDocument();
+    expect(container.querySelector(".lucide-piggy-bank")).not.toBeNull();
   });
 
-  it("renders both chips with OR separator", () => {
-    render(<FeeWaiverBadge annualFeeWaiverThresholdBrl={5000} investmentFeeWaiverBrl={50000} />);
+  it("renders both chips with OR separator and both icons", () => {
+    const { container } = render(
+      <FeeWaiverBadge annualFeeWaiverThresholdBrl={5000} investmentFeeWaiverBrl={50000} />,
+    );
     expect(screen.getByText(/OU/i)).toBeInTheDocument();
+    expect(container.querySelector(".lucide-wallet")).not.toBeNull();
+    expect(container.querySelector(".lucide-piggy-bank")).not.toBeNull();
   });
 });

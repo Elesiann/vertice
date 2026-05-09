@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { CardArt } from "@/components/domain/CardArt";
+import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { formatBrl } from "@/lib/format";
 import type { PublicCatalogCard } from "@/types";
 
@@ -46,6 +47,14 @@ export const CatalogCard = ({
     <p className="text-body-sm text-ink-muted">
       Anuidade: <span className="text-ink font-semibold">{formatBrl(card.annualFeeBrl)}</span>
     </p>
+    <FeeWaiverBadge
+      {...(card.annualFeeWaiverThresholdBrl !== undefined
+        ? { annualFeeWaiverThresholdBrl: card.annualFeeWaiverThresholdBrl }
+        : {})}
+      {...(card.investmentFeeWaiverBrl !== undefined
+        ? { investmentFeeWaiverBrl: card.investmentFeeWaiverBrl }
+        : {})}
+    />
     <div className="flex flex-wrap gap-1">
       {card.hasLoungeAccess && <Badge tone="accent">Lounge</Badge>}
       {card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0 && (
