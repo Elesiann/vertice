@@ -11,6 +11,7 @@ import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatUsd } from "@/lib/format";
+import { whyWonSentences } from "@/lib/why-won";
 import { ROUTES } from "@/routes";
 import type {
   LeaderboardAxisId,
@@ -223,21 +224,6 @@ const stackAccessibilitySummary = (profile: SpendingProfile, stack: StackEvaluat
   return `A exigência estimada (${formatBrl(requiredInvestmentBrl)}) supera os ${formatBrl(profile.availableToInvestBrl)} informados. O cartão segue comparado sem bloqueio automático.`;
 };
 
-const axisReasons = (topStack: StackEvaluation, runnerUp?: StackEvaluation): string[] => {
-  const reasons: string[] = [];
-  if (runnerUp) {
-    const delta = topStack.yearOneNetValueBrl - runnerUp.yearOneNetValueBrl;
-    reasons.push(`${formatBrl(delta)} de vantagem no retorno líquido frente ao segundo colocado.`);
-  } else {
-    reasons.push("Lidera o retorno líquido no recorte atual.");
-  }
-  reasons.push(
-    `Entrega ${formatBrl(topStack.yearOneNetValueBrl)} líquido por ano com ${formatBrl(topStack.yearOneAnnualFeeBrl)} de anuidade total.`,
-  );
-  reasons.push(`Liquidez ${LIQUIDITY_LABEL[topStack.liquidity].toLowerCase()} para resgate.`);
-  return reasons;
-};
-
 const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral" | "warning"> = {
   strong: "accent",
   viable: "neutral",
@@ -254,95 +240,6 @@ const verdictLabel = (
   if (kind === "strong") return "Retorno alto";
   if (kind === "viable") return "Retorno positivo";
   return "Retorno negativo";
-};
-
-const verdictDetail = (
-  kind: NonNullable<StackEvaluation["scoreLab"]>["verdict"]["kind"],
-  netReturnBrl: number,
-): string => {
-  const annual = formatAnnualBrl(netReturnBrl);
-  if (kind === "viable") {
-    return `Retorno líquido de ${annual}. Confirme se seu gasto mensal fica perto do cenário informado.`;
-  }
-  return `Retorno líquido de ${annual} após anuidade e custo internacional.`;
-};
-
-const parseBrlAmount = (raw: string): number | null => {
-  const clean = raw.trim().replace(/\s/g, "").replace(/\.+$/, "");
-  if (clean.length === 0) return null;
-
-  const hasComma = clean.includes(",");
-  const dotCount = (clean.match(/\./g) ?? []).length;
-  const normalized = hasComma
-    ? clean.replace(/\./g, "").replace(",", ".")
-    : dotCount === 1 && /^\d+\.\d{1,2}$/.test(clean)
-      ? clean
-      : clean.replace(/\./g, "");
-
-  const value = Number.parseFloat(normalized);
-  return Number.isFinite(value) ? value : null;
-};
-
-const parseBrlRaw = (raw: string): string | null => {
-  const value = parseBrlAmount(raw);
-  return value !== null ? formatBrl(value) : null;
-};
-
-const formatGapValue = (value: number, unit: string): string => {
-  if (unit === "USD") return formatUsd(value);
-  if (unit === "BRL/month") return `${formatBrl(value)}/mês`;
-  if (unit === "BRL/window") return `${formatBrl(value)} no período`;
-  return formatBrl(value);
-};
-
-const humanizeReason = (reason: string): string | null => {
-  if (/score\s+[\d.,]+\s+com retorno líquido anual modelado/i.test(reason)) {
-    return null;
-  }
-
-  const annualFee = /^Anuidade recorrente aplicada:\s*R\$\s*([\d.,]+)/i.exec(reason);
-  if (annualFee?.[1] !== undefined) {
-    const amount = parseBrlAmount(annualFee[1]);
-    if (amount !== null) {
-      if (amount === 0) return "Sem anuidade recorrente no cenário.";
-      return `Anuidade total ${formatBrl(amount)}, cobrada todos os anos.`;
-    }
-  }
-
-  const intlCost = /^Custo internacional modelado:\s*R\$\s*([\d.,]+)\s*\/\s*ano/i.exec(reason);
-  if (intlCost?.[1] !== undefined) {
-    const value = parseBrlRaw(intlCost[1]);
-    if (value !== null) return `Custo internacional anual estimado em ${value}.`;
-  }
-
-  const benefitApplied = /^Benefício de viagem aplicado:\s*R\$\s*([\d.,]+)/i.exec(reason);
-  if (benefitApplied?.[1] !== undefined) {
-    const value = parseBrlRaw(benefitApplied[1]);
-    if (value !== null)
-      return `Benefício de viagem aplicado: ${value} (sala VIP, seguro e bagagem).`;
-  }
-
-  const requirementGap =
-    /^Gap objetivo mais próximo:\s*(.+),\s*faltam\s*([\d.,]+)\s*(BRL(?:\/month|\/window)?|USD)\.?$/i.exec(
-      reason,
-    );
-  if (requirementGap?.[1] !== undefined && requirementGap[2] !== undefined) {
-    const amount = parseBrlAmount(requirementGap[2]);
-    if (amount !== null) {
-      return `Faltam ${formatGapValue(amount, requirementGap[3] ?? "BRL")} para cumprir ${requirementGap[1]}.`;
-    }
-  }
-
-  return null;
-};
-
-const reasonsFor = (topStack: StackEvaluation, runnerUp?: StackEvaluation): string[] => {
-  const raw = topStack.scoreLab?.reasons ?? [];
-  const humanized = raw
-    .map(humanizeReason)
-    .filter((reason): reason is string => reason !== null)
-    .slice(0, 3);
-  return humanized.length > 0 ? humanized : axisReasons(topStack, runnerUp).slice(0, 3);
 };
 
 const comparisonThreshold = (topStack: StackEvaluation): number =>
@@ -595,10 +492,7 @@ export const ResultsView = (): JSX.Element => {
   const topStack = displayStackFor(recommendation);
   const displayRecommendation = recommendationWithTopStack(recommendation, topStack);
   const scoreLab = topStack.scoreLab;
-  const netReturnAxis = recommendation.leaderboardsByAxis.find(
-    (axis) => axis.axisId === "net-return",
-  );
-  const reasons = reasonsFor(topStack, netReturnAxis?.stacks[1]);
+  const whyWonNarrative = whyWonSentences(topStack, recommendation.alternatives);
   const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
   const threshold = comparisonThreshold(topStack);
   const curatedAlternatives = buildCuratedAlternatives(displayRecommendation);
@@ -692,11 +586,6 @@ export const ResultsView = (): JSX.Element => {
                 <p className="text-kpi text-accent tabular mt-3">
                   {formatBrl(topStack.yearOneNetValueBrl)}
                 </p>
-                {scoreLab?.verdict !== undefined ? (
-                  <p className="text-ink-muted mt-4 max-w-xl text-sm leading-relaxed">
-                    {verdictDetail(scoreLab.verdict.kind, topStack.yearOneNetValueBrl)}
-                  </p>
-                ) : null}
               </>
             )}
             <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -782,22 +671,24 @@ export const ResultsView = (): JSX.Element => {
           </section>
         ) : null}
 
-        <section className="border-line border-b" aria-label="Resumo do cartão recomendado">
-          <article className="py-8">
-            <h2 className="text-heading text-ink">Por que venceu</h2>
-            <ul className="text-ink-muted mt-6 space-y-4 text-sm leading-relaxed">
-              {reasons.map((reason) => (
-                <li key={reason} className="border-line border-l-2 pl-3">
-                  {reason}
-                </li>
-              ))}
-            </ul>
-            <p className="border-line text-ink-muted mt-6 border-t pt-5 text-sm leading-relaxed">
-              <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
-              {accessibilitySummary}
-            </p>
-          </article>
-        </section>
+        {whyWonNarrative !== null ? (
+          <section className="border-line border-b" aria-label="Por que venceu">
+            <article className="py-8">
+              <h2 className="text-heading text-ink">Por que venceu</h2>
+              <p className="text-ink-muted mt-6 space-y-1 text-sm leading-relaxed">
+                {whyWonNarrative.map((sentence, i) => (
+                  <span key={sentence} className={i > 0 ? "ml-1" : undefined}>
+                    {sentence}
+                  </span>
+                ))}
+              </p>
+              <p className="border-line text-ink-muted mt-6 border-t pt-5 text-sm leading-relaxed">
+                <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
+                {accessibilitySummary}
+              </p>
+            </article>
+          </section>
+        ) : null}
 
         <section className="mt-8" aria-label="Cálculo completo">
           <Disclosure summary="Ver cálculo completo">

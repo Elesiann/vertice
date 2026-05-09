@@ -258,7 +258,7 @@ describe("ResultsView", () => {
       screen.getByText(/Nenhuma combinação do catálogo chega a R\$ 1\.500,00\/ano/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Custo internacional anual estimado em R\$ 444,00/i),
+      screen.getByText(/Vence porque rende R\$ 1\.200,00\/ano em pontos/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Ver cálculo completo/i)).toBeInTheDocument();
     expect(screen.getByRole("region", { name: /Tradução em viagens/i })).toBeInTheDocument();
