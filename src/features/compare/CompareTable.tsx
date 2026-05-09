@@ -13,6 +13,7 @@ import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
 import { CompareWinnerTooltip } from "@/features/compare/CompareWinnerTooltip";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl, formatCashbackRate } from "@/lib/format";
+import { formatBankLabel, formatPointsProgram } from "@/lib/labels";
 import { CompareCardCombobox } from "./CompareCardCombobox";
 import type { PublicCardDetail, PublicCatalogCard } from "@/types";
 
@@ -229,10 +230,13 @@ export const CompareTable = ({
   const selectedIds = cards.map((card) => card.id);
   const addDisabled = selectedIds.length >= 4 || onAddCard === undefined;
 
+  // A linha já tem label "Cashback" ou "Cashback / Investback"; só destacamos
+  // "investback" como sufixo quando o produto é o caso atípico, evitando
+  // a redundância "Cashback: 1,25% cashback" no cashback puro.
   const cashbackLabel = (c: PublicCardDetail): string => {
     if (c.cashbackRatePercent === undefined) return "—";
-    const kind = c.hasInvestback ? "investback" : "cashback";
-    return `${formatCashbackRate(c.cashbackRatePercent)} ${kind}`;
+    const rate = formatCashbackRate(c.cashbackRatePercent);
+    return c.hasInvestback ? `${rate} (investback)` : rate;
   };
 
   const insuranceLabel = (c: PublicCardDetail): string => {
@@ -306,8 +310,8 @@ export const CompareTable = ({
     },
     {
       label: "Programa",
-      cells: cards.map((c) => c.pointsProgram),
-      values: cards.map((c) => c.pointsProgram),
+      cells: cards.map((c) => formatPointsProgram(c.pointsProgram)),
+      values: cards.map((c) => formatPointsProgram(c.pointsProgram)),
       winners: new Set<number>(),
     },
     {
@@ -428,7 +432,7 @@ export const CompareTable = ({
                       </Badge>
                     ) : null}
                     <p className="text-caption text-ink-subtle tracking-wide uppercase">
-                      {card.bank} · {card.tier}
+                      {formatBankLabel(card.bank, card.id)} · {card.tier}
                     </p>
                   </div>
                 </th>

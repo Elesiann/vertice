@@ -8,11 +8,6 @@ interface CompareNarrativeBannerProps {
   cards: PublicCardDetail[];
 }
 
-const NAME_MAX = 30;
-
-const truncate = (name: string): string =>
-  name.length > NAME_MAX ? `${name.slice(0, NAME_MAX - 1).trimEnd()}…` : name;
-
 interface RankedEntry {
   name: string;
   netReturn: number;
@@ -51,7 +46,7 @@ export const CompareNarrativeBanner = ({
 
   const ranked: RankedEntry[] = cards
     .map((c) => ({
-      name: truncate(c.name),
+      name: c.name,
       netReturn: modeled.byCardId[c.id],
     }))
     .filter((entry): entry is RankedEntry => entry.netReturn !== undefined)

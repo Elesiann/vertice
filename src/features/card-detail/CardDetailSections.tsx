@@ -2,9 +2,18 @@ import type { JSX } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { Badge } from "@/components/ui/Badge";
 import { Stat } from "@/components/ui/Stat";
+import { AccessRequirementBadge } from "@/components/domain/AccessRequirementBadge";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
-import { formatBrl, formatCashbackRate } from "@/lib/format";
-import type { PublicCardDetail } from "@/types";
+import { formatBrl, formatCashbackRate, formatIsoDateBr } from "@/lib/format";
+import { formatLoungeProvider, formatPointsProgram } from "@/lib/labels";
+import type { PublicCardDetail, RelationshipLevel } from "@/types";
+
+const RELATIONSHIP_LABEL: Record<RelationshipLevel, string> = {
+  open: "Aberto a quem não é cliente",
+  checking: "Conta corrente ativa",
+  investment: "Cliente da corretora do banco",
+  private: "Private banking",
+};
 
 const FX_SOURCE_LABEL: Record<string, string> = {
   official: "Spread oficial",
@@ -30,6 +39,14 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
     card.freeCheckedBaggage === true;
 
   const hasVerification = card.verifiedTier !== undefined || card.lastVerified !== undefined;
+
+  const investedReq = card.requiredInvestmentBrl ?? card.minInvestmentBrl;
+  const isInvestmentBarrier =
+    card.requiresRelationship === "investment" || card.requiresRelationship === "private";
+  const hasAccess =
+    (investedReq !== undefined && isInvestmentBarrier) ||
+    card.requiresRelationship === "private" ||
+    card.requiresRelationship === "checking";
 
   return (
     <div className="flex flex-col gap-4">
@@ -62,13 +79,49 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
         </dl>
       </Panel>
 
+      {/* Acesso */}
+      {hasAccess && (
+        <Panel tone="raised" as="section" aria-labelledby="section-acesso" className="p-4 sm:p-6">
+          <h2 id="section-acesso" className="text-heading text-ink mb-4">
+            Acesso
+          </h2>
+          <dl className="flex flex-col gap-3">
+            {investedReq !== undefined && isInvestmentBarrier && (
+              <Stat label="Investimento mínimo exigido" value={formatBrl(investedReq)} />
+            )}
+            {card.requiresRelationship !== undefined && card.requiresRelationship !== "open" && (
+              <Stat
+                label="Relacionamento exigido"
+                value={RELATIONSHIP_LABEL[card.requiresRelationship]}
+              />
+            )}
+            <div className="flex flex-col gap-1">
+              <dt className="text-ink-subtle text-sm">Resumo</dt>
+              <dd>
+                <AccessRequirementBadge
+                  {...(card.requiredInvestmentBrl !== undefined
+                    ? { requiredInvestmentBrl: card.requiredInvestmentBrl }
+                    : {})}
+                  {...(card.minInvestmentBrl !== undefined
+                    ? { minInvestmentBrl: card.minInvestmentBrl }
+                    : {})}
+                  {...(card.requiresRelationship !== undefined
+                    ? { requiresRelationship: card.requiresRelationship }
+                    : {})}
+                />
+              </dd>
+            </div>
+          </dl>
+        </Panel>
+      )}
+
       {/* Retorno */}
       <Panel tone="raised" as="section" aria-labelledby="section-retorno" className="p-4 sm:p-6">
         <h2 id="section-retorno" className="text-heading text-ink mb-4">
           Retorno
         </h2>
         <dl className="flex flex-col gap-3">
-          <Stat label="Programa" value={card.pointsProgram} />
+          <Stat label="Programa" value={formatPointsProgram(card.pointsProgram)} />
           {card.pointsPerUsdDomestic !== undefined && (
             <Stat
               label="Pontos por USD (nacional)"
@@ -87,7 +140,7 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
               value={formatCashbackRate(card.cashbackRatePercent)}
             />
           )}
-          {card.pointsExpirationMonths !== undefined && (
+          {card.pointsExpirationMonths !== undefined && card.pointsProgram !== "cashback" && (
             <Stat
               label="Expiração de pontos"
               value={
@@ -133,7 +186,7 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
                     <dd className="flex flex-wrap gap-2">
                       {card.loungeAccess.providers.map((p) => (
                         <Badge key={p} tone="neutral">
-                          {p}
+                          {formatLoungeProvider(p)}
                         </Badge>
                       ))}
                     </dd>
@@ -202,10 +255,7 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
               />
             )}
             {card.lastVerified !== undefined && (
-              <Stat
-                label="Última verificação"
-                value={new Date(card.lastVerified).toLocaleDateString("pt-BR")}
-              />
+              <Stat label="Última verificação" value={formatIsoDateBr(card.lastVerified)} />
             )}
           </dl>
         </Panel>

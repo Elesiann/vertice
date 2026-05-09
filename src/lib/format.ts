@@ -25,3 +25,12 @@ export const formatMonths = (months: number): string =>
 // apesar do nome do campo. Esse helper converte para a representação humana.
 export const formatCashbackRate = (rate: number): string =>
   `${(rate * 100).toFixed(2).replace(".", ",")}%`;
+
+// `lastVerified` vem do YAML como date-only ISO ("2026-05-07"). Date(string) interpreta
+// como UTC midnight, e em fuso BRT (UTC-3) toLocaleDateString cai no dia anterior.
+// Esse helper formata respeitando a data calendário declarada.
+export const formatIsoDateBr = (isoDate: string): string => {
+  const [y, m, d] = isoDate.split("-");
+  if (y === undefined || m === undefined || d === undefined) return isoDate;
+  return `${d}/${m}/${y}`;
+};

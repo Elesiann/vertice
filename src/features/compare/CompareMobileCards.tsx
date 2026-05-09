@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
+import { formatBankLabel } from "@/lib/labels";
 import type { PublicCardDetail } from "@/types";
 
 export interface MobileRow {
@@ -38,7 +39,7 @@ export const CompareMobileCards = ({
               {card.name}
             </Link>
             <p className="text-caption text-ink-subtle tracking-wide uppercase">
-              {card.bank} · {card.tier}
+              {formatBankLabel(card.bank, card.id)} · {card.tier}
             </p>
           </div>
         </header>

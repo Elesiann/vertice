@@ -3,6 +3,13 @@ import type { StackEvaluation } from "@/types";
 
 const ALTERNATIVE_PROXIMITY_BRL = 1_500;
 
+const returnKindFor = (topStack: StackEvaluation): string => {
+  const cards = topStack.cards;
+  if (cards.length === 0) return "pontos + benefícios";
+  const allCashback = cards.every((c) => c.pointsProgram === "cashback");
+  return allCashback ? "cashback + benefícios" : "pontos + benefícios";
+};
+
 export const whyWonSentences = (
   topStack: StackEvaluation,
   alternatives: StackEvaluation[],
@@ -21,7 +28,8 @@ export const whyWonSentences = (
     ];
   }
 
-  const lead = `Vence porque rende ${formatBrl(gross)}/ano em pontos + benefícios e cobra ${formatBrl(fee)}/ano de anuidade.`;
+  const kind = returnKindFor(topStack);
+  const lead = `Vence porque rende ${formatBrl(gross)}/ano em ${kind} e cobra ${formatBrl(fee)}/ano de anuidade.`;
 
   const closeAlternative = alternatives
     .filter((alt) => netReturn - alt.yearOneNetValueBrl <= ALTERNATIVE_PROXIMITY_BRL)
