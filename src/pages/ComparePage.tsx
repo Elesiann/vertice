@@ -5,6 +5,7 @@ import { fetchCardDetail } from "@/lib/api";
 import { useCompareStore } from "@/lib/compare-store";
 import { CompareTable } from "@/features/compare/CompareTable";
 import { CompareEmpty } from "@/features/compare/CompareEmpty";
+import { CompareNarrativeBanner } from "@/features/compare/CompareNarrativeBanner";
 import type { PublicCardDetail } from "@/types";
 
 type CardResult =
@@ -85,7 +86,12 @@ export const ComparePage = (): JSX.Element => {
             {r.id}: {r.message}
           </p>
         ))}
-      {!hasAnyLoading && loadedCards.length >= 2 && <CompareTable cards={loadedCards} />}
+      {!hasAnyLoading && loadedCards.length >= 2 && (
+        <>
+          <CompareNarrativeBanner cards={loadedCards} />
+          <CompareTable cards={loadedCards} />
+        </>
+      )}
       {!hasAnyLoading && loadedCards.length === 1 && (
         <p className="text-body-sm text-ink-muted">Selecione pelo menos 2 cartões para comparar.</p>
       )}
