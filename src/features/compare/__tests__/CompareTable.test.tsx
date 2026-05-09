@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
 import { CompareTable } from "@/features/compare/CompareTable";
@@ -37,12 +38,15 @@ const SeedSession = ({ profile }: { profile: SpendingProfile | null }): null => 
   return null;
 };
 
-const renderCompareTable = (currentProfile: SpendingProfile | null = null): void => {
+const renderCompareTable = (
+  currentProfile: SpendingProfile | null = null,
+  inputCards: PublicCardDetail[] = cards,
+): void => {
   render(
     <MemoryRouter>
       <SessionProvider>
         <SeedSession profile={currentProfile} />
-        <CompareTable cards={cards} />
+        <CompareTable cards={inputCards} />
       </SessionProvider>
     </MemoryRouter>,
   );
@@ -68,5 +72,20 @@ describe("CompareTable", () => {
   it("omits current-card badge when no compared card is current", () => {
     renderCompareTable({ ...profile, currentCardIds: ["other-card"] });
     expect(screen.queryByText("Seu cartão")).not.toBeInTheDocument();
+  });
+
+  it("hides equal rows when toggle is enabled", async () => {
+    renderCompareTable();
+
+    await userEvent.click(screen.getByLabelText("Esconder linhas iguais"));
+
+    expect(screen.queryByText("Programa")).not.toBeInTheDocument();
+    expect(screen.getByText("Anuidade")).toBeInTheDocument();
+  });
+
+  it("disables hide-equal toggle when there is only one card", () => {
+    renderCompareTable(null, [makeCard("single", "Cartão Solo", 1200)]);
+
+    expect(screen.getByLabelText("Esconder linhas iguais")).toBeDisabled();
   });
 });
