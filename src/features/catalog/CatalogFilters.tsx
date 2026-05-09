@@ -28,6 +28,7 @@ export const CatalogFiltersPanel = ({
   onChange,
   onClear,
 }: CatalogFiltersProps): JSX.Element => {
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
   const set = (update: FilterUpdate) => {
     onChange(mergeFilters(filters, update));
   };
@@ -110,9 +111,11 @@ export const CatalogFiltersPanel = ({
         </label>
       </div>
 
-      <Button variant="ghost" size="sm" onClick={onClear}>
-        Limpar filtros
-      </Button>
+      {hasActiveFilters ? (
+        <Button variant="ghost" size="sm" onClick={onClear}>
+          Limpar filtros
+        </Button>
+      ) : null}
     </aside>
   );
 };

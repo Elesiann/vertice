@@ -14,7 +14,7 @@ interface CatalogListProps {
 type State =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ok"; cards: PublicCatalogCard[] };
+  | { status: "ok"; cards: PublicCatalogCard[]; total: number };
 
 const SKELETON_COUNT = 9;
 
@@ -26,8 +26,16 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
   const load = useCallback(async (f: CatalogFilters) => {
     setState({ status: "loading" });
     try {
-      const res = await fetchCardCatalog(f);
-      setState({ status: "ok", cards: res.cards });
+      const hasFilters = Object.values(f).some((value) => value !== undefined);
+      const [res, totalRes] = await Promise.all([
+        fetchCardCatalog(f),
+        hasFilters ? fetchCardCatalog({}) : Promise.resolve(null),
+      ]);
+      setState({
+        status: "ok",
+        cards: res.cards,
+        total: totalRes?.cards.length ?? res.cards.length,
+      });
     } catch {
       setState({ status: "error", message: "Não foi possível carregar o catálogo." });
     }
@@ -43,14 +51,19 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
 
   if (state.status === "loading") {
     return (
-      <div
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        aria-busy="true"
-        aria-label="Carregando cartões"
-      >
-        {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
-          <div key={i} className="bg-surface-sunken h-64 animate-pulse rounded-xl" />
-        ))}
+      <div className="flex flex-col gap-4">
+        <p className="text-body-sm text-ink-muted">
+          {/* TODO: lint stackr-writing */}Carregando catálogo…
+        </p>
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          aria-busy="true"
+          aria-label="Carregando cartões"
+        >
+          {Array.from({ length: SKELETON_COUNT }).map((_, i) => (
+            <div key={i} className="bg-surface-sunken h-64 animate-pulse rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -66,35 +79,41 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
     );
   }
 
-  if (state.cards.length === 0) {
-    return (
-      <Panel tone="sunken" className="p-6 text-center">
-        <p className="text-body text-ink-muted">Nenhum cartão atende esses filtros.</p>
-        {onClearFilters !== undefined && (
-          <Button variant="ghost" size="sm" className="mt-4" onClick={onClearFilters}>
-            Limpar filtros
-          </Button>
-        )}
-      </Panel>
-    );
-  }
+  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
+  const countSummary = `Mostrando ${String(state.cards.length)} de ${String(state.total)} cartões`;
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {state.cards.map((card) => (
-        <CatalogCard
-          key={card.id}
-          card={card}
-          inCompare={has(card.id)}
-          onCompare={(id) => {
-            if (has(id)) {
-              remove(id);
-            } else {
-              add(id);
-            }
-          }}
-        />
-      ))}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-body-sm text-ink-muted">{countSummary}</p>
+        {hasActiveFilters && onClearFilters !== undefined ? (
+          <Button variant="ghost" size="sm" onClick={onClearFilters}>
+            Limpar filtros
+          </Button>
+        ) : null}
+      </div>
+      {state.cards.length === 0 ? (
+        <Panel tone="sunken" className="p-6 text-center">
+          <p className="text-body text-ink-muted">Nenhum cartão atende esses filtros.</p>
+        </Panel>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {state.cards.map((card) => (
+            <CatalogCard
+              key={card.id}
+              card={card}
+              inCompare={has(card.id)}
+              onCompare={(id) => {
+                if (has(id)) {
+                  remove(id);
+                } else {
+                  add(id);
+                }
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
