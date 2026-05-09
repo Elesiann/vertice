@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { useSession } from "@/context/SessionContext";
+import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { formatBrl } from "@/lib/format";
 import { CompareCardCombobox } from "./CompareCardCombobox";
 import type { PublicCardDetail, PublicCatalogCard } from "@/types";
@@ -62,6 +63,13 @@ const highestCashbackWinners = (cards: PublicCardDetail[]): Set<number> => {
   if (max === 0) return new Set<number>();
   const winners = new Set(vals.flatMap((v, i) => (v === max ? [i] : [])));
   return winners.size < cards.length ? winners : new Set<number>();
+};
+
+const highestModeledReturnWinners = (returns: number[]): Set<number> => {
+  if (returns.length === 0) return new Set<number>();
+  const max = Math.max(...returns);
+  const winners = new Set(returns.flatMap((v, i) => (v === max ? [i] : [])));
+  return winners.size < returns.length ? winners : new Set<number>();
 };
 
 interface RowProps {
@@ -125,6 +133,7 @@ export const CompareTable = ({
   const feeWinners = lowestFeeWinners(cards);
   const loungeWinners = bestLoungeWinners(cards);
   const cashbackWinners = highestCashbackWinners(cards);
+  const modeledReturns = useModeledReturns();
   const selectedIds = cards.map((card) => card.id);
   const addDisabled = selectedIds.length >= 4 || onAddCard === undefined;
 
@@ -148,7 +157,38 @@ export const CompareTable = ({
   const verifiedLabel = (c: PublicCardDetail): string =>
     c.verifiedTier !== undefined ? `Tier ${String(c.verifiedTier)}` : "—";
 
+  const modeledRow: CompareRow | null = (() => {
+    if (modeledReturns.status === "idle" || modeledReturns.status === "error") {
+      return null;
+    }
+    if (modeledReturns.status === "loading") {
+      return {
+        label: "Retorno modelado pro seu perfil",
+        cells: cards.map((c) => (
+          <span
+            key={c.id}
+            aria-label="Calculando"
+            className="bg-surface-sunken inline-block h-4 w-20 animate-pulse rounded"
+          />
+        )),
+        values: cards.map(() => ""),
+      };
+    }
+    const values = cards.map((c) => modeledReturns.byCardId[c.id]);
+    const known = values.flatMap((v, i) => (v !== undefined ? [{ i, v }] : []));
+    const knownReturns = known.map((entry) => entry.v);
+    const winnersIdx = highestModeledReturnWinners(knownReturns);
+    const winnerSet = new Set(known.flatMap((entry, j) => (winnersIdx.has(j) ? [entry.i] : [])));
+    return {
+      label: "Retorno modelado pro seu perfil",
+      cells: values.map((v) => (v !== undefined ? `${formatBrl(v)}/ano` : "—")),
+      values: values.map((v) => (v !== undefined ? `${formatBrl(v)}/ano` : "—")),
+      winners: winnerSet,
+    };
+  })();
+
   const rows: CompareRow[] = [
+    ...(modeledRow !== null ? [modeledRow] : []),
     {
       label: "Anuidade",
       cells: cards.map((c) => (
