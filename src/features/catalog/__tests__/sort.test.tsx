@@ -3,6 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { CatalogPage } from "@/pages/CatalogPage";
+import { SessionProvider } from "@/context/SessionContext";
 import { fetchCardCatalog } from "@/lib/api";
 import type { PublicCatalogCard } from "@/types";
 
@@ -49,8 +50,10 @@ const LocationProbe = () => {
 const renderCatalog = (initialEntry = "/cards") =>
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
-      <CatalogPage />
-      <LocationProbe />
+      <SessionProvider>
+        <CatalogPage />
+        <LocationProbe />
+      </SessionProvider>
     </MemoryRouter>,
   );
 
