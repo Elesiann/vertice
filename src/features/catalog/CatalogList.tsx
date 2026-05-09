@@ -18,6 +18,16 @@ type State =
 
 const SKELETON_COUNT = 9;
 
+const emptySuggestion = (filters: CatalogFilters): string => {
+  if (filters.maxAnnualFee !== undefined && filters.maxAnnualFee <= 200) {
+    return "Tente ampliar a anuidade até R$ 500.";
+  }
+  if (filters.hasLounge === true) {
+    return "Tente sem o filtro de lounge.";
+  }
+  return "Tente ampliar a busca.";
+};
+
 export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.Element => {
   const [state, setState] = useState<State>({ status: "loading" });
   const { add, remove, has } = useCompareStore();
@@ -69,7 +79,8 @@ export const CatalogList = ({ filters, onClearFilters }: CatalogListProps): JSX.
   if (state.cards.length === 0) {
     return (
       <Panel tone="sunken" className="p-6 text-center">
-        <p className="text-body text-ink-muted">Nenhum cartão atende esses filtros.</p>
+        <p className="text-body text-ink-muted">Nenhum cartão com esses filtros.</p>
+        <p className="text-body-sm text-ink-subtle mt-2">{emptySuggestion(filters)}</p>
         {onClearFilters !== undefined && (
           <Button variant="ghost" size="sm" className="mt-4" onClick={onClearFilters}>
             Limpar filtros
