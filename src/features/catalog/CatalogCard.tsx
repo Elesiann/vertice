@@ -8,7 +8,7 @@ import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { useSession } from "@/context/SessionContext";
-import { formatBrl } from "@/lib/format";
+import { formatBrl, formatCashbackRate } from "@/lib/format";
 import type { CardVerifiedTier, PublicCatalogCard } from "@/types";
 
 type CatalogCardWithVerification = PublicCatalogCard & {
@@ -93,7 +93,8 @@ export const CatalogCard = ({
         {card.hasLoungeAccess && <Badge tone="accent">Lounge</Badge>}
         {card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0 && (
           <Badge tone="neutral">
-            {card.hasInvestback ? "Investback" : "Cashback"} {card.cashbackRatePercent}%
+            {card.hasInvestback ? "Investback" : "Cashback"}{" "}
+            {formatCashbackRate(card.cashbackRatePercent)}
           </Badge>
         )}
         <FeeTierBadge annualFeeBrl={card.annualFeeBrl} />

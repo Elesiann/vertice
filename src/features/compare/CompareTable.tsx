@@ -12,7 +12,7 @@ import { CompareMobileCards, type MobileRow } from "@/features/compare/CompareMo
 import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
 import { CompareWinnerTooltip } from "@/features/compare/CompareWinnerTooltip";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
-import { formatBrl } from "@/lib/format";
+import { formatBrl, formatCashbackRate } from "@/lib/format";
 import { CompareCardCombobox } from "./CompareCardCombobox";
 import type { PublicCardDetail, PublicCatalogCard } from "@/types";
 
@@ -104,11 +104,11 @@ const cashbackTooltips = (
     if (!winners.has(i)) return undefined;
     const rate = rates[i] ?? 0;
     if (monthlyDomesticBrl !== undefined && monthlyDomesticBrl > 0) {
-      const annual = (rate * monthlyDomesticBrl * 12) / 100;
-      const secondAnnual = (secondRate * monthlyDomesticBrl * 12) / 100;
-      return `${String(rate)}% × ${formatBrl(monthlyDomesticBrl)}/mês = ${formatBrl(annual)}/ano. Segundo: ${formatBrl(secondAnnual)}/ano.`;
+      const annual = rate * monthlyDomesticBrl * 12;
+      const secondAnnual = secondRate * monthlyDomesticBrl * 12;
+      return `${formatCashbackRate(rate)} × ${formatBrl(monthlyDomesticBrl)}/mês = ${formatBrl(annual)}/ano. Segundo: ${formatBrl(secondAnnual)}/ano.`;
     }
-    return `${String(rate)}%. Segundo: ${String(secondRate)}%.`;
+    return `${formatCashbackRate(rate)}. Segundo: ${formatCashbackRate(secondRate)}.`;
   });
 };
 
@@ -232,7 +232,7 @@ export const CompareTable = ({
   const cashbackLabel = (c: PublicCardDetail): string => {
     if (c.cashbackRatePercent === undefined) return "—";
     const kind = c.hasInvestback ? "investback" : "cashback";
-    return `${String(c.cashbackRatePercent)}% ${kind}`;
+    return `${formatCashbackRate(c.cashbackRatePercent)} ${kind}`;
   };
 
   const insuranceLabel = (c: PublicCardDetail): string => {

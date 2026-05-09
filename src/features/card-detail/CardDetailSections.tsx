@@ -3,7 +3,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Badge } from "@/components/ui/Badge";
 import { Stat } from "@/components/ui/Stat";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
-import { formatBrl } from "@/lib/format";
+import { formatBrl, formatCashbackRate } from "@/lib/format";
 import type { PublicCardDetail } from "@/types";
 
 const FX_SOURCE_LABEL: Record<string, string> = {
@@ -84,7 +84,7 @@ export const CardDetailSections = ({ card }: CardDetailSectionsProps): JSX.Eleme
           {card.cashbackRatePercent !== undefined && (
             <Stat
               label={card.hasInvestback ? "Investback" : "Cashback"}
-              value={`${card.cashbackRatePercent.toFixed(2)}%`}
+              value={formatCashbackRate(card.cashbackRatePercent)}
             />
           )}
           {card.pointsExpirationMonths !== undefined && (

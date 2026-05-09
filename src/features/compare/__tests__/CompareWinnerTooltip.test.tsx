@@ -151,15 +151,15 @@ describe("CompareWinnerTooltip integration in CompareTable", () => {
       >
         <CompareTable
           cards={[
-            baseCard("a", "Alpha", { cashbackRatePercent: 2 }),
-            baseCard("b", "Beta", { cashbackRatePercent: 1 }),
+            baseCard("a", "Alpha", { cashbackRatePercent: 0.02 }),
+            baseCard("b", "Beta", { cashbackRatePercent: 0.01 }),
           ]}
         />
       </Wrap>,
     );
     const tooltips = await screen.findAllByRole("tooltip");
     const cashbackTooltip = tooltips.find((t) =>
-      /2% × R\$\s?5\.000,00\/mês = R\$\s?1\.200,00\/ano/.test(t.textContent),
+      /2,00% × R\$\s?5\.000,00\/mês = R\$\s?1\.200,00\/ano/.test(t.textContent),
     );
     expect(cashbackTooltip).toBeDefined();
   });
@@ -170,14 +170,14 @@ describe("CompareWinnerTooltip integration in CompareTable", () => {
       <Wrap profile={null}>
         <CompareTable
           cards={[
-            baseCard("a", "Alpha", { cashbackRatePercent: 3 }),
-            baseCard("b", "Beta", { cashbackRatePercent: 1 }),
+            baseCard("a", "Alpha", { cashbackRatePercent: 0.03 }),
+            baseCard("b", "Beta", { cashbackRatePercent: 0.01 }),
           ]}
         />
       </Wrap>,
     );
     const tooltips = screen.getAllByRole("tooltip");
-    const found = tooltips.find((t) => t.textContent.includes("3%. Segundo: 1%"));
+    const found = tooltips.find((t) => t.textContent.includes("3,00%. Segundo: 1,00%"));
     expect(found).toBeDefined();
   });
 
