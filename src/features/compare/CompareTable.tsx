@@ -4,6 +4,8 @@ import { cn } from "@/lib/cn";
 import { CardArt } from "@/components/domain/CardArt";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
+import { Badge } from "@/components/ui/Badge";
+import { useSession } from "@/context/SessionContext";
 import { formatBrl } from "@/lib/format";
 import { CompareCardCombobox } from "./CompareCardCombobox";
 import type { PublicCardDetail, PublicCatalogCard } from "@/types";
@@ -92,6 +94,8 @@ export const CompareTable = ({
   catalogCards = [],
   onAddCard,
 }: CompareTableProps): JSX.Element => {
+  const { profile } = useSession();
+  const currentCardIds = profile?.currentCardIds ?? [];
   const feeWinners = lowestFeeWinners(cards);
   const loungeWinners = bestLoungeWinners(cards);
   const cashbackWinners = highestCashbackWinners(cards);
@@ -121,6 +125,11 @@ export const CompareTable = ({
                   >
                     {card.name}
                   </Link>
+                  {currentCardIds.includes(card.id) ? (
+                    <Badge tone="neutral" className="w-fit">
+                      Seu cartão
+                    </Badge>
+                  ) : null}
                   <p className="text-caption text-ink-subtle tracking-wide uppercase">
                     {card.bank} · {card.tier}
                   </p>
