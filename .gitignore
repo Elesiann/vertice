@@ -56,3 +56,7 @@ AGENTS.md
 
 # Private documentation not meant for public repo
 docs/
+
+# Operational notes, audits, claims, verifications, handoffs.
+tasks/
+audits/

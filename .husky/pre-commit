@@ -1,2 +1,23 @@
+# Block files that belong in stackr-api, not this public web repo.
+# Operational notes, audits, claims, verifications, handoffs, ADRs, and
+# similar documentation must live in stackr-api/. This is a hard constraint
+# for both humans and LLM-driven commits. Do not bypass with --no-verify.
+blocked=$(git diff --cached --name-only --diff-filter=AM | grep -E '^(tasks|audits)/' || true)
+if [ -n "$blocked" ]; then
+  echo ""
+  echo "ERROR: refusing to commit files in protected paths."
+  echo ""
+  echo "This repo is the public stackr web app. Operational artifacts"
+  echo "(tasks, audits, claims, verifications, handoffs, ADRs, notes)"
+  echo "belong in stackr-api, never here."
+  echo ""
+  echo "Blocked staged paths:"
+  echo "$blocked" | sed 's/^/  /'
+  echo ""
+  echo "Move them under stackr-api/ or unstage with: git reset HEAD <file>"
+  echo ""
+  exit 1
+fi
+
 pnpm exec lint-staged
 pnpm exec tsc --noEmit

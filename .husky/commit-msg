@@ -1,1 +1,23 @@
 pnpm exec commitlint --edit "$1"
+
+# Hard constraint: commit messages in this repo must be written in English.
+# Detection: any Latin-1 / Latin-Extended-A accented character is a strong
+# signal of Portuguese (or another Latin-script non-English language) and
+# is rejected. Do not bypass with --no-verify.
+node -e '
+const fs = require("fs");
+const msg = fs.readFileSync(process.argv[1], "utf8");
+const commentless = msg.split("\n").filter((l) => !l.startsWith("#")).join("\n");
+if (/[À-ɏ]/.test(commentless)) {
+  const offending = commentless.match(/[À-ɏ][^\s]*/g) || [];
+  console.error("");
+  console.error("ERROR: commit message contains non-ASCII accented characters.");
+  console.error("This repo requires commit messages written in English.");
+  console.error("");
+  if (offending.length) {
+    console.error("Offending tokens: " + offending.slice(0, 6).join(", "));
+    console.error("");
+  }
+  process.exit(1);
+}
+' "$1"
