@@ -13,6 +13,8 @@ import { cn } from "@/lib/cn";
 import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatUsd } from "@/lib/format";
 import { whyWonSentences } from "@/lib/why-won";
+import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
+import { buildComparisonNarrative } from "@/lib/comparison-narrative";
 import { ROUTES } from "@/routes";
 import type {
   Bank,
@@ -678,6 +680,14 @@ export const ResultsView = (): JSX.Element => {
     displayMoneyOnTheTableBrl !== undefined &&
     displayMoneyOnTheTableBrl > 0;
 
+  const comparisonNarrative =
+    hasCurrentComparison && recommendation.currentStack !== undefined
+      ? buildComparisonNarrative(recommendation.currentStack, topStack)
+      : null;
+  const currentLabel =
+    recommendation.currentStack !== undefined ? stackLabel(recommendation.currentStack) : "";
+  const recommendedLabel = stackLabel(topStack);
+
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
@@ -687,98 +697,96 @@ export const ResultsView = (): JSX.Element => {
           <HeroDetailLinks stack={topStack} />
         </header>
 
-        <section
-          aria-label="Resumo da recomendação"
-          className="border-line mt-8 grid grid-cols-1 gap-y-8 border-t border-b py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10"
-        >
-          <div>
-            {hasCurrentComparison ? (
-              <>
-                <p className="text-caption text-ink-subtle flex items-center gap-3">
-                  <span aria-hidden className="bg-line-strong h-px w-6" />
-                  Você está deixando na mesa
-                </p>
-                <p className="text-kpi text-danger tabular mt-3">
-                  {formatBrl(displayMoneyOnTheTableBrl)}
-                </p>
-                <p className="text-ink-muted mt-4 max-w-xl text-sm leading-relaxed">
-                  por ano com seu cartão atual. O recomendado entrega{" "}
-                  <span className="text-num text-ink font-semibold">
-                    {formatBrl(topStack.yearOneNetValueBrl)}
-                  </span>{" "}
-                  líquido em 12 meses.
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-caption text-ink-subtle flex items-center gap-3">
-                  <span aria-hidden className="bg-line-strong h-px w-6" />
-                  Líquido estimado em 12 meses
-                </p>
-                <p className="text-kpi text-accent tabular mt-3">
-                  {formatBrl(topStack.yearOneNetValueBrl)}
-                </p>
-              </>
-            )}
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              {scoreLab?.verdict !== undefined && scoreLab.verdict.kind !== "viable" ? (
-                <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
-                  {verdictLabel(scoreLab.verdict.kind)}
-                </Badge>
-              ) : null}
-              {recommendation.isReturnDecisionTight ? (
-                <Badge tone="warning">Decisão apertada</Badge>
-              ) : null}
-              <FeeTierBadge
-                annualFeeBrl={topStack.yearOneAnnualFeeBrl}
-                yearOneNetValueBrl={topStack.yearOneNetValueBrl}
-                waived={heroWaiverHint !== undefined}
-                {...(heroWaiverHint !== undefined ? { waiverHint: heroWaiverHint } : {})}
-              />
-            </div>
-            {heroNotes.length > 0 ? (
-              <div className="text-ink-muted mt-5 space-y-2 text-sm leading-relaxed">
-                {heroNotes.map((note) => (
-                  <p key={note}>{note}</p>
-                ))}
+        {comparisonNarrative !== null ? (
+          <CurrentVsRecommended
+            narrative={comparisonNarrative}
+            currentLabel={currentLabel}
+            recommendedLabel={recommendedLabel}
+          />
+        ) : (
+          <section
+            aria-label="Resumo da recomendação"
+            className="border-line mt-8 grid grid-cols-1 gap-y-8 border-t border-b py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10"
+          >
+            <div>
+              <p className="text-caption text-ink-subtle flex items-center gap-3">
+                <span aria-hidden className="bg-line-strong h-px w-6" />
+                Líquido estimado em 12 meses
+              </p>
+              <p className="text-kpi text-accent tabular mt-3">
+                {formatBrl(topStack.yearOneNetValueBrl)}
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                {scoreLab?.verdict !== undefined && scoreLab.verdict.kind !== "viable" ? (
+                  <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
+                    {verdictLabel(scoreLab.verdict.kind)}
+                  </Badge>
+                ) : null}
+                {recommendation.isReturnDecisionTight ? (
+                  <Badge tone="warning">Decisão apertada</Badge>
+                ) : null}
+                <FeeTierBadge
+                  annualFeeBrl={topStack.yearOneAnnualFeeBrl}
+                  yearOneNetValueBrl={topStack.yearOneNetValueBrl}
+                  waived={heroWaiverHint !== undefined}
+                  {...(heroWaiverHint !== undefined ? { waiverHint: heroWaiverHint } : {})}
+                />
               </div>
-            ) : null}
-          </div>
+              {heroNotes.length > 0 ? (
+                <div className="text-ink-muted mt-5 space-y-2 text-sm leading-relaxed">
+                  {heroNotes.map((note) => (
+                    <p key={note}>{note}</p>
+                  ))}
+                </div>
+              ) : null}
+            </div>
 
-          <dl className="grid content-end gap-0 self-center text-sm">
-            <Stat
-              label="Anuidade total"
-              value={formatBrl(topStack.yearOneAnnualFeeBrl)}
-              labelClassName="text-ink-subtle"
-              className="border-line border-b py-3"
-            />
-            {scoreLab ? (
+            <dl className="grid content-end gap-0 self-center text-sm">
               <Stat
-                label="Custo FX/IOF"
-                value={formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                label="Anuidade total"
+                value={formatBrl(topStack.yearOneAnnualFeeBrl)}
                 labelClassName="text-ink-subtle"
                 className="border-line border-b py-3"
               />
-            ) : null}
-            {scoreLab !== undefined && scoreLab.modeledAnnual.benefitUtilityBrl > 0 ? (
-              <div className="border-line border-b py-3">
-                <div className="flex items-baseline justify-between gap-4">
-                  <dt className="text-ink-subtle text-sm">Benefício de viagem</dt>
-                  <dd className="text-num text-ink text-sm font-semibold">
-                    {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
-                  </dd>
+              {scoreLab ? (
+                <Stat
+                  label="Custo FX/IOF"
+                  value={formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  labelClassName="text-ink-subtle"
+                  className="border-line border-b py-3"
+                />
+              ) : null}
+              {scoreLab !== undefined && scoreLab.modeledAnnual.benefitUtilityBrl > 0 ? (
+                <div className="border-line border-b py-3">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className="text-ink-subtle text-sm">Benefício de viagem</dt>
+                    <dd className="text-num text-ink text-sm font-semibold">
+                      {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
+                    </dd>
+                  </div>
+                  {benefitParts.length > 0 ? (
+                    <p className="text-ink-subtle mt-1 text-xs leading-snug">
+                      {benefitParts.join(" · ")}
+                    </p>
+                  ) : null}
                 </div>
-                {benefitParts.length > 0 ? (
-                  <p className="text-ink-subtle mt-1 text-xs leading-snug">
-                    {benefitParts.join(" · ")}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-          </dl>
-        </section>
+              ) : null}
+            </dl>
+          </section>
+        )}
 
-        {whyWonNarrative !== null ? (
+        {comparisonNarrative !== null && heroNotes.length > 0 ? (
+          <section
+            aria-label="Avisos sobre a recomendação"
+            className="border-line text-ink-muted space-y-2 border-b py-8 text-sm leading-relaxed"
+          >
+            {heroNotes.map((note) => (
+              <p key={note}>{note}</p>
+            ))}
+          </section>
+        ) : null}
+
+        {whyWonNarrative !== null && !hasCurrentComparison ? (
           <section className="border-line border-b" aria-label="Por que venceu">
             <article className="py-8">
               <h2 className="text-heading text-ink">Por que venceu</h2>
@@ -789,13 +797,16 @@ export const ResultsView = (): JSX.Element => {
                   </span>
                 ))}
               </p>
-              <p className="border-line text-ink-muted mt-6 border-t pt-5 text-sm leading-relaxed">
-                <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
-                {accessibilitySummary}
-              </p>
             </article>
           </section>
         ) : null}
+
+        <section className="border-line border-b py-8" aria-label="Acesso">
+          <p className="text-ink-muted text-sm leading-relaxed">
+            <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
+            {accessibilitySummary}
+          </p>
+        </section>
 
         {alternativeTabs.length > 0 && activeTab !== undefined ? (
           <section className="border-line border-b py-8" aria-label="Outras escolhas">

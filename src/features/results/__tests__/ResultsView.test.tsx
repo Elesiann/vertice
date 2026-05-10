@@ -273,7 +273,7 @@ describe("ResultsView", () => {
     );
   });
 
-  it("renders money-on-the-table hero when currentCardIds and gap exist", async () => {
+  it("renders the comparison view (variant B) when currentCardIds is set and current net is positive", async () => {
     mockRecommendation({
       ...recommendationFixture,
       currentStack: {
@@ -290,9 +290,104 @@ describe("ResultsView", () => {
       currentCardIds: ["domestic-rewards-card"],
     });
 
-    expect(await screen.findByText(/Você está deixando na mesa/i)).toBeInTheDocument();
-    expect(screen.getByText(/256,00/)).toBeInTheDocument();
+    await screen.findByRole("heading", { level: 1 });
+
     expect(screen.queryByText(/Líquido estimado em 12 meses/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Você está deixando na mesa/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Seu cartão atual rende R\$\s?500,00 líquido\/ano/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/O recomendado renderia R\$\s?756,00 líquido\/ano com seu mesmo gasto/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("HOJE")).toBeInTheDocument();
+    expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
+    expect(screen.getByText("Diferença anual")).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s?256,00/)).toBeInTheDocument();
+
+    expect(screen.getByText(/Sem exigência financeira de acesso/)).toBeInTheDocument();
+  });
+
+  it("renders the comparison view (variant A) when current net is non-positive", async () => {
+    const currentNegative = {
+      ...stack,
+      yearOneAnnualFeeBrl: 1068,
+      yearOneNetValueBrl: -318,
+      scoreLab: {
+        ...stack.scoreLab,
+        modeledAnnual: {
+          ...stack.scoreLab.modeledAnnual,
+          recurringAnnualFeeBrl: 1068,
+          netReturnBrl: -318,
+          grossValueBrl: 750,
+        },
+      },
+    };
+
+    mockRecommendation({
+      ...recommendationFixture,
+      currentStack: currentNegative,
+      moneyOnTheTableBrl: 1074,
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+      currentCardIds: ["domestic-rewards-card"],
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+
+    expect(
+      screen.getByText(
+        /No seu gasto, seu cartão atual cobra R\$\s?1\.068,00 de anuidade e fica negativo em R\$\s?318,00\/ano/,
+      ),
+    ).toBeInTheDocument();
+
+    expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sem exigência financeira de acesso/)).toBeInTheDocument();
+  });
+
+  it("renders heroNotes (e.g. preference divergence) in comparison mode", async () => {
+    const smilesAlternative = {
+      ...stack,
+      cards: [
+        {
+          id: "smiles-alt",
+          name: "Smiles Alternative",
+          bank: "other" as const,
+          pointsProgram: "smiles" as ProgramId,
+          requiresRelationship: "open" as const,
+        },
+      ],
+      yearOneNetValueBrl: 500,
+    };
+
+    mockRecommendation({
+      ...recommendationFixture,
+      alternatives: [smilesAlternative],
+      currentStack: {
+        ...stack,
+        yearOneNetValueBrl: 500,
+      },
+      moneyOnTheTableBrl: 256,
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "miles", program: "smiles" },
+      currentCardIds: ["domestic-rewards-card"],
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+
+    expect(
+      screen.getByText(/Você marcou milhas Smiles\. O recomendado é cashback/i),
+    ).toBeInTheDocument();
   });
 
   it("uses recommendedNow as the displayed recommendation when the modeled leader is not actionable", async () => {
