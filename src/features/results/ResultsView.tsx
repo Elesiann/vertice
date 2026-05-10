@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { Fragment, useState, type JSX } from "react";
 import { Link } from "react-router-dom";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { TravelTranslation } from "@/components/domain/TravelTranslation";
@@ -9,26 +9,20 @@ import { Panel } from "@/components/ui/Panel";
 import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
+import { cn } from "@/lib/cn";
 import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatUsd } from "@/lib/format";
 import { whyWonSentences } from "@/lib/why-won";
 import { ROUTES } from "@/routes";
 import type {
-  LeaderboardAxisId,
+  Bank,
   ProgramId,
+  PublicStackCard,
   Recommendation,
   RedemptionPreference,
   SpendingProfile,
   StackEvaluation,
 } from "@/types";
-
-const AXIS_LABEL: Record<LeaderboardAxisId, string> = {
-  "net-return": "Retorno",
-  liquidity: "Liquidez",
-  "annual-fee": "Anuidade",
-  simplicity: "Simplicidade",
-  accessibility: "Acessibilidade",
-};
 
 const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
   high: "Alta",
@@ -89,12 +83,36 @@ const MILES_PROGRAMS = new Set<ProgramId>([
   "etihad-guest",
 ]);
 
-interface CuratedAlternative {
-  slot: "no-barrier" | "conditional-upside" | "institutional" | "net-return" | "axis";
+type AlternativeTabId = "lowest-barrier" | "traditional" | "fintech" | "highest-return";
+
+interface AlternativeTab {
+  id: AlternativeTabId;
   label: string;
-  stack: StackEvaluation;
-  detail: string;
+  stacks: StackEvaluation[];
 }
+
+// "Tradicional" = cartão DO banco incumbente, sob a marca dele. Cobranded
+// (Amazon Mastercard, Latam Pass, Azul Itaucard) tem `bank: bradesco|itau`
+// no catálogo mas o usuário não os enxerga como "tradicional" — são produtos
+// de marca terceira. Filtramos exigindo que o nome contenha um alias do
+// banco. "Fintech" recebe o resto (incluindo cobranded).
+const TRADITIONAL_BANKS = new Set<Bank>(["itau", "bradesco", "santander", "bb"]);
+
+const TRADITIONAL_BANK_ALIASES: Record<string, readonly string[]> = {
+  itau: ["itau", "itaú", "itaucard", "personnalité", "personnalite"],
+  bradesco: ["bradesco"],
+  santander: ["santander"],
+  bb: ["banco do brasil", "ourocard"],
+};
+
+const cardIsTraditional = (card: PublicStackCard): boolean => {
+  if (!TRADITIONAL_BANKS.has(card.bank)) return false;
+  const aliases = TRADITIONAL_BANK_ALIASES[card.bank] ?? [];
+  const haystack = card.name.toLowerCase();
+  return aliases.some((alias) => haystack.includes(alias));
+};
+
+const ALTERNATIVES_PER_TAB = 5;
 
 const cardsInUse = (stack: StackEvaluation): StackEvaluation["cards"] => {
   const activeCards = stack.cards.filter((card) => {
@@ -204,24 +222,40 @@ const stackInvestmentRequirementLabel = (stack: StackEvaluation): string => {
 
 const stackAccessibilitySummary = (profile: SpendingProfile, stack: StackEvaluation): string => {
   const requirement = stackFinancialRequirement(stack);
-  const requiredInvestmentBrl = requirement.aggregateBrl;
-  if (requiredInvestmentBrl <= 0 && requirement.requiredInvestmentUsd <= 0) {
-    return "Sem exigência financeira adicional neste cartão.";
+
+  // 1. Barreira real para CONTRATAR (acesso). minInvestmentBrl + relacionamento
+  //    de investimento são sempre relevantes, independente da anuidade.
+  if (requirement.minInvestmentBrl > 0) {
+    const value = formatBrl(requirement.minInvestmentBrl);
+    const base = `Acesso exige ${value} em investimentos no banco emissor.`;
+    if (profile.availableToInvestBrl === undefined) return base;
+    if (profile.availableToInvestBrl >= requirement.minInvestmentBrl) {
+      return `${base} Os ${formatBrl(profile.availableToInvestBrl)} informados cobrem.`;
+    }
+    return `${base} Faltam ${formatBrl(requirement.minInvestmentBrl - profile.availableToInvestBrl)} aos ${formatBrl(profile.availableToInvestBrl)} informados. O cartão segue comparado sem bloqueio automático.`;
   }
 
-  if (requiredInvestmentBrl <= 0 && requirement.requiredInvestmentUsd > 0) {
-    return `Este cartão exige investimento de acesso em dólar: ${formatUsd(requirement.requiredInvestmentUsd)}.`;
+  if (requirement.requiredInvestmentUsd > 0) {
+    return `Acesso exige ${formatUsd(requirement.requiredInvestmentUsd)} em investimentos no banco emissor.`;
   }
 
-  if (profile.availableToInvestBrl === undefined) {
-    return `Para a melhor acessibilidade, considere ${formatBrl(requiredInvestmentBrl)} disponíveis para investir.`;
+  // 2. Apenas threshold de isenção de anuidade. Só faz sentido mencionar se
+  //    a anuidade NÃO está zerada no cenário modelado — caso contrário o
+  //    waiver já foi acionado por outra rota (gasto, etc.) e a frase soa
+  //    como se fosse sobre outro cartão.
+  if (requirement.investmentFeeWaiverBrl > 0 && stack.yearOneAnnualFeeBrl > 0) {
+    const value = formatBrl(requirement.investmentFeeWaiverBrl);
+    const base = `Anuidade isenta com ${value} em investimentos no banco emissor.`;
+    if (profile.availableToInvestBrl === undefined) {
+      return `${base} No seu cenário, a anuidade modelada é ${formatBrl(stack.yearOneAnnualFeeBrl)}.`;
+    }
+    if (profile.availableToInvestBrl >= requirement.investmentFeeWaiverBrl) {
+      return `${base} Os ${formatBrl(profile.availableToInvestBrl)} informados cobrem.`;
+    }
+    return `${base} No seu cenário, a anuidade modelada é ${formatBrl(stack.yearOneAnnualFeeBrl)}.`;
   }
 
-  if (profile.availableToInvestBrl >= requiredInvestmentBrl) {
-    return `Seu valor disponível (${formatBrl(profile.availableToInvestBrl)}) cobre a exigência de investimento (${formatBrl(requiredInvestmentBrl)}).`;
-  }
-
-  return `A exigência estimada (${formatBrl(requiredInvestmentBrl)}) supera os ${formatBrl(profile.availableToInvestBrl)} informados. O cartão segue comparado sem bloqueio automático.`;
+  return "Sem exigência financeira de acesso.";
 };
 
 const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral" | "warning"> = {
@@ -288,6 +322,50 @@ const hasNoInvestmentBarrier = (stack: StackEvaluation): boolean =>
       (card.requiredInvestmentUsd ?? 0) <= 0,
   );
 
+const stackIsTraditional = (stack: StackEvaluation): boolean => {
+  const cards = cardsInUse(stack);
+  return cards.length > 0 && cards.every(cardIsTraditional);
+};
+
+const stackIsFintech = (stack: StackEvaluation): boolean => {
+  const cards = cardsInUse(stack);
+  return cards.length > 0 && cards.every((card) => !cardIsTraditional(card));
+};
+
+const stackAccessBarrierBrl = (stack: StackEvaluation): number =>
+  cardsInUse(stack).reduce((max, card) => {
+    const min = card.minInvestmentBrl ?? 0;
+    const investmentRelationship =
+      card.requiresRelationship === "investment" || card.requiresRelationship === "private";
+    const required = investmentRelationship ? (card.requiredInvestmentBrl ?? 0) : 0;
+    return Math.max(max, min, required);
+  }, 0);
+
+const stackAccessBarrierLabel = (stack: StackEvaluation): string | null => {
+  for (const card of cardsInUse(stack)) {
+    if ((card.minInvestmentBrl ?? 0) > 0) {
+      return `exige ${formatBrl(card.minInvestmentBrl ?? 0)} investidos no emissor`;
+    }
+    const investmentRelationship =
+      card.requiresRelationship === "investment" || card.requiresRelationship === "private";
+    if (investmentRelationship && (card.requiredInvestmentBrl ?? 0) > 0) {
+      return `exige ${formatBrl(card.requiredInvestmentBrl ?? 0)} investidos no emissor`;
+    }
+    if (card.requiresRelationship === "private") {
+      return "exige private banking";
+    }
+  }
+  return null;
+};
+
+const TAB_DESCRIPTIONS: Record<AlternativeTabId, string> = {
+  "lowest-barrier": "Cartões com a mesma exigência de acesso do recomendado, ou menor.",
+  traditional:
+    "Cartões emitidos por Itaú, Bradesco, Santander ou Banco do Brasil sob a marca do banco.",
+  fintech: "Bancos digitais, fintechs e produtos cobranded.",
+  "highest-return": "Maior retorno líquido modelado — mesmo com barreiras adicionais.",
+};
+
 const withinThreshold = (
   topStack: StackEvaluation,
   candidate: StackEvaluation | undefined,
@@ -303,103 +381,82 @@ const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluation): s
   return `${formatAnnualBrl(Math.abs(delta))} abaixo do recomendado.`;
 };
 
-const buildCuratedAlternatives = (recommendation: Recommendation): CuratedAlternative[] => {
+const buildAlternativeTabs = (recommendation: Recommendation): AlternativeTab[] => {
   const topStack = recommendation.topStack;
   const threshold = comparisonThreshold(topStack);
   const pool = uniqueCandidatePool(recommendation);
-  const picked = new Set<string>();
 
-  const take = (stack: StackEvaluation | undefined): StackEvaluation | undefined => {
-    if (!withinThreshold(topStack, stack, threshold)) return undefined;
-    const id = stackId(stack);
-    if (id === stackId(topStack)) return undefined;
-    if (picked.has(id)) return undefined;
-    picked.add(id);
-    return stack;
+  const eligible = pool.filter((stack) => withinThreshold(topStack, stack, threshold));
+
+  const dedupe = (stacks: StackEvaluation[]): StackEvaluation[] => {
+    const seen = new Set<string>();
+    const result: StackEvaluation[] = [];
+    for (const stack of stacks) {
+      const id = stackId(stack);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      result.push(stack);
+    }
+    return result;
   };
 
-  const slots: CuratedAlternative[] = [];
-  const noBarrier = take(pool.filter(hasNoInvestmentBarrier).sort(compareCandidate)[0]);
-  if (noBarrier !== undefined) {
-    slots.push({
-      slot: "no-barrier",
-      label: "Sem barreira",
-      stack: noBarrier,
-      detail: `Sem investimento mínimo de acesso. ${returnGapSentence(topStack, noBarrier)}`,
-    });
-  }
+  const take = (stacks: StackEvaluation[]): StackEvaluation[] =>
+    dedupe(stacks).sort(compareCandidate).slice(0, ALTERNATIVES_PER_TAB);
 
-  const conditionalUpside = take(recommendation.scoreLab?.decisionTracks?.conditionalUpside);
-  if (conditionalUpside !== undefined) {
-    slots.push({
-      slot: "conditional-upside",
-      label: "Retorno condicionado",
-      stack: conditionalUpside,
-      detail: `Maior retorno modelado, mas depende de requisito de acesso. ${returnGapSentence(topStack, conditionalUpside)}`,
-    });
-  }
+  const recBarrier = stackAccessBarrierBrl(topStack);
+  const lowerBarrier = (stack: StackEvaluation): boolean =>
+    recBarrier === 0 ? hasNoInvestmentBarrier(stack) : stackAccessBarrierBrl(stack) <= recBarrier;
 
-  const topReliability = topStack.scoreLab?.productReliabilityScore ?? 100;
-  const institutional =
-    recommendation.scoreLab?.institutionalAlternative?.stack ??
-    (topReliability < 85
-      ? pool
-          .filter((stack) => (stack.scoreLab?.productReliabilityScore ?? 0) >= 90)
-          .sort(compareCandidate)[0]
-      : undefined);
-  const institutionalChoice = take(institutional);
-  if (institutionalChoice !== undefined) {
-    slots.push({
-      slot: "institutional",
-      label: "Institucional",
-      stack: institutionalChoice,
-      detail: `Opção institucional próxima. ${returnGapSentence(topStack, institutionalChoice)}`,
-    });
-  }
-
-  const netLeader =
-    recommendation.scoreLab?.netReturnLeader ?? pool.slice().sort(compareCandidate)[0];
-  const netReturn = take(netLeader);
-  if (netReturn !== undefined) {
-    slots.push({
-      slot: "net-return",
+  const tabs: AlternativeTab[] = [
+    {
+      id: "lowest-barrier",
+      label: "Menor barreira",
+      stacks: take(eligible.filter(lowerBarrier)),
+    },
+    {
+      id: "traditional",
+      label: "Tradicional",
+      stacks: take(eligible.filter(stackIsTraditional)),
+    },
+    {
+      id: "fintech",
+      label: "Fintech",
+      stacks: take(eligible.filter(stackIsFintech)),
+    },
+    {
+      id: "highest-return",
       label: "Maior retorno",
-      stack: netReturn,
-      detail: `Maior retorno líquido no catálogo. ${returnGapSentence(topStack, netReturn)}`,
-    });
-  }
+      stacks: take(eligible),
+    },
+  ];
 
-  const axisLeader = recommendation.leaderboardsByAxis
-    .filter((axis) => axis.axisId !== "net-return")
-    .map((axis) => ({ axisId: axis.axisId, stack: axis.stacks[0] }))
-    .filter((item): item is { axisId: LeaderboardAxisId; stack: StackEvaluation } => {
-      if (!withinThreshold(topStack, item.stack, threshold)) return false;
-      const id = stackId(item.stack);
-      return id !== stackId(topStack) && !picked.has(id);
-    })
-    .sort((a, b) => compareCandidate(a.stack, b.stack))[0];
-  const axisChoice = take(axisLeader?.stack);
-  if (axisChoice !== undefined && axisLeader !== undefined) {
-    slots.push({
-      slot: "axis",
-      label: AXIS_LABEL[axisLeader.axisId],
-      stack: axisChoice,
-      detail: `Lidera ${AXIS_LABEL[axisLeader.axisId].toLowerCase()} neste perfil. ${returnGapSentence(topStack, axisChoice)}`,
-    });
-  }
-
-  return slots;
+  return tabs.filter((tab) => tab.stacks.length > 0);
 };
 
-const alternativesHeroSentence = (
-  alternatives: CuratedAlternative[],
-  threshold: number,
-): string => {
-  const alternative = alternatives[0];
-  if (alternative === undefined) {
+type DeltaTone = "above" | "even" | "below";
+
+const stackDelta = (
+  topStack: StackEvaluation,
+  stack: StackEvaluation,
+): { tone: DeltaTone; label: string } => {
+  const delta = stack.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
+  if (Math.abs(delta) < 0.01) return { tone: "even", label: "mesmo retorno" };
+  if (delta > 0) return { tone: "above", label: `${formatBrl(delta)} acima` };
+  return { tone: "below", label: `${formatBrl(Math.abs(delta))} abaixo` };
+};
+
+const stackFeeLabel = (stack: StackEvaluation): string =>
+  stack.yearOneAnnualFeeBrl === 0
+    ? "anuidade zero"
+    : `anuidade ${formatBrl(stack.yearOneAnnualFeeBrl)}/ano`;
+
+const alternativesHeroSentence = (tabs: AlternativeTab[], threshold: number): string => {
+  const tab = tabs[0];
+  const alternative = tab?.stacks[0];
+  if (tab === undefined || alternative === undefined) {
     return `Nenhuma combinação do catálogo chega a ${formatAnnualBrl(threshold)} de diferença.`;
   }
-  return `Outra escolha próxima: ${alternative.label.toLowerCase()}, ${stackLabel(alternative.stack)} entrega ${formatAnnualBrl(alternative.stack.yearOneNetValueBrl)}.`;
+  return `Outra escolha próxima: ${tab.label.toLowerCase()}, ${stackLabel(alternative)} entrega ${formatAnnualBrl(alternative.yearOneNetValueBrl)}.`;
 };
 
 const preferenceDivergenceNotice = (
@@ -436,9 +493,72 @@ const recommendationWithTopStack = (
     ? recommendation
     : { ...recommendation, topStack };
 
+const StackLabelLink = ({
+  stack,
+  cardClassName,
+  separatorClassName,
+}: {
+  stack: StackEvaluation;
+  cardClassName?: string;
+  separatorClassName?: string;
+}): JSX.Element => {
+  const cards = cardsInUse(stack);
+  return (
+    <>
+      {cards.map((card, i) => (
+        <Fragment key={card.id}>
+          {i > 0 ? (
+            <span aria-hidden className={cn("font-normal", separatorClassName)}>
+              {" + "}
+            </span>
+          ) : null}
+          <Link
+            to={`/cards/${card.id}`}
+            className={cn(
+              "hover:text-accent focus-visible:text-accent focus-visible:outline-accent transition-colors hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2",
+              cardClassName,
+            )}
+          >
+            {card.name}
+          </Link>
+        </Fragment>
+      ))}
+    </>
+  );
+};
+
+const HeroDetailLinks = ({ stack }: { stack: StackEvaluation }): JSX.Element | null => {
+  const cards = cardsInUse(stack);
+  if (cards.length === 0) return null;
+  const [singleCard] = cards;
+  if (cards.length === 1 && singleCard !== undefined) {
+    return (
+      <p className="mt-5">
+        <Link to={`/cards/${singleCard.id}`} className="plain-link">
+          Detalhes do cartão →
+        </Link>
+      </p>
+    );
+  }
+  return (
+    <p className="text-ink-muted mt-5 text-sm">
+      <span className="text-ink-subtle">Detalhes: </span>
+      {cards.map((card, i) => (
+        <Fragment key={card.id}>
+          {i > 0 ? <span className="text-ink-subtle"> · </span> : null}
+          <Link to={`/cards/${card.id}`} className="plain-link">
+            {card.name}
+          </Link>
+        </Fragment>
+      ))}
+    </p>
+  );
+};
+
 export const ResultsView = (): JSX.Element => {
   const { profile } = useSession();
   const result = useRecommendation();
+  const [activeTabId, setActiveTabId] = useState<AlternativeTabId | null>(null);
 
   if (profile === null) {
     return (
@@ -493,15 +613,26 @@ export const ResultsView = (): JSX.Element => {
   const displayRecommendation = recommendationWithTopStack(recommendation, topStack);
   const scoreLab = topStack.scoreLab;
   const whyWonNarrative = whyWonSentences(topStack, recommendation.alternatives);
+  const heroWaiverHint = ((): "spend" | "investment" | undefined => {
+    const benefit = topStack.scoreLab?.benefitsApplied.find(
+      (b) => b.kind === "annual-fee-waiver" && b.valueBrl > 0,
+    );
+    const requirement = benefit?.requirement;
+    if (requirement === undefined) return undefined;
+    if (requirement.kind === "spend-fee-waiver") return "spend";
+    if (requirement.kind === "investment-fee-waiver") return "investment";
+    return undefined;
+  })();
   const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
   const threshold = comparisonThreshold(topStack);
-  const curatedAlternatives = buildCuratedAlternatives(displayRecommendation);
+  const alternativeTabs = buildAlternativeTabs(displayRecommendation);
+  const activeTab = alternativeTabs.find((tab) => tab.id === activeTabId) ?? alternativeTabs[0];
   const divergenceNotice = preferenceDivergenceNotice(profile, displayRecommendation, threshold);
-  const conditionalUpside = decisionTracks?.conditionalUpside;
-  const conditionalUpsideNotice =
-    conditionalUpside !== undefined && stackId(conditionalUpside) !== stackId(topStack)
-      ? `Maior retorno modelado: ${stackLabel(conditionalUpside)} entrega ${formatAnnualBrl(conditionalUpside.yearOneNetValueBrl)}, mas depende de requisito de acesso.`
-      : null;
+  const _conditionalUpside = decisionTracks?.conditionalUpside;
+  // const conditionalUpsideNotice =
+  //   _conditionalUpside !== undefined && stackId(_conditionalUpside) !== stackId(topStack)
+  //     ? `Maior retorno modelado: ${stackLabel(_conditionalUpside)} entrega ${formatAnnualBrl(_conditionalUpside.yearOneNetValueBrl)}, mas depende de requisito de acesso.`
+  //     : null;
   const noRecommendationReason =
     decisionTracks?.recommendedNow === null ? decisionTracks.noRecommendationReason : undefined;
   const recommendationEyebrow =
@@ -529,13 +660,13 @@ export const ResultsView = (): JSX.Element => {
       : [];
   const heroNotes = [
     noRecommendationNotice,
-    conditionalUpsideNotice,
+    // conditionalUpsideNotice,
     divergenceNotice,
-    curatedAlternatives.length < 2
-      ? alternativesHeroSentence(curatedAlternatives, threshold)
-      : null,
+    alternativeTabs.length < 2 ? alternativesHeroSentence(alternativeTabs, threshold) : null,
   ].filter((note): note is string => note !== null);
   const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
+  const showTravelTranslation =
+    travelTranslationMatchesTopStack && recommendation.travelTranslation.program !== "cashback";
   const displayMoneyOnTheTableBrl =
     recommendation.currentStack !== undefined
       ? Math.max(0, topStack.yearOneNetValueBrl - recommendation.currentStack.yearOneNetValueBrl)
@@ -553,6 +684,7 @@ export const ResultsView = (): JSX.Element => {
         <header className="max-w-4xl">
           <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
           <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
+          <HeroDetailLinks stack={topStack} />
         </header>
 
         <section
@@ -589,7 +721,7 @@ export const ResultsView = (): JSX.Element => {
               </>
             )}
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              {scoreLab?.verdict !== undefined ? (
+              {scoreLab?.verdict !== undefined && scoreLab.verdict.kind !== "viable" ? (
                 <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
                   {verdictLabel(scoreLab.verdict.kind)}
                 </Badge>
@@ -600,6 +732,8 @@ export const ResultsView = (): JSX.Element => {
               <FeeTierBadge
                 annualFeeBrl={topStack.yearOneAnnualFeeBrl}
                 yearOneNetValueBrl={topStack.yearOneNetValueBrl}
+                waived={heroWaiverHint !== undefined}
+                {...(heroWaiverHint !== undefined ? { waiverHint: heroWaiverHint } : {})}
               />
             </div>
             {heroNotes.length > 0 ? (
@@ -611,7 +745,7 @@ export const ResultsView = (): JSX.Element => {
             ) : null}
           </div>
 
-          <dl className="grid content-end gap-0 self-end text-sm">
+          <dl className="grid content-end gap-0 self-center text-sm">
             <Stat
               label="Anuidade total"
               value={formatBrl(topStack.yearOneAnnualFeeBrl)}
@@ -644,33 +778,6 @@ export const ResultsView = (): JSX.Element => {
           </dl>
         </section>
 
-        {curatedAlternatives.length >= 2 ? (
-          <section className="border-line border-b py-8" aria-label="Outras escolhas">
-            <h2 className="text-heading text-ink">Outras escolhas</h2>
-            <ol className="divide-line mt-5 divide-y text-sm">
-              {curatedAlternatives.map((alternative) => (
-                <li
-                  key={`${alternative.slot}-${stackId(alternative.stack)}`}
-                  className="grid gap-2 py-4 sm:grid-cols-[136px_1fr_auto] sm:items-baseline sm:gap-5"
-                >
-                  <span className="text-caption text-ink-subtle">{alternative.label}</span>
-                  <span>
-                    <span className="text-ink block font-semibold">
-                      {stackLabel(alternative.stack)}
-                    </span>
-                    <span className="text-ink-subtle mt-1 block text-xs leading-relaxed">
-                      {alternative.detail}
-                    </span>
-                  </span>
-                  <span className="text-num text-ink font-semibold">
-                    {formatAnnualBrl(alternative.stack.yearOneNetValueBrl)}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        ) : null}
-
         {whyWonNarrative !== null ? (
           <section className="border-line border-b" aria-label="Por que venceu">
             <article className="py-8">
@@ -687,6 +794,115 @@ export const ResultsView = (): JSX.Element => {
                 {accessibilitySummary}
               </p>
             </article>
+          </section>
+        ) : null}
+
+        {alternativeTabs.length > 0 && activeTab !== undefined ? (
+          <section className="border-line border-b py-8" aria-label="Outras escolhas">
+            <h2 className="text-heading text-ink">Outras escolhas</h2>
+            <div
+              role="tablist"
+              aria-label="Filtrar alternativas"
+              className="border-line mt-6 flex flex-wrap gap-x-7 border-b"
+            >
+              {alternativeTabs.map((tab) => {
+                const isActive = tab.id === activeTab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`alternatives-panel-${tab.id}`}
+                    id={`alternatives-tab-${tab.id}`}
+                    onClick={() => {
+                      setActiveTabId(tab.id);
+                    }}
+                    className={cn(
+                      "text-caption focus-visible:ring-accent -mb-px cursor-pointer border-b-2 pb-3 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                      isActive
+                        ? "border-ink text-ink"
+                        : "hover:text-ink text-ink-subtle border-transparent",
+                    )}
+                  >
+                    {tab.label}
+                    <span className="tabular text-ink-subtle ml-2 text-xs font-normal">
+                      {tab.stacks.length}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-ink-subtle mt-3 text-xs leading-relaxed">
+              {TAB_DESCRIPTIONS[activeTab.id]}
+            </p>
+            <ol
+              role="tabpanel"
+              id={`alternatives-panel-${activeTab.id}`}
+              aria-labelledby={`alternatives-tab-${activeTab.id}`}
+              className="divide-line mt-3 divide-y text-sm"
+            >
+              {activeTab.stacks.map((stack) => {
+                const delta = stackDelta(topStack, stack);
+                const fee = stack.yearOneAnnualFeeBrl;
+                const feeLabel = fee > 0 ? stackFeeLabel(stack) : null;
+                const barrier = stackAccessBarrierLabel(stack);
+                const valueTone = delta.tone === "above" ? "text-accent" : "text-ink";
+                const deltaTone =
+                  delta.tone === "above"
+                    ? "text-accent"
+                    : delta.tone === "even"
+                      ? "text-ink"
+                      : "text-ink-subtle";
+                const metaParts: { key: string; node: JSX.Element }[] = [
+                  {
+                    key: "delta",
+                    node: <span className={cn("tabular", deltaTone)}>{delta.label}</span>,
+                  },
+                ];
+                if (feeLabel !== null) {
+                  metaParts.push({
+                    key: "fee",
+                    node: <span className="text-ink-subtle">{feeLabel}</span>,
+                  });
+                }
+                if (barrier !== null) {
+                  metaParts.push({
+                    key: "barrier",
+                    node: <span className="text-warning">{barrier}</span>,
+                  });
+                }
+                return (
+                  <li
+                    key={stackId(stack)}
+                    className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 py-3.5"
+                  >
+                    <span className="font-semibold">
+                      <StackLabelLink
+                        stack={stack}
+                        cardClassName="text-ink"
+                        separatorClassName="text-ink-subtle"
+                      />
+                    </span>
+                    <span className={cn("text-num tabular font-semibold", valueTone)}>
+                      {formatAnnualBrl(stack.yearOneNetValueBrl)}
+                    </span>
+                    <p className="text-ink-subtle col-span-2 text-xs leading-relaxed">
+                      {metaParts.map((part, i) => (
+                        <Fragment key={part.key}>
+                          {i > 0 ? (
+                            <span aria-hidden className="text-ink-subtle/60 mx-2">
+                              ·
+                            </span>
+                          ) : null}
+                          {part.node}
+                        </Fragment>
+                      ))}
+                    </p>
+                  </li>
+                );
+              })}
+            </ol>
           </section>
         ) : null}
 
@@ -768,7 +984,7 @@ export const ResultsView = (): JSX.Element => {
           </Disclosure>
         </section>
 
-        {travelTranslationMatchesTopStack ? (
+        {showTravelTranslation ? (
           <div className="mt-8">
             <TravelTranslation translation={recommendation.travelTranslation} />
           </div>

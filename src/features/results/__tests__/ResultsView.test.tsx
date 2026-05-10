@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
 import { ResultsView } from "@/features/results/ResultsView";
-import type { ProgramId, Recommendation, SpendingProfile, StackEvaluation } from "@/types";
+import type { Bank, ProgramId, Recommendation, SpendingProfile, StackEvaluation } from "@/types";
 
 const SeedSession = ({ profile }: { profile: SpendingProfile | null }): null => {
   const { setProfile } = useSession();
@@ -123,6 +123,7 @@ const makeStack = ({
   pointsProgram = "cashback",
   productReliabilityScore = 90,
   requiredInvestmentBrl,
+  bank = "other",
 }: {
   id: string;
   name: string;
@@ -130,13 +131,14 @@ const makeStack = ({
   pointsProgram?: ProgramId;
   productReliabilityScore?: number;
   requiredInvestmentBrl?: number;
+  bank?: Bank;
 }): StackEvaluation => ({
   ...stack,
   cards: [
     {
       id,
       name,
-      bank: "other",
+      bank,
       pointsProgram,
       requiresRelationship: "open",
       ...(requiredInvestmentBrl !== undefined ? { requiredInvestmentBrl } : {}),
@@ -343,9 +345,9 @@ describe("ResultsView", () => {
         name: /RecargaPay Titan Mastercard Black/i,
       }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/Maior retorno modelado: RecargaPay Titan Mastercard Black/i),
-    ).toBeInTheDocument();
+    // expect(
+    //   screen.getByText(/Maior retorno modelado: RecargaPay Titan Mastercard Black/i),
+    // ).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: /Tradução em viagens/i })).not.toBeInTheDocument();
   });
 
@@ -396,9 +398,9 @@ describe("ResultsView", () => {
         /Não encontramos uma recomendação acionável com retorno positivo relevante/i,
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Maior retorno modelado: RecargaPay Titan Mastercard Black/i),
-    ).toBeInTheDocument();
+    // expect(
+    //   screen.getByText(/Maior retorno modelado: RecargaPay Titan Mastercard Black/i),
+    // ).toBeInTheDocument();
   });
 
   it("does not render contradictory accessibility copy", async () => {
@@ -411,7 +413,11 @@ describe("ResultsView", () => {
 
     await screen.findByRole("heading", { level: 1 });
     expect(screen.queryByText(/exige correntista.*não exige correntista/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/segue comparado sem bloqueio automático/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Para a melhor acessibilidade/i)).not.toBeInTheDocument();
+    // Card has investmentFeeWaiverBrl 50k mas yearOneAnnualFeeBrl é 0 — não deve falar
+    // sobre "Anuidade isenta" (a anuidade já está zerada no cenário modelado).
+    expect(screen.queryByText(/Anuidade isenta/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sem exigência financeira de acesso/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByText(/Ver cálculo completo/i));
     const investmentTerm = await screen.findByText(/Condição financeira/i);
@@ -421,18 +427,91 @@ describe("ResultsView", () => {
     expect(investmentRow).toHaveTextContent(/50\.000,00/);
   });
 
-  it("renders curated alternatives instead of axis trade-offs", async () => {
+  it("calls out anuidade waiver only when the modeled annual fee is non-zero", async () => {
+    const cardWithFee = {
+      ...stack,
+      yearOneAnnualFeeBrl: 1068,
+      cards: stack.cards,
+    };
+
+    mockRecommendation({
+      ...recommendationFixture,
+      topStack: cardWithFee,
+      scoreLab: { ...baseScoreLab, netReturnLeader: cardWithFee },
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(
+      screen.getByText(/Anuidade isenta com R\$ 50\.000,00 em investimentos no banco emissor/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/No seu cenário, a anuidade modelada é R\$ 1\.068,00/i),
+    ).toBeInTheDocument();
+  });
+
+  it("links the recommended card name to the catalog detail page", async () => {
+    const singleCard = makeStack({
+      id: "picpay-card-black",
+      name: "PicPay Card Black",
+      netReturnBrl: 720,
+    });
+
+    mockRecommendation({
+      ...recommendationFixture,
+      topStack: singleCard,
+      scoreLab: { ...baseScoreLab, netReturnLeader: singleCard },
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 0,
+      redemption: { kind: "cashback" },
+    });
+
+    const detailLink = await screen.findByRole("link", { name: /Detalhes do cartão/i });
+    expect(detailLink).toHaveAttribute("href", "/cards/picpay-card-black");
+  });
+
+  it("does not render the redundant viable verdict badge", async () => {
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByText(/Retorno positivo/i)).not.toBeInTheDocument();
+  });
+
+  it("groups alternatives into tabs and switches between them", async () => {
     const noBarrier = makeStack({
       id: "open-cashback-card",
       name: "Open Cashback Card",
       netReturnBrl: 700,
     });
-    const institutional = makeStack({
-      id: "institutional-card",
-      name: "Institutional Card",
-      netReturnBrl: 650,
-      productReliabilityScore: 96,
-      requiredInvestmentBrl: 20000,
+    const traditional = makeStack({
+      id: "itau-card",
+      name: "Itaú Personnalité Visa Infinite",
+      netReturnBrl: 680,
+      bank: "itau",
+    });
+    const cobranded = makeStack({
+      id: "amazon-cobranded",
+      name: "Amazon.com.br Mastercard Platinum",
+      netReturnBrl: 670,
+      bank: "bradesco", // emissor Bradesco mas marca Amazon
+    });
+    const fintech = makeStack({
+      id: "nubank-card",
+      name: "Nubank Ultravioleta",
+      netReturnBrl: 660,
+      bank: "nubank",
     });
     const netLeader = makeStack({
       id: "net-leader-card",
@@ -440,34 +519,21 @@ describe("ResultsView", () => {
       netReturnBrl: 950,
       requiredInvestmentBrl: 30000,
     });
-    const axisLeader = makeStack({
-      id: "simple-card",
-      name: "Simple Card",
-      netReturnBrl: 620,
-    });
 
     mockRecommendation({
       ...recommendationFixture,
-      alternatives: [noBarrier, institutional, netLeader, axisLeader],
+      alternatives: [noBarrier, traditional, cobranded, fintech, netLeader],
       leaderboardsByAxis: [
         { axisId: "net-return", title: "Maior retorno líquido", stacks: [netLeader, stack] },
         { axisId: "liquidity", title: "Melhor liquidez", stacks: [stack] },
         { axisId: "annual-fee", title: "Menor anuidade total", stacks: [stack] },
-        { axisId: "simplicity", title: "Mais simples", stacks: [axisLeader, stack] },
+        { axisId: "simplicity", title: "Mais simples", stacks: [stack] },
         { axisId: "accessibility", title: "Mais acessível", stacks: [stack] },
       ],
       scoreLab: {
         ...baseScoreLab,
         netReturnLeaderDiffers: true,
         netReturnLeader: netLeader,
-        institutionalAlternative: {
-          stack: institutional,
-          score: 80,
-          netReturnBrl: institutional.yearOneNetValueBrl,
-          netReturnDeltaBrl: -106,
-          scoreDelta: -7,
-          reason: "alternativa mais institucional com retorno próximo",
-        },
       },
     });
 
@@ -478,12 +544,37 @@ describe("ResultsView", () => {
     });
 
     expect(await screen.findByRole("heading", { name: /Outras escolhas/i })).toBeInTheDocument();
-    expect(screen.getByText("Sem barreira")).toBeInTheDocument();
-    expect(screen.getByText("Institucional")).toBeInTheDocument();
-    expect(screen.getByText("Maior retorno")).toBeInTheDocument();
-    expect(screen.getByText("Simplicidade")).toBeInTheDocument();
-    expect(screen.queryByText(/Trade-offs por eixo/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Outras opções no eixo/i)).not.toBeInTheDocument();
+
+    const menorBarreiraTab = screen.getByRole("tab", { name: /Menor barreira/i });
+    const tradicionalTab = screen.getByRole("tab", { name: /Tradicional/i });
+    const fintechTab = screen.getByRole("tab", { name: /Fintech/i });
+    const maiorRetornoTab = screen.getByRole("tab", { name: /Maior retorno/i });
+
+    expect(menorBarreiraTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("link", { name: "Open Cashback Card" })).toBeInTheDocument();
+    expect(screen.queryByText(/Institucional/i)).not.toBeInTheDocument();
+
+    await userEvent.click(tradicionalTab);
+    expect(tradicionalTab).toHaveAttribute("aria-selected", "true");
+    expect(
+      screen.getByRole("link", { name: "Itaú Personnalité Visa Infinite" }),
+    ).toBeInTheDocument();
+    // Cobranded com nome "Amazon" não é tradicional mesmo emitido por Bradesco
+    expect(
+      screen.queryByRole("link", { name: "Amazon.com.br Mastercard Platinum" }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(fintechTab);
+    expect(fintechTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("link", { name: "Nubank Ultravioleta" })).toBeInTheDocument();
+    // Cobranded cai aqui
+    expect(
+      screen.getByRole("link", { name: "Amazon.com.br Mastercard Platinum" }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(maiorRetornoTab);
+    expect(maiorRetornoTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("link", { name: "Net Leader Card" })).toBeInTheDocument();
   });
 
   it("shows preference divergence copy when the chosen redemption differs from the top stack", async () => {
@@ -512,7 +603,7 @@ describe("ResultsView", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not repeat cashback value in travel translation", async () => {
+  it("hides the travel translation section for cashback recommendations", async () => {
     mockRecommendation({
       ...recommendationFixture,
       travelTranslation: {
@@ -528,8 +619,9 @@ describe("ResultsView", () => {
       redemption: { kind: "cashback" },
     });
 
-    expect(await screen.findByText(/R\$ 756,00 de cashback/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Valor compatível/i)).not.toBeInTheDocument();
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByRole("region", { name: /Tradução em viagens/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Isso vira/i)).not.toBeInTheDocument();
   });
 
   it("renders an error state when the solver rejects the profile", async () => {

@@ -10,6 +10,17 @@ const returnKindFor = (topStack: StackEvaluation): string => {
   return allCashback ? "cashback + benefícios" : "pontos + benefícios";
 };
 
+const waiverPhrase = (topStack: StackEvaluation): string | null => {
+  const benefit = topStack.scoreLab?.benefitsApplied.find(
+    (b) => b.kind === "annual-fee-waiver" && b.valueBrl > 0,
+  );
+  const requirement = benefit?.requirement;
+  if (requirement === undefined) return null;
+  if (requirement.kind === "spend-fee-waiver") return "com seu gasto atual";
+  if (requirement.kind === "investment-fee-waiver") return "com seus investimentos atuais";
+  return null;
+};
+
 export const whyWonSentences = (
   topStack: StackEvaluation,
   alternatives: StackEvaluation[],
@@ -29,7 +40,12 @@ export const whyWonSentences = (
   }
 
   const kind = returnKindFor(topStack);
-  const lead = `Vence porque rende ${formatBrl(gross)}/ano em ${kind} e cobra ${formatBrl(fee)}/ano de anuidade.`;
+  const waiverNote = waiverPhrase(topStack);
+  const annuityClause =
+    waiverNote !== null
+      ? `cobra ${formatBrl(fee)}/ano de anuidade ${waiverNote}`
+      : `cobra ${formatBrl(fee)}/ano de anuidade`;
+  const lead = `Vence porque rende ${formatBrl(gross)}/ano em ${kind} e ${annuityClause}.`;
 
   const closeAlternative = alternatives
     .filter((alt) => netReturn - alt.yearOneNetValueBrl <= ALTERNATIVE_PROXIMITY_BRL)
@@ -39,8 +55,12 @@ export const whyWonSentences = (
     return [lead];
   }
 
+  const altIsHigher = closeAlternative.yearOneNetValueBrl > netReturn;
+  const altSuffix = altIsHigher
+    ? " mas podem exigir gastos, mensalidade ou investimentos adicionais"
+    : "";
   return [
     lead,
-    `As outras opções chegaram a ${formatBrl(closeAlternative.yearOneNetValueBrl)}/ano de retorno líquido.`,
+    `As outras opções chegaram a ${formatBrl(closeAlternative.yearOneNetValueBrl)}/ano de retorno líquido${altSuffix}.`,
   ];
 };

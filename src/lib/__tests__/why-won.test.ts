@@ -47,6 +47,7 @@ interface MakeStackOptions extends Partial<Omit<StackEvaluation, "scoreLab">> {
   scoreLabOverrides?: {
     modeledAnnual?: Partial<ScoreLabStack["modeledAnnual"]>;
     verdict?: Partial<ScoreLabStack["verdict"]>;
+    benefitsApplied?: ScoreLabStack["benefitsApplied"];
   };
 }
 
@@ -56,6 +57,7 @@ const makeStack = (overrides: MakeStackOptions = {}): StackEvaluation => {
     ...baseScoreLab,
     modeledAnnual: { ...baseScoreLab.modeledAnnual, ...scoreLabOverrides?.modeledAnnual },
     verdict: { ...baseScoreLab.verdict, ...scoreLabOverrides?.verdict },
+    benefitsApplied: scoreLabOverrides?.benefitsApplied ?? baseScoreLab.benefitsApplied,
   };
   return {
     cards: [
@@ -112,6 +114,46 @@ describe("whyWonSentences", () => {
     const far = makeStack({ yearOneNetValueBrl: 800 });
     const out = whyWonSentences(top, [far]);
     expect(out).toHaveLength(1);
+  });
+
+  it("appends waiver context to the lead when annual fee is waived by spending", () => {
+    const top = makeStack({
+      yearOneAnnualFeeBrl: 0,
+      scoreLabOverrides: {
+        modeledAnnual: { recurringAnnualFeeBrl: 0 },
+        benefitsApplied: [
+          {
+            cardId: "x",
+            kind: "annual-fee-waiver",
+            label: "Isenção de anuidade com gasto de R$ 5000/mês",
+            valueBrl: 1068,
+            requirement: {
+              cardId: "x",
+              kind: "spend-fee-waiver",
+              label: "Isenção de anuidade com gasto de R$ 5000/mês",
+              required: 5000,
+              available: 5000,
+              gap: 0,
+              unit: "BRL/month",
+              satisfied: true,
+              fit: 1,
+            },
+          },
+        ],
+      },
+    });
+    const out = whyWonSentences(top, []);
+    expect(out).toHaveLength(1);
+    expect(out?.[0]).toMatch(/cobra R\$\s?0,00\/ano de anuidade com seu gasto atual/);
+  });
+
+  it("appends 'podem exigir' caveat when alternative beats the recommended", () => {
+    const top = makeStack({ yearOneNetValueBrl: 720 });
+    const higher = makeStack({ yearOneNetValueBrl: 1200 });
+    const out = whyWonSentences(top, [higher]);
+    expect(out).toHaveLength(2);
+    expect(out?.[1]).toMatch(/As outras opções chegaram a R\$\s?1\.200,00\/ano de retorno líquido/);
+    expect(out?.[1]).toMatch(/podem exigir gastos, mensalidade ou investimentos adicionais/);
   });
 
   it("uses the negative-scenario sentence when netReturn is non-positive", () => {
