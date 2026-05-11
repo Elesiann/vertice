@@ -178,4 +178,18 @@ describe("CurrentVsRecommended", () => {
     expect(screen.getByText(/cada R\$ 1 de anuidade retorna 3,59x/)).toBeInTheDocument();
     expect(screen.queryByText(/a anuidade se paga a partir de/)).not.toBeInTheDocument();
   });
+
+  it("shows the break-even clause alone when only currentBreakEvenMonthlySpendBrl is set", () => {
+    render(
+      <CurrentVsRecommended
+        narrative={{ ...variantANarrative, currentRoiMultiple: null }}
+        currentLabel="A"
+        recommendedLabel="B"
+      />,
+    );
+    expect(
+      screen.getByText(/a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/cada R\$ 1/)).not.toBeInTheDocument();
+  });
 });
