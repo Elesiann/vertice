@@ -265,26 +265,40 @@ const sentence1 = (
   topStack: StackEvaluation,
 ): string | null => {
   if (domKey === "rewards") {
-    return `A maior diferença está nas recompensas: ${formatBrl(grossValue(currentStack))} ${rewardClause(currentStack)} no atual, ${formatBrl(grossValue(topStack))} ${rewardClause(topStack)} no recomendado.`;
+    return `A maior diferença está nas recompensas: ${formatBrl(grossValue(currentStack))} ${rewardClause(currentStack)} no atual contra ${formatBrl(grossValue(topStack))} ${rewardClause(topStack)} no recomendado.`;
   }
   const row = rows.find((r) => r.key === domKey);
   if (row === undefined) return null;
   const currentRaw = rawForProse(domKey, row.currentValueBrl);
   const recommendedRaw = rawForProse(domKey, row.recommendedValueBrl);
-  return `A maior diferença está ${dominantFrase(domKey)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
+  return `A maior diferença está ${dominantFrase(domKey)}: ${formatBrl(currentRaw)} no atual contra ${formatBrl(recommendedRaw)} no recomendado.`;
 };
 
-const sentence2VariantA = (currentStack: StackEvaluation, topStack: StackEvaluation): string => {
+// The bottom-line sentence. When a dominant-component sentence precedes it, it opens with
+// "Somando isso ao resto, …" so the two read as one thought (component → total).
+const sentence2VariantA = (
+  currentStack: StackEvaluation,
+  topStack: StackEvaluation,
+  linked: boolean,
+): string => {
   const loss = formatBrl(Math.abs(currentStack.yearOneNetValueBrl));
   const rec = formatBrl(topStack.yearOneNetValueBrl);
   const feeClause = recommendedFeeClause(topStack);
-  return `Seu cartão atual fica negativo em ${loss}/ano. O recomendado renderia ${rec} líquido/ano ${feeClause}.`;
+  const lead = linked
+    ? "Somando isso ao resto, seu cartão atual fica negativo"
+    : "Seu cartão atual fica negativo";
+  return `${lead} em ${loss}/ano, enquanto o recomendado renderia ${rec} líquido/ano ${feeClause}.`;
 };
 
-const sentence2VariantB = (currentStack: StackEvaluation, topStack: StackEvaluation): string => {
+const sentence2VariantB = (
+  currentStack: StackEvaluation,
+  topStack: StackEvaluation,
+  linked: boolean,
+): string => {
   const cur = formatBrl(currentStack.yearOneNetValueBrl);
   const rec = formatBrl(topStack.yearOneNetValueBrl);
-  return `Seu cartão atual rende ${cur}/ano. O recomendado renderia ${rec}/ano com o mesmo gasto.`;
+  const lead = linked ? "Somando isso ao resto, seu cartão atual rende" : "Seu cartão atual rende";
+  return `${lead} ${cur}/ano e o recomendado ${rec}/ano — com o mesmo gasto.`;
 };
 
 const variantANarrative = (
@@ -293,9 +307,8 @@ const variantANarrative = (
   domKey: DominantKey | null,
   rows: ComparisonRow[],
 ): string[] => {
-  const s2 = sentence2VariantA(currentStack, topStack);
-  if (domKey === null) return [s2];
-  const s1 = sentence1(domKey, rows, currentStack, topStack);
+  const s1 = domKey === null ? null : sentence1(domKey, rows, currentStack, topStack);
+  const s2 = sentence2VariantA(currentStack, topStack, s1 !== null);
   return s1 === null ? [s2] : [s1, s2];
 };
 
@@ -305,9 +318,8 @@ const variantBNarrative = (
   domKey: DominantKey | null,
   rows: ComparisonRow[],
 ): string[] => {
-  const s2 = sentence2VariantB(currentStack, topStack);
-  if (domKey === null) return [s2];
-  const s1 = sentence1(domKey, rows, currentStack, topStack);
+  const s1 = domKey === null ? null : sentence1(domKey, rows, currentStack, topStack);
+  const s2 = sentence2VariantB(currentStack, topStack, s1 !== null);
   return s1 === null ? [s2] : [s1, s2];
 };
 

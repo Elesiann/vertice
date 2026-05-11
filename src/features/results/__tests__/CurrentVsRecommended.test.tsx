@@ -227,7 +227,7 @@ describe("CurrentVsRecommended", () => {
     expect(screen.queryByText(/^Mais no/)).toBeNull();
   });
 
-  it("renders the preference-divergence notice as a third diagnosis paragraph when provided", () => {
+  it("renders the preference-divergence notice between the table and the highlights when provided", () => {
     render(
       <CurrentVsRecommended
         narrative={variantANarrative}
@@ -239,7 +239,7 @@ describe("CurrentVsRecommended", () => {
     expect(screen.getByText("Você marcou cashback. O recomendado é pontos.")).toBeInTheDocument();
   });
 
-  it("omits the preference-divergence paragraph when not provided", () => {
+  it("omits the preference-divergence notice when not provided", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );

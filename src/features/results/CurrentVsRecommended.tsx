@@ -247,7 +247,6 @@ export const CurrentVsRecommended = ({
             {paragraph}
           </p>
         ))}
-        {preferenceNotice !== undefined ? <p>{preferenceNotice}</p> : null}
       </div>
 
       <div className="overflow-x-auto">
@@ -334,6 +333,10 @@ export const CurrentVsRecommended = ({
           </tfoot>
         </table>
       </div>
+
+      {preferenceNotice !== undefined ? (
+        <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">{preferenceNotice}</p>
+      ) : null}
 
       <div className="border-line/60 border-t pt-5">
         {recommendedBenefits.length > 0 ? (

@@ -301,11 +301,11 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       // dominant delta sentence (annual-fee dominates here: |0 - (-1068)| = 1068 > |720 - 750| = 30)
       expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado\./,
+        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual contra R\$\s?0,00 no recomendado\./,
       );
-      // summary sentence
+      // summary sentence, linked to the component sentence above it
       expect(out.diagnosis[1]).toMatch(
-        /Seu cartão atual fica negativo em R\$\s?318,00\/ano\. O recomendado renderia R\$\s?720,00 líquido\/ano sem anuidade\./,
+        /Somando isso ao resto, seu cartão atual fica negativo em R\$\s?318,00\/ano, enquanto o recomendado renderia R\$\s?720,00 líquido\/ano sem anuidade\./,
       );
     });
 
@@ -314,7 +314,7 @@ describe("buildComparisonNarrative", () => {
       const top = makeStack({ netReturnBrl: 600, annualFeeBrl: 300 });
       const out = buildComparisonNarrative(current, top);
       expect(out.diagnosis[out.diagnosis.length - 1]).toMatch(
-        /O recomendado renderia R\$\s?600,00 líquido\/ano com R\$\s?300,00 de anuidade\./,
+        /enquanto o recomendado renderia R\$\s?600,00 líquido\/ano com R\$\s?300,00 de anuidade\./,
       );
     });
 
@@ -325,7 +325,7 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       expect(out.diagnosis).toHaveLength(1);
       expect(out.diagnosis[0]).toMatch(
-        /Seu cartão atual fica negativo em R\$\s?100,00\/ano\. O recomendado renderia R\$\s?200,00 líquido\/ano sem anuidade\./,
+        /Seu cartão atual fica negativo em R\$\s?100,00\/ano, enquanto o recomendado renderia R\$\s?200,00 líquido\/ano sem anuidade\./,
       );
     });
   });
@@ -345,11 +345,12 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       // cashback row dominates (|720 - 500| = 220)
       expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está no cashback: R\$\s?500,00 no atual, R\$\s?720,00 no recomendado\./,
+        /A maior diferença está no cashback: R\$\s?500,00 no atual contra R\$\s?720,00 no recomendado\./,
       );
       expect(out.diagnosis[1]).toMatch(
-        /Seu cartão atual rende R\$\s?500,00\/ano\. O recomendado renderia R\$\s?720,00\/ano com o mesmo gasto\./,
+        /Somando isso ao resto, seu cartão atual rende R\$\s?500,00\/ano e o recomendado R\$\s?720,00\/ano/,
       );
+      expect(out.diagnosis[1]).toMatch(/com o mesmo gasto\.$/);
     });
 
     it("omits dominant-delta sentence when dominantRowKey is null", () => {
@@ -358,7 +359,7 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       expect(out.diagnosis).toHaveLength(1);
       expect(out.diagnosis[0]).toMatch(
-        /Seu cartão atual rende R\$\s?500,00\/ano\. O recomendado renderia R\$\s?720,00\/ano com o mesmo gasto\./,
+        /Seu cartão atual rende R\$\s?500,00\/ano e o recomendado R\$\s?720,00\/ano/,
       );
     });
   });
@@ -604,7 +605,7 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("rewards");
       expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está nas recompensas: R\$\s?500,00 de cashback no atual, R\$\s?720,00 em pontos no recomendado\./,
+        /A maior diferença está nas recompensas: R\$\s?500,00 de cashback no atual contra R\$\s?720,00 em pontos no recomendado\./,
       );
     });
 
@@ -625,7 +626,7 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("annual-fee");
       expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado\./,
+        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual contra R\$\s?0,00 no recomendado\./,
       );
     });
   });
