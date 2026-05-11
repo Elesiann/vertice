@@ -347,21 +347,35 @@ const stackAccessBarrierBrl = (stack: StackEvaluation): number =>
     return Math.max(max, min, required);
   }, 0);
 
-const stackAccessBarrierLabel = (stack: StackEvaluation): string | null => {
+// The access barrier as a bare noun phrase ("R$ 50.000,00 investidos no emissor" / "private
+// banking"), so callers can compose it ("exige …", "exigem …"). null when there's no barrier.
+const stackAccessBarrierPhrase = (stack: StackEvaluation): string | null => {
   for (const card of cardsInUse(stack)) {
     if ((card.minInvestmentBrl ?? 0) > 0) {
-      return `exige ${formatBrl(card.minInvestmentBrl ?? 0)} investidos no emissor`;
+      return `${formatBrl(card.minInvestmentBrl ?? 0)} investidos no emissor`;
     }
     const investmentRelationship =
       card.requiresRelationship === "investment" || card.requiresRelationship === "private";
     if (investmentRelationship && (card.requiredInvestmentBrl ?? 0) > 0) {
-      return `exige ${formatBrl(card.requiredInvestmentBrl ?? 0)} investidos no emissor`;
+      return `${formatBrl(card.requiredInvestmentBrl ?? 0)} investidos no emissor`;
     }
     if (card.requiresRelationship === "private") {
-      return "exige private banking";
+      return "private banking";
     }
   }
   return null;
+};
+
+const stackAccessBarrierLabel = (stack: StackEvaluation): string | null => {
+  const phrase = stackAccessBarrierPhrase(stack);
+  return phrase === null ? null : `exige ${phrase}`;
+};
+
+// Whether this profile can actually obtain the stack today — i.e. no private-banking gate and the
+// investment barrier is within the declared investable amount (undefined ⇒ treated as nothing).
+const isAccessibleForProfile = (profile: SpendingProfile, stack: StackEvaluation): boolean => {
+  if (cardsInUse(stack).some((card) => card.requiresRelationship === "private")) return false;
+  return stackAccessBarrierBrl(stack) <= (profile.availableToInvestBrl ?? 0);
 };
 
 const TAB_DESCRIPTIONS: Record<AlternativeTabId, string> = {
@@ -502,27 +516,55 @@ const alternativesHeroSentence = (tabs: AlternativeTab[], threshold: number): st
   return `Outra escolha próxima: ${tab.label.toLowerCase()}, ${stackLabel(alternative)} entrega ${formatAnnualBrl(alternative.yearOneNetValueBrl)}.`;
 };
 
+// Phrased for "… exigem {clause}." — the barrier of `stack`, or a generic fallback.
+const accessGateClause = (stack: StackEvaluation): string => {
+  const phrase = stackAccessBarrierPhrase(stack);
+  return phrase !== null ? `exigem ${phrase}` : "têm requisitos de acesso";
+};
+
 const preferenceDivergenceNotice = (
   profile: SpendingProfile,
   recommendation: Recommendation,
   threshold: number,
 ): string | null => {
   if (profile.redemption.kind === "any") return null;
-
-  const topProgram = primaryProgram(recommendation.topStack);
   if (stackMatchesPreference(recommendation.topStack, profile.redemption)) return null;
 
   const preferred = preferenceLabel(profile.redemption);
-  const topRedemption = programRedemptionLabel(topProgram);
-  const bestOfPreference = recommendation.alternatives
-    .filter((stack) => stackMatchesPreference(stack, profile.redemption))
-    .sort(compareCandidate)[0];
+  const recRedemption = programRedemptionLabel(primaryProgram(recommendation.topStack));
+  const recNet = recommendation.topStack.yearOneNetValueBrl;
+  const lead = `Você marcou ${preferred}, mas o recomendado rende em ${recRedemption}`;
 
-  if (bestOfPreference !== undefined) {
-    return `Você marcou ${preferred}. O recomendado é ${topRedemption}: ${formatAnnualBrl(recommendation.topStack.yearOneNetValueBrl)} contra ${formatAnnualBrl(bestOfPreference.yearOneNetValueBrl)} do melhor de ${preferred}.`;
+  const matching = recommendation.alternatives
+    .filter((stack) => stackMatchesPreference(stack, profile.redemption))
+    .sort(compareCandidate);
+
+  // 1 — no card of the preferred currency among the alternatives at all.
+  if (matching.length === 0) {
+    return `${lead}: nenhum cartão de ${preferred} chega a ${formatAnnualBrl(threshold)} do retorno dele.`;
   }
 
-  return `Você marcou ${preferred}. O recomendado é ${topRedemption}: nenhum cartão de ${preferred} chega a ${formatAnnualBrl(threshold)} do retorno dele.`;
+  const bestActionable = matching.find((stack) => isAccessibleForProfile(profile, stack));
+  const bestGated = matching.find((stack) => !isAccessibleForProfile(profile, stack));
+
+  // 5 — cards of the preferred currency exist, but none is reachable for this profile.
+  if (bestActionable === undefined) {
+    if (bestGated === undefined) return null; // unreachable: `matching` is non-empty and all gated
+    return `Você marcou ${preferred}, mas as melhores opções de ${preferred} (${stackLabel(bestGated)}, ${formatAnnualBrl(bestGated.yearOneNetValueBrl)}) ${accessGateClause(bestGated)}; o recomendado, em ${recRedemption}, é o melhor retorno sem essa exigência.`;
+  }
+
+  // 4 — a reachable card of the preferred currency ties or beats the recommendation (rare).
+  if (bestActionable.yearOneNetValueBrl >= recNet) {
+    return `${lead}: o melhor cartão de ${preferred} acionável (${stackLabel(bestActionable)}, ${formatAnnualBrl(bestActionable.yearOneNetValueBrl)}) está nas Outras escolhas abaixo.`;
+  }
+
+  // 3 — the reachable card is below the recommendation, but a higher one sits behind a gate.
+  if (bestGated !== undefined && bestGated.yearOneNetValueBrl > bestActionable.yearOneNetValueBrl) {
+    return `${lead}: o melhor cartão de ${preferred} acionável (${stackLabel(bestActionable)}) renderia ${formatAnnualBrl(bestActionable.yearOneNetValueBrl)}; as opções acima disso (${stackLabel(bestGated)}, ${formatAnnualBrl(bestGated.yearOneNetValueBrl)}) ${accessGateClause(bestGated)}.`;
+  }
+
+  // 2 — the reachable card is below the recommendation, with nothing better behind a gate.
+  return `${lead}: o melhor cartão de ${preferred} acionável (${stackLabel(bestActionable)}) renderia ${formatAnnualBrl(bestActionable.yearOneNetValueBrl)} — abaixo do recomendado.`;
 };
 
 const displayStackFor = (recommendation: Recommendation): StackEvaluation =>

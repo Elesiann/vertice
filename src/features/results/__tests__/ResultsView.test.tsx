@@ -355,7 +355,7 @@ describe("ResultsView", () => {
     expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();
   });
 
-  it("renders heroNotes (e.g. preference divergence) in comparison mode", async () => {
+  it("shows the preference-divergence copy inside the comparison diagnosis", async () => {
     const smilesAlternative = {
       ...stack,
       cards: [
@@ -390,7 +390,9 @@ describe("ResultsView", () => {
     await screen.findByRole("heading", { level: 1 });
 
     expect(
-      screen.getByText(/Você marcou milhas Smiles\. O recomendado é cashback/i),
+      screen.getByText(
+        /Você marcou milhas Smiles, mas o recomendado rende em cashback: o melhor cartão de milhas Smiles acionável \(Smiles Alternative\) renderia R\$\s?500,00\/ano/i,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -676,17 +678,37 @@ describe("ResultsView", () => {
     expect(screen.getByRole("link", { name: "Net Leader Card" })).toBeInTheDocument();
   });
 
-  it("shows preference divergence copy when the chosen redemption differs from the top stack", async () => {
-    const smilesAlternative = makeStack({
-      id: "smiles-card",
-      name: "Smiles Card",
-      netReturnBrl: 500,
-      pointsProgram: "smiles",
-    });
+  // Gated cashback stack — an investment minimum the test profile can't meet.
+  const gatedCashback = (
+    id: string,
+    name: string,
+    netReturnBrl: number,
+    minInvestmentBrl: number,
+  ): StackEvaluation => ({
+    ...makeStack({ id, name, netReturnBrl }),
+    cards: [
+      {
+        id,
+        name,
+        bank: "other",
+        pointsProgram: "cashback",
+        requiresRelationship: "open",
+        minInvestmentBrl,
+      },
+    ],
+  });
 
+  it("case 2 — names the best actionable preferred-currency card when it's below the recommendation", async () => {
     mockRecommendation({
       ...recommendationFixture,
-      alternatives: [smilesAlternative],
+      alternatives: [
+        makeStack({
+          id: "smiles-card",
+          name: "Smiles Card",
+          netReturnBrl: 500,
+          pointsProgram: "smiles",
+        }),
+      ],
     });
 
     renderResults({
@@ -697,7 +719,106 @@ describe("ResultsView", () => {
 
     expect(
       await screen.findByText(
-        /Você marcou milhas Smiles\. O recomendado é cashback: R\$ 756,00\/ano contra R\$ 500,00\/ano do melhor de milhas Smiles\./i,
+        /Você marcou milhas Smiles, mas o recomendado rende em cashback: o melhor cartão de milhas Smiles acionável \(Smiles Card\) renderia R\$\s?500,00\/ano — abaixo do recomendado/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("case 1 — no preferred-currency card among the alternatives at all", async () => {
+    mockRecommendation({ ...recommendationFixture, alternatives: [] });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "miles", program: "smiles" },
+    });
+
+    expect(
+      await screen.findByText(
+        /Você marcou milhas Smiles, mas o recomendado rende em cashback: nenhum cartão de milhas Smiles chega a R\$\s?1\.500,00\/ano do retorno dele/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("case 3 — names the gated higher-return options alongside the best actionable one", async () => {
+    mockRecommendation({
+      ...recommendationFixture,
+      topStack: makeStack({
+        id: "miles-top",
+        name: "Miles Top",
+        netReturnBrl: 2846,
+        pointsProgram: "smiles",
+      }),
+      alternatives: [
+        gatedCashback("gated-cb", "Gated Cashback", 4000, 50000),
+        makeStack({ id: "cheap-cb", name: "Cheap Cashback", netReturnBrl: 500 }),
+      ],
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 0,
+      availableToInvestBrl: 0,
+      redemption: { kind: "cashback" },
+    });
+
+    expect(
+      await screen.findByText(
+        /Você marcou cashback, mas o recomendado rende em milhas Smiles: o melhor cartão de cashback acionável \(Cheap Cashback\) renderia R\$\s?500,00\/ano; as opções acima disso \(Gated Cashback, R\$\s?4\.000,00\/ano\) exigem R\$\s?50\.000,00 investidos no emissor/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("case 4 — points to Outras escolhas when a reachable preferred-currency card matches or beats the recommendation", async () => {
+    mockRecommendation({
+      ...recommendationFixture,
+      topStack: makeStack({
+        id: "miles-top",
+        name: "Miles Top",
+        netReturnBrl: 2000,
+        pointsProgram: "smiles",
+      }),
+      alternatives: [makeStack({ id: "big-cb", name: "Big Cashback", netReturnBrl: 3000 })],
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 0,
+      redemption: { kind: "cashback" },
+    });
+
+    expect(
+      await screen.findByText(
+        /Você marcou cashback, mas o recomendado rende em milhas Smiles: o melhor cartão de cashback acionável \(Big Cashback, R\$\s?3\.000,00\/ano\) está nas Outras escolhas abaixo/i,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("case 5 — every preferred-currency card sits behind an investment gate", async () => {
+    mockRecommendation({
+      ...recommendationFixture,
+      topStack: makeStack({
+        id: "miles-top",
+        name: "Miles Top",
+        netReturnBrl: 2846,
+        pointsProgram: "smiles",
+      }),
+      alternatives: [
+        gatedCashback("gated-a", "Gated A", 4000, 50000),
+        gatedCashback("gated-b", "Gated B", 3000, 30000),
+      ],
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 0,
+      availableToInvestBrl: 0,
+      redemption: { kind: "cashback" },
+    });
+
+    expect(
+      await screen.findByText(
+        /Você marcou cashback, mas as melhores opções de cashback \(Gated A, R\$\s?4\.000,00\/ano\) exigem R\$\s?50\.000,00 investidos no emissor; o recomendado, em milhas Smiles, é o melhor retorno sem essa exigência/i,
       ),
     ).toBeInTheDocument();
   });
