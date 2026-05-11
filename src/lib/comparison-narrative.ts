@@ -87,7 +87,7 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
 const feeWaiverSubLines = (
   currentStack: StackEvaluation,
   topStack: StackEvaluation,
-): { current?: string; recommended?: string } => {
+): { current: string | undefined; recommended: string | undefined } => {
   // ── Recommended side: only when fee is 0
   let recommended: string | undefined;
   if (topStack.yearOneAnnualFeeBrl === 0) {
@@ -173,38 +173,38 @@ const rowTone = (
 // ─── dominant row ─────────────────────────────────────────────────────────────
 
 const computeDominantRowKey = (rows: ComparisonRow[]): ComparisonRowKey | null => {
-  const nonNet = rows.filter((r) => r.key !== "net");
-  if (nonNet.length === 0) return null;
-  let best = nonNet[0];
-  let bestDiff = Math.abs(best.recommendedValueBrl - best.currentValueBrl);
-  for (let i = 1; i < nonNet.length; i++) {
-    const d = Math.abs(nonNet[i].recommendedValueBrl - nonNet[i].currentValueBrl);
-    if (d > bestDiff) {
-      best = nonNet[i];
+  let best: ComparisonRow | undefined;
+  let bestDiff = 0;
+  for (const row of rows) {
+    if (row.key === "net") continue;
+    const d = Math.abs(row.recommendedValueBrl - row.currentValueBrl);
+    if (best === undefined || d > bestDiff) {
+      best = row;
       bestDiff = d;
     }
   }
-  if (bestDiff < 0.01) return null;
+  if (best === undefined || bestDiff < 0.01) return null;
   return best.key;
 };
 
 // ─── diagnosis sentences ──────────────────────────────────────────────────────
 
+// Returns the "em + artigo" contracted form so it slots into "A diferença maior está ___:".
 const dominantFrase = (key: ComparisonRowKey): string => {
   switch (key) {
     case "cashback":
-      return "o cashback";
+      return "no cashback";
     case "points":
-      return "os pontos";
+      return "nos pontos";
     case "travel-benefit":
-      return "os benefícios de viagem";
+      return "nos benefícios de viagem";
     case "annual-fee":
-      return "a anuidade";
+      return "na anuidade";
     case "fx-iof":
-      return "o custo de câmbio";
+      return "no custo de câmbio";
     // "net" is filtered out before dominantFrase is called; case exists for exhaustiveness.
     case "net":
-      return "o líquido";
+      return "no líquido";
   }
 };
 
@@ -217,7 +217,7 @@ const rawForProse = (key: ComparisonRowKey, valueBrl: number): number => {
 const sentence1 = (key: ComparisonRowKey, currentRow: ComparisonRow): string => {
   const currentRaw = rawForProse(key, currentRow.currentValueBrl);
   const recommendedRaw = rawForProse(key, currentRow.recommendedValueBrl);
-  return `A diferença maior está em ${dominantFrase(key)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
+  return `A diferença maior está ${dominantFrase(key)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
 };
 
 const sentence2VariantA = (currentStack: StackEvaluation, topStack: StackEvaluation): string => {
@@ -377,14 +377,17 @@ export const buildComparisonNarrative = (
     dominantRowKey: domKey,
     monthlySpendBrl: topStack.allocation[0]?.monthlyDomesticBrl ?? 0,
     monthlyInternationalUsd: topStack.allocation[0]?.monthlyInternationalUsd ?? 0,
-    currentVerdict:
-      currentVerdictRaw !== undefined
-        ? { kind: currentVerdictRaw.kind, label: currentVerdictRaw.label }
-        : undefined,
-    recommendedVerdict:
-      recommendedVerdictRaw !== undefined
-        ? { kind: recommendedVerdictRaw.kind, label: recommendedVerdictRaw.label }
-        : undefined,
+    ...(currentVerdictRaw !== undefined
+      ? { currentVerdict: { kind: currentVerdictRaw.kind, label: currentVerdictRaw.label } }
+      : {}),
+    ...(recommendedVerdictRaw !== undefined
+      ? {
+          recommendedVerdict: {
+            kind: recommendedVerdictRaw.kind,
+            label: recommendedVerdictRaw.label,
+          },
+        }
+      : {}),
     currentBreakEvenMonthlySpendBrl: currentStack.scoreLab?.breakEvenMonthlySpendBrl ?? null,
     currentRoiMultiple: currentStack.scoreLab?.roiMultiple ?? null,
   };

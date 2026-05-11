@@ -296,11 +296,9 @@ describe("ResultsView", () => {
     expect(screen.queryByText(/Você está deixando na mesa/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
 
+    expect(screen.getByText(/Seu cartão atual rende R\$\s?500,00\/ano/)).toBeInTheDocument();
     expect(
-      screen.getByText(/Seu cartão atual rende R\$\s?500,00 líquido\/ano/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/O recomendado renderia R\$\s?756,00 líquido\/ano com seu mesmo gasto/),
+      screen.getByText(/O recomendado renderia R\$\s?756,00\/ano com o mesmo gasto/),
     ).toBeInTheDocument();
     expect(screen.getByText("HOJE")).toBeInTheDocument();
     expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
@@ -343,8 +341,11 @@ describe("ResultsView", () => {
 
     expect(
       screen.getByText(
-        /No seu gasto, seu cartão atual cobra R\$\s?1\.068,00 de anuidade e fica negativo em R\$\s?318,00\/ano/,
+        /A diferença maior está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado/,
       ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Seu cartão atual fica negativo em R\$\s?318,00\/ano/),
     ).toBeInTheDocument();
 
     expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
