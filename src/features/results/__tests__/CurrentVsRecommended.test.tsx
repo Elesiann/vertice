@@ -271,7 +271,22 @@ describe("CurrentVsRecommended", () => {
   });
 
   describe("annual-fee detail (progressive disclosure)", () => {
-    it("hides the fee detail until the row is expanded", async () => {
+    // The expanded annual-fee row renders a full-width labelled panel — not cells in the value columns.
+    const feePanel = (): HTMLElement => {
+      const el = document.querySelector<HTMLElement>('[aria-label="Detalhe da anuidade"]');
+      if (el === null) throw new Error("annual-fee detail panel not rendered");
+      return el;
+    };
+    const storyFor = (eyebrow: string): HTMLElement => {
+      const div = within(feePanel()).getByText(eyebrow).closest("div");
+      if (div === null) throw new Error(`fee story for ${eyebrow} not found`);
+      return div;
+    };
+    const expandAnuidade = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+    };
+
+    it("hides the fee detail panel until the row is expanded", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
@@ -282,13 +297,12 @@ describe("CurrentVsRecommended", () => {
       );
       const toggle = screen.getByRole("button", { name: "Anuidade" });
       expect(toggle).toHaveAttribute("aria-expanded", "false");
-      expect(screen.queryByText("Condições")).not.toBeInTheDocument();
-      expect(screen.queryByText(/Cobrada ·/)).not.toBeInTheDocument();
+      expect(document.querySelector('[aria-label="Detalhe da anuidade"]')).toBeNull();
 
       await user.click(toggle);
 
       expect(toggle).toHaveAttribute("aria-expanded", "true");
-      expect(screen.getByText("Condições")).toBeInTheDocument();
+      expect(feePanel()).toBeInTheDocument();
     });
 
     it("shows a status headline per card with the waiver condition below it", async () => {
@@ -300,45 +314,44 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      await expandAnuidade(user);
 
+      const current = storyFor("SEU CARTÃO");
       // current card charges its fee — headline + the two escape routes + the spend shortfall
-      expect(within(feeRow).getByText(/Cobrada · R\$\s?1\.068,00\/ano/)).toBeInTheDocument();
+      expect(within(current).getByText(/Cobrada · R\$\s?1\.068,00\/ano/)).toBeInTheDocument();
       expect(
-        within(feeRow).getByText(
+        within(current).getByText(
           /isenta com R\$\s?50\.000,00 investidos no banco ou R\$\s?8\.000,00\/mês em gastos/,
         ),
       ).toBeInTheDocument();
-      expect(within(feeRow).getByText(/você gasta R\$\s?5\.000,00\/mês/)).toBeInTheDocument();
+      expect(within(current).getByText(/você gasta R\$\s?5\.000,00\/mês/)).toBeInTheDocument();
 
+      const recommended = storyFor("RECOMENDADO");
       // recommended card is waived — "Isenta" headline, conditions without the "isenta com" hypothetical
-      expect(within(feeRow).getByText("Isenta")).toBeInTheDocument();
+      expect(within(recommended).getByText("Isenta")).toBeInTheDocument();
       expect(
-        within(feeRow).getByText(
+        within(recommended).getByText(
           /com R\$\s?5\.000,00\/mês em gastos ou R\$\s?50\.000,00 investidos no banco/,
         ),
       ).toBeInTheDocument();
+      expect(within(recommended).queryByText(/você gasta/)).toBeNull();
     });
 
-    it("renders each card's detail in its own value column under 'Condições'", async () => {
+    it("labels each side with an eyebrow, not the card names", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
           narrative={variantANarrative}
-          currentLabel="A"
-          recommendedLabel="B"
+          currentLabel="Nubank Ultravioleta"
+          recommendedLabel="PicPay Card Black"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      const cells = feeRow.querySelectorAll("td");
-      expect(cells).toHaveLength(2);
-      expect(cells[0]).toHaveTextContent(/Cobrada · R\$\s?1\.068,00\/ano/);
-      expect(cells[1]).toHaveTextContent("Isenta");
-      // the recommended (waived) cell carries no spend-shortfall or break-even noise
-      expect(cells[1]).not.toHaveTextContent(/você gasta/);
-      expect(cells[1]).not.toHaveTextContent(/paga-se com/);
+      await expandAnuidade(user);
+      const panel = feePanel();
+      expect(within(panel).getByText("SEU CARTÃO")).toBeInTheDocument();
+      expect(within(panel).getByText("RECOMENDADO")).toBeInTheDocument();
+      expect(within(panel).queryByText("Nubank Ultravioleta")).toBeNull();
+      expect(within(panel).queryByText("PicPay Card Black")).toBeNull();
     });
 
     it("shows the break-even/ROI line under the charged card when both values are set", async () => {
@@ -350,13 +363,13 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      const cells = feeRow.querySelectorAll("td");
-      expect(cells[0]).toHaveTextContent(
-        /paga-se com R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x/,
-      );
-      expect(cells[1]).not.toHaveTextContent(/paga-se com/);
+      await expandAnuidade(user);
+      expect(
+        within(storyFor("SEU CARTÃO")).getByText(
+          /paga-se com R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x/,
+        ),
+      ).toBeInTheDocument();
+      expect(within(storyFor("RECOMENDADO")).queryByText(/paga-se com/)).toBeNull();
     });
 
     it("shows the break-even line alone when only the break-even spend is set", async () => {
@@ -368,12 +381,12 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      await expandAnuidade(user);
+      const current = storyFor("SEU CARTÃO");
       expect(
-        within(feeRow).getByText(/paga-se com R\$\s?7\.120,00\/mês em gastos/),
+        within(current).getByText(/paga-se com R\$\s?7\.120,00\/mês em gastos/),
       ).toBeInTheDocument();
-      expect(within(feeRow).queryByText(/cada R\$ 1/)).toBeNull();
+      expect(within(current).queryByText(/cada R\$ 1/)).toBeNull();
     });
 
     it("shows the ROI line alone when only the ROI multiple is set", async () => {
@@ -385,10 +398,10 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      expect(within(feeRow).getByText(/cada R\$ 1 de anuidade retorna 3,59x/)).toBeInTheDocument();
-      expect(within(feeRow).queryByText(/paga-se com/)).toBeNull();
+      await expandAnuidade(user);
+      const current = storyFor("SEU CARTÃO");
+      expect(within(current).getByText(/cada R\$ 1 de anuidade retorna 3,59x/)).toBeInTheDocument();
+      expect(within(current).queryByText(/paga-se com/)).toBeNull();
     });
 
     it("omits the break-even/ROI line when neither value is set, keeping the conditions", async () => {
@@ -400,11 +413,11 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      expect(within(feeRow).queryByText(/paga-se com/)).toBeNull();
-      expect(within(feeRow).queryByText(/cada R\$ 1/)).toBeNull();
-      expect(within(feeRow).getByText(/Cobrada · R\$\s?1\.068,00\/ano/)).toBeInTheDocument();
+      await expandAnuidade(user);
+      const current = storyFor("SEU CARTÃO");
+      expect(within(current).queryByText(/paga-se com/)).toBeNull();
+      expect(within(current).queryByText(/cada R\$ 1/)).toBeNull();
+      expect(within(current).getByText(/Cobrada · R\$\s?1\.068,00\/ano/)).toBeInTheDocument();
     });
 
     it("never shows the break-even/ROI line under a card that does not charge a fee", async () => {
@@ -434,33 +447,9 @@ describe("CurrentVsRecommended", () => {
       render(
         <CurrentVsRecommended narrative={noFeeCurrent} currentLabel="A" recommendedLabel="B" />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      expect(within(feeRow).getByText("Sem anuidade")).toBeInTheDocument();
-      expect(within(feeRow).queryByText(/paga-se com/)).toBeNull();
-    });
-
-    it("uses 'Condições' as the sub-row label, never the card names", async () => {
-      const user = userEvent.setup();
-      render(
-        <CurrentVsRecommended
-          narrative={variantANarrative}
-          currentLabel="Nubank Ultravioleta"
-          recommendedLabel="PicPay Card Black"
-        />,
-      );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      expect(screen.getByText("Condições")).toBeInTheDocument();
-      const rows = document.querySelectorAll("tr");
-      let foundNubank = false;
-      let foundPicPay = false;
-      for (const row of rows) {
-        const th = row.querySelector("th");
-        if (th?.textContent === "Nubank Ultravioleta") foundNubank = true;
-        if (th?.textContent === "PicPay Card Black") foundPicPay = true;
-      }
-      expect(foundNubank).toBe(false);
-      expect(foundPicPay).toBe(false);
+      await expandAnuidade(user);
+      expect(within(storyFor("SEU CARTÃO")).getByText("Sem anuidade")).toBeInTheDocument();
+      expect(within(feePanel()).queryByText(/paga-se com/)).toBeNull();
     });
 
     it("renders real content (not a bare em-dash) when the recommended card charges a fee", async () => {
@@ -489,12 +478,13 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      const cells = feeRow.querySelectorAll("td");
-      expect(cells[1]).toHaveTextContent(/Cobrada · R\$\s?1\.680,00\/ano/);
-      expect(cells[1]).toHaveTextContent(/isenta com R\$\s?50\.000,00 investidos no banco/);
-      expect(cells[1]?.textContent).not.toBe("—");
+      await expandAnuidade(user);
+      const recommended = storyFor("RECOMENDADO");
+      expect(within(recommended).getByText(/Cobrada · R\$\s?1\.680,00\/ano/)).toBeInTheDocument();
+      expect(
+        within(recommended).getByText(/isenta com R\$\s?50\.000,00 investidos no banco/),
+      ).toBeInTheDocument();
+      expect(recommended.textContent).not.toBe("—");
     });
   });
 

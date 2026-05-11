@@ -179,38 +179,40 @@ const ValueCell = ({
 
 // ─── detail sub-rows ──────────────────────────────────────────────────────────
 
-// Per-card cell of the annual-fee detail: a status headline, then the waiver condition(s),
-// then — current card only, when it actually charges a fee — the break-even/ROI line under a hairline.
-const FeeDetailCell = ({
+// Per-card "fee story" inside the expanded annual-fee panel: an eyebrow, a status headline,
+// the waiver condition(s), an optional spend-shortfall note, and — current card only, when it
+// actually charges a fee — the break-even/ROI line under a hairline.
+const FeeStory = ({
+  eyebrow,
   detail,
   roiLine,
 }: {
+  eyebrow: string;
   detail: FeeDetail | undefined;
   roiLine: string | null;
 }): JSX.Element => {
-  if (detail === undefined) {
-    return (
-      <td className="text-ink-subtle py-2 pl-6 text-left align-top text-xs leading-snug">—</td>
-    );
-  }
-  const routesText = feeRoutesText(detail);
-  const shortfallText = feeShortfallText(detail);
-  const showRoi = roiLine !== null && detail.status === "charged";
+  const routesText = detail !== undefined ? feeRoutesText(detail) : null;
+  const shortfallText = detail !== undefined ? feeShortfallText(detail) : null;
+  const showRoi = roiLine !== null && detail?.status === "charged";
   return (
-    <td className="text-ink-muted py-2 pl-6 text-left align-top text-xs leading-snug">
-      <span className="text-ink block font-medium">{feeStatusText(detail)}</span>
-      {routesText !== null ? <span className="mt-0.5 block">{routesText}</span> : null}
+    <div className="text-ink-muted text-xs leading-snug">
+      <span className="text-caption text-ink-subtle block">{eyebrow}</span>
+      <span className="text-ink mt-1.5 block text-sm font-medium">
+        {detail !== undefined ? feeStatusText(detail) : "—"}
+      </span>
+      {routesText !== null ? <span className="mt-1 block">{routesText}</span> : null}
       {shortfallText !== null ? (
-        <span className="text-ink-subtle mt-0.5 block">{shortfallText}</span>
+        <span className="text-ink-subtle mt-1 block">{shortfallText}</span>
       ) : null}
       {showRoi ? (
-        <span className="border-line text-ink-subtle mt-2 block border-t pt-2">{roiLine}</span>
+        <span className="border-line text-ink-subtle mt-2.5 block border-t pt-2.5">{roiLine}</span>
       ) : null}
-    </td>
+    </div>
   );
 };
 
-// One sub-row: "Condições" label, then each card's fee detail in its own value column.
+// The expanded annual-fee detail is a full-width panel — not prose crammed into the narrow value
+// columns — with the two cards' fee stories side by side.
 const AnnualFeeDetailRow = ({
   row,
   roiLine,
@@ -219,14 +221,16 @@ const AnnualFeeDetailRow = ({
   roiLine: string | null;
 }): JSX.Element => (
   <tr className="border-t-0">
-    <th
-      scope="row"
-      className="text-ink-subtle py-2 pr-6 pl-4 text-left align-top text-xs font-normal"
+    <td
+      colSpan={3}
+      aria-label="Detalhe da anuidade"
+      className="bg-surface-sunken px-4 py-5 md:px-6"
     >
-      Condições
-    </th>
-    <FeeDetailCell detail={row.currentFeeDetail} roiLine={roiLine} />
-    <FeeDetailCell detail={row.recommendedFeeDetail} roiLine={null} />
+      <div className="grid gap-x-12 gap-y-5 sm:grid-cols-2">
+        <FeeStory eyebrow="SEU CARTÃO" detail={row.currentFeeDetail} roiLine={roiLine} />
+        <FeeStory eyebrow="RECOMENDADO" detail={row.recommendedFeeDetail} roiLine={null} />
+      </div>
+    </td>
   </tr>
 );
 
