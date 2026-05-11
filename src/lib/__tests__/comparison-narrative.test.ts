@@ -594,96 +594,24 @@ describe("buildComparisonNarrative", () => {
     });
   });
 
-  describe("fee waiver sub-lines", () => {
-    it("recommended sub-label: spend waiver satisfied + investment alternative", () => {
+  describe("fee detail", () => {
+    it("waived: satisfied spend route + investment alternative", () => {
       const out = buildComparisonNarrative(liveCurrentStack, liveTopStack);
       const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      // Should not appear because top has fee = 0 but current has fee = 1068, so row exists
+      // Row exists because current has fee = 1068 (top's fee is 0 but waived).
       expect(feeRow).toBeDefined();
-      expect(feeRow?.recommendedSubLabel).toMatch(/isenta/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/R\$\s?5\.000,00/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/alternativa/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/R\$\s?50\.000,00/);
-    });
-
-    it("recommended sub-label: cobrada when top has fee > 0 and no waiver routes", () => {
-      const top = makeStack({ annualFeeBrl: 300, netReturnBrl: 300, requirements: [] });
-      const out = buildComparisonNarrative(liveCurrentStack, top);
-      const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.recommendedSubLabel).toBe("cobrada");
-    });
-
-    it("recommended sub-label: cobrada — isentaria when top has fee > 0 and waiver routes", () => {
-      const top = makeStack({
-        annualFeeBrl: 1680,
-        netReturnBrl: 500,
-        requirements: [
-          {
-            cardId: "brb-dux",
-            kind: "investment-fee-waiver",
-            label: "Isenção por investimento",
-            required: 50000,
-            available: 0,
-            gap: 50000,
-            unit: "BRL",
-            satisfied: false,
-            fit: 0,
-          },
+      // liveTopStack: applied waiver req = spend R$ 5.000/mês; requirements also offer invest R$ 50.000.
+      expect(feeRow?.recommendedFeeDetail).toEqual({
+        status: "waived",
+        annualBrl: 0,
+        routes: [
+          { kind: "spend", amountBrl: 5000 },
+          { kind: "invest", amountBrl: 50000 },
         ],
       });
-      const out = buildComparisonNarrative(liveCurrentStack, top);
-      const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.recommendedSubLabel).toMatch(/cobrada/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/isentaria/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/R\$\s?50\.000,00/);
     });
 
-    it("recommended sub-label: sem anuidade fallback when fee=0 and no benefitsApplied waiver", () => {
-      const top = makeStack({
-        annualFeeBrl: 0,
-        netReturnBrl: 720,
-        grossValueBrl: 720,
-        // no benefitsApplied waiver
-        benefitsApplied: [],
-      });
-      const out = buildComparisonNarrative(liveCurrentStack, top);
-      const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.recommendedSubLabel).toBe("sem anuidade");
-    });
-
-    it("current sub-label: cobrada with both investment and spend routes + partial spend note", () => {
-      const out = buildComparisonNarrative(liveCurrentStack, liveTopStack);
-      const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.currentSubLabel).toMatch(/cobrada/);
-      expect(feeRow?.currentSubLabel).toMatch(/R\$\s?50\.000,00/);
-      expect(feeRow?.currentSubLabel).toMatch(/R\$\s?8\.000,00/);
-      // partial spend: available=5000, required=8000 → "você gasta R$ 5.000,00/mês"
-      expect(feeRow?.currentSubLabel).toMatch(/você gasta/);
-      expect(feeRow?.currentSubLabel).toMatch(/R\$\s?5\.000,00\/mês/);
-    });
-
-    it("current sub-label: cobrada only when no routes exist", () => {
-      const current = makeStack({
-        annualFeeBrl: 500,
-        netReturnBrl: -500,
-        requirements: [],
-        benefitsNotApplied: [],
-      });
-      const top = makeStack({ netReturnBrl: 200 });
-      const out = buildComparisonNarrative(current, top);
-      const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.currentSubLabel).toBe("cobrada");
-    });
-
-    it("current sub-label: sem anuidade when current has no fee and no waiver entry", () => {
-      const current = makeStack({ annualFeeBrl: 0, netReturnBrl: 500, benefitsApplied: [] });
-      const top = makeStack({ annualFeeBrl: 300, netReturnBrl: 300 });
-      const out = buildComparisonNarrative(current, top);
-      const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.currentSubLabel).toBe("sem anuidade");
-    });
-
-    it("investment-fee-waiver only route on recommended side", () => {
+    it("waived: investment-only route, no spend alternative", () => {
       const top = makeStack({
         annualFeeBrl: 0,
         netReturnBrl: 720,
@@ -723,9 +651,82 @@ describe("buildComparisonNarrative", () => {
       });
       const out = buildComparisonNarrative(liveCurrentStack, top);
       const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.recommendedSubLabel).toMatch(/isenta/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/R\$\s?50\.000,00/);
-      expect(feeRow?.recommendedSubLabel).toMatch(/no emissor/);
+      expect(feeRow?.recommendedFeeDetail).toEqual({
+        status: "waived",
+        annualBrl: 0,
+        routes: [{ kind: "invest", amountBrl: 50000 }],
+      });
+    });
+
+    it("no-fee: fee 0 with no benefitsApplied waiver entry", () => {
+      const top = makeStack({
+        annualFeeBrl: 0,
+        netReturnBrl: 720,
+        grossValueBrl: 720,
+        benefitsApplied: [],
+      });
+      const out = buildComparisonNarrative(liveCurrentStack, top);
+      const feeRow = out.rows.find((r) => r.key === "annual-fee");
+      expect(feeRow?.recommendedFeeDetail).toEqual({ status: "no-fee", annualBrl: 0, routes: [] });
+    });
+
+    it("charged: both escape routes + spend shortfall", () => {
+      const out = buildComparisonNarrative(liveCurrentStack, liveTopStack);
+      const feeRow = out.rows.find((r) => r.key === "annual-fee");
+      // liveCurrentStack: fee 1068; requirements = [invest 50.000 (avail 0), spend 8.000/mês (avail 5.000)].
+      expect(feeRow?.currentFeeDetail).toEqual({
+        status: "charged",
+        annualBrl: 1068,
+        routes: [
+          { kind: "invest", amountBrl: 50000 },
+          { kind: "spend", amountBrl: 8000 },
+        ],
+        spendShortfallAvailableBrl: 5000,
+      });
+    });
+
+    it("charged: no escape routes", () => {
+      const current = makeStack({ annualFeeBrl: 500, netReturnBrl: -500, requirements: [] });
+      const top = makeStack({ netReturnBrl: 200 });
+      const out = buildComparisonNarrative(current, top);
+      const feeRow = out.rows.find((r) => r.key === "annual-fee");
+      expect(feeRow?.currentFeeDetail).toEqual({ status: "charged", annualBrl: 500, routes: [] });
+    });
+
+    it("charged: spend route fully met → no shortfall field", () => {
+      const current = makeStack({
+        annualFeeBrl: 600,
+        netReturnBrl: -600,
+        requirements: [
+          {
+            cardId: "x",
+            kind: "spend-fee-waiver",
+            label: "Isenção de anuidade com gasto",
+            required: 4000,
+            available: 6000,
+            gap: 0,
+            unit: "BRL/month",
+            satisfied: true,
+            fit: 1,
+          },
+        ],
+      });
+      const top = makeStack({ netReturnBrl: 200 });
+      const out = buildComparisonNarrative(current, top);
+      const feeRow = out.rows.find((r) => r.key === "annual-fee");
+      expect(feeRow?.currentFeeDetail).toEqual({
+        status: "charged",
+        annualBrl: 600,
+        routes: [{ kind: "spend", amountBrl: 4000 }],
+      });
+    });
+
+    it("no-fee: current card with no fee and no waiver entry", () => {
+      const current = makeStack({ annualFeeBrl: 0, netReturnBrl: 500, benefitsApplied: [] });
+      const top = makeStack({ annualFeeBrl: 300, netReturnBrl: 300 });
+      const out = buildComparisonNarrative(current, top);
+      const feeRow = out.rows.find((r) => r.key === "annual-fee");
+      expect(feeRow?.currentFeeDetail).toEqual({ status: "no-fee", annualBrl: 0, routes: [] });
     });
   });
 

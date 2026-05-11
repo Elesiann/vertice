@@ -24,13 +24,31 @@ export interface BenefitBreakdownPart {
   totalBrl: number;
 }
 
+export type FeeStatus = "no-fee" | "waived" | "charged";
+
+export interface FeeWaiverRoute {
+  /** "spend" = monthly spend at the issuer; "invest" = lump sum invested at the issuer. */
+  kind: "spend" | "invest";
+  amountBrl: number;
+}
+
+export interface FeeDetail {
+  status: FeeStatus;
+  /** Annual fee actually charged this year — > 0 only when status is "charged"; 0 otherwise. */
+  annualBrl: number;
+  /** For "waived" these are the satisfied condition(s); for "charged" the escape routes. Empty when none apply. */
+  routes: FeeWaiverRoute[];
+  /** When a spend escape route exists but the user falls short (0 < available < required): their current monthly spend. */
+  spendShortfallAvailableBrl?: number;
+}
+
 export interface ComparisonRow {
   key: ComparisonRowKey;
   label: string;
   currentValueBrl: number;
   recommendedValueBrl: number;
-  currentSubLabel?: string;
-  recommendedSubLabel?: string;
+  currentFeeDetail?: FeeDetail;
+  recommendedFeeDetail?: FeeDetail;
   currentBreakdown?: BenefitBreakdownPart[];
   recommendedBreakdown?: BenefitBreakdownPart[];
   tone?: "current-better" | "recommended-better" | "tie";
@@ -104,62 +122,55 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
   return parts;
 };
 
-// ─── fee waiver sub-lines ─────────────────────────────────────────────────────
-// Symmetric helper: returns a descriptive string for ANY stack regardless of whether its fee
-// is 0 (waived/no-fee) or > 0 (charged). Generic — no hardcoded card names.
+// ─── fee detail ───────────────────────────────────────────────────────────────
+// Structured data (not a baked string): the component decides how to render it.
+// Symmetric — every stack gets a FeeDetail, regardless of whether its fee is 0 or > 0.
 
-const feeSubLine = (stack: StackEvaluation): string => {
-  if (stack.yearOneAnnualFeeBrl === 0) {
-    // Fee is zero — either genuinely waived or a no-fee card.
+const routeFromRequirement = (req: ScoreLabRequirement): FeeWaiverRoute | null => {
+  if (req.kind === "spend-fee-waiver") return { kind: "spend", amountBrl: req.required };
+  if (req.kind === "investment-fee-waiver") return { kind: "invest", amountBrl: req.required };
+  return null;
+};
+
+const feeDetail = (stack: StackEvaluation): FeeDetail => {
+  const fee = stack.yearOneAnnualFeeBrl;
+
+  if (fee === 0) {
+    // Fee is zero — either genuinely waived (a fee exists, the profile clears it) or a no-fee card.
     const waiver = stack.scoreLab?.benefitsApplied.find(
       (b) => b.kind === "annual-fee-waiver" && b.valueBrl > 0,
     );
-    if (waiver !== undefined) {
-      const req = waiver.requirement;
-      if (req?.kind === "spend-fee-waiver") {
-        let base = `isenta: gasto de ${formatBrl(req.required)}/mês satisfaz`;
-        const altInvest = stack.scoreLab?.requirements.find(
-          (r: ScoreLabRequirement) => r.kind === "investment-fee-waiver",
-        );
-        if (altInvest !== undefined) {
-          base += ` (alternativa: ${formatBrl(altInvest.required)} investidos)`;
-        }
-        return base;
-      } else if (req?.kind === "investment-fee-waiver") {
-        let base = `isenta: ${formatBrl(req.required)} investidos no emissor satisfazem`;
-        const altSpend = stack.scoreLab?.requirements.find(
-          (r: ScoreLabRequirement) => r.kind === "spend-fee-waiver",
-        );
-        if (altSpend !== undefined) {
-          base += ` (ou ${formatBrl(altSpend.required)}/mês em gastos)`;
-        }
-        return base;
-      }
-      return "sem anuidade";
+    if (waiver?.requirement === undefined) {
+      return { status: "no-fee", annualBrl: 0, routes: [] };
     }
-    return "sem anuidade";
+    const routes: FeeWaiverRoute[] = [];
+    const primary = routeFromRequirement(waiver.requirement);
+    if (primary !== null) routes.push(primary);
+    // The alternative route (the other kind, when offered) lives in `requirements`.
+    const otherKind =
+      waiver.requirement.kind === "spend-fee-waiver" ? "investment-fee-waiver" : "spend-fee-waiver";
+    const alt = (stack.scoreLab?.requirements ?? []).find((r) => r.kind === otherKind);
+    const altRoute = alt !== undefined ? routeFromRequirement(alt) : null;
+    if (altRoute !== null) routes.push(altRoute);
+    return { status: "waived", annualBrl: 0, routes };
   }
 
-  // Fee is > 0 — charged; show waiver routes if known.
-  const reqs: ScoreLabRequirement[] = stack.scoreLab?.requirements ?? [];
+  // Fee is > 0 — charged. Surface escape routes (if any) and whether the user falls short on spend.
+  const reqs = stack.scoreLab?.requirements ?? [];
   const investReq = reqs.find((r) => r.kind === "investment-fee-waiver");
   const spendReq = reqs.find((r) => r.kind === "spend-fee-waiver");
+  const routes: FeeWaiverRoute[] = [];
+  if (investReq !== undefined) routes.push({ kind: "invest", amountBrl: investReq.required });
+  if (spendReq !== undefined) routes.push({ kind: "spend", amountBrl: spendReq.required });
 
-  const routes: string[] = [];
-  if (investReq !== undefined) {
-    routes.push(`${formatBrl(investReq.required)} investidos`);
-  }
-  if (spendReq !== undefined) {
-    routes.push(`${formatBrl(spendReq.required)}/mês`);
-  }
-
-  if (routes.length === 0) return "cobrada";
-
-  let line = `cobrada — isentaria com ${routes.join(" ou ")}`;
-  if (spendReq !== undefined && spendReq.available > 0 && spendReq.available < spendReq.required) {
-    line += `; você gasta ${formatBrl(spendReq.available)}/mês`;
-  }
-  return line;
+  return {
+    status: "charged",
+    annualBrl: fee,
+    routes,
+    ...(spendReq !== undefined && spendReq.available > 0 && spendReq.available < spendReq.required
+      ? { spendShortfallAvailableBrl: spendReq.available }
+      : {}),
+  };
 };
 
 // ─── row tone ─────────────────────────────────────────────────────────────────
@@ -320,8 +331,8 @@ const buildRows = (currentStack: StackEvaluation, topStack: StackEvaluation): Co
       label: "Anuidade",
       currentValueBrl,
       recommendedValueBrl,
-      currentSubLabel: feeSubLine(currentStack),
-      recommendedSubLabel: feeSubLine(topStack),
+      currentFeeDetail: feeDetail(currentStack),
+      recommendedFeeDetail: feeDetail(topStack),
       tone: rowTone(currentValueBrl, recommendedValueBrl),
     });
   }

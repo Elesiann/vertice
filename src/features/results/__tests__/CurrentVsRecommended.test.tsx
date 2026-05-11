@@ -24,10 +24,23 @@ const variantANarrative: ComparisonNarrative = {
       label: "Anuidade",
       currentValueBrl: -1068,
       recommendedValueBrl: 0,
-      currentSubLabel:
-        "cobrada; isentaria com R$ 50.000,00 investidos ou R$ 8.000,00/mês — você gasta R$ 5.000,00/mês",
-      recommendedSubLabel:
-        "isenta: gasto de R$ 5.000,00/mês satisfaz (alternativa: R$ 50.000,00 investidos)",
+      currentFeeDetail: {
+        status: "charged",
+        annualBrl: 1068,
+        routes: [
+          { kind: "invest", amountBrl: 50000 },
+          { kind: "spend", amountBrl: 8000 },
+        ],
+        spendShortfallAvailableBrl: 5000,
+      },
+      recommendedFeeDetail: {
+        status: "waived",
+        annualBrl: 0,
+        routes: [
+          { kind: "spend", amountBrl: 5000 },
+          { kind: "invest", amountBrl: 50000 },
+        ],
+      },
       tone: "recommended-better",
     },
     { key: "net", label: "Líquido anual", currentValueBrl: -318, recommendedValueBrl: 720 },
@@ -258,7 +271,7 @@ describe("CurrentVsRecommended", () => {
   });
 
   describe("annual-fee detail (progressive disclosure)", () => {
-    it("hides the waiver/break-even detail until the row is expanded", async () => {
+    it("hides the fee detail until the row is expanded", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
@@ -269,25 +282,16 @@ describe("CurrentVsRecommended", () => {
       );
       const toggle = screen.getByRole("button", { name: "Anuidade" });
       expect(toggle).toHaveAttribute("aria-expanded", "false");
-      expect(screen.queryByText(/cobrada; isentaria com/)).not.toBeInTheDocument();
+      expect(screen.queryByText("Condições")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Cobrada ·/)).not.toBeInTheDocument();
 
       await user.click(toggle);
 
       expect(toggle).toHaveAttribute("aria-expanded", "true");
-      expect(
-        screen.getByText(
-          /cobrada; isentaria com R\$\s?50\.000,00 investidos ou R\$\s?8\.000,00\/mês/,
-          { selector: "p" },
-        ),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(/isenta: gasto de R\$\s?5\.000,00\/mês satisfaz \(alternativa:/, {
-          selector: "p",
-        }),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Condições")).toBeInTheDocument();
     });
 
-    it("shows the break-even and ROI line when both are set", async () => {
+    it("shows a status headline per card with the waiver condition below it", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
@@ -297,12 +301,62 @@ describe("CurrentVsRecommended", () => {
         />,
       );
       await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+
+      // current card charges its fee — headline + the two escape routes + the spend shortfall
+      expect(within(feeRow).getByText(/Cobrada · R\$\s?1\.068,00\/ano/)).toBeInTheDocument();
       expect(
-        screen.getByText(
-          /a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x/,
-          { selector: "p" },
+        within(feeRow).getByText(
+          /isenta com R\$\s?50\.000,00 investidos no banco ou R\$\s?8\.000,00\/mês em gastos/,
         ),
       ).toBeInTheDocument();
+      expect(within(feeRow).getByText(/você gasta R\$\s?5\.000,00\/mês/)).toBeInTheDocument();
+
+      // recommended card is waived — "Isenta" headline, conditions without the "isenta com" hypothetical
+      expect(within(feeRow).getByText("Isenta")).toBeInTheDocument();
+      expect(
+        within(feeRow).getByText(
+          /com R\$\s?5\.000,00\/mês em gastos ou R\$\s?50\.000,00 investidos no banco/,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("renders each card's detail in its own value column under 'Condições'", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      const cells = feeRow.querySelectorAll("td");
+      expect(cells).toHaveLength(2);
+      expect(cells[0]).toHaveTextContent(/Cobrada · R\$\s?1\.068,00\/ano/);
+      expect(cells[1]).toHaveTextContent("Isenta");
+      // the recommended (waived) cell carries no spend-shortfall or break-even noise
+      expect(cells[1]).not.toHaveTextContent(/você gasta/);
+      expect(cells[1]).not.toHaveTextContent(/paga-se com/);
+    });
+
+    it("shows the break-even/ROI line under the charged card when both values are set", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      const cells = feeRow.querySelectorAll("td");
+      expect(cells[0]).toHaveTextContent(
+        /paga-se com R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x/,
+      );
+      expect(cells[1]).not.toHaveTextContent(/paga-se com/);
     });
 
     it("shows the break-even line alone when only the break-even spend is set", async () => {
@@ -315,12 +369,11 @@ describe("CurrentVsRecommended", () => {
         />,
       );
       await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
       expect(
-        screen.getByText(/a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos/, {
-          selector: "p",
-        }),
+        within(feeRow).getByText(/paga-se com R\$\s?7\.120,00\/mês em gastos/),
       ).toBeInTheDocument();
-      expect(screen.queryByText(/cada R\$ 1/, { selector: "p" })).toBeNull();
+      expect(within(feeRow).queryByText(/cada R\$ 1/)).toBeNull();
     });
 
     it("shows the ROI line alone when only the ROI multiple is set", async () => {
@@ -333,13 +386,12 @@ describe("CurrentVsRecommended", () => {
         />,
       );
       await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      expect(
-        screen.getByText(/cada R\$ 1 de anuidade retorna 3,59x/, { selector: "p" }),
-      ).toBeInTheDocument();
-      expect(screen.queryByText(/a anuidade se paga a partir de/, { selector: "p" })).toBeNull();
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      expect(within(feeRow).getByText(/cada R\$ 1 de anuidade retorna 3,59x/)).toBeInTheDocument();
+      expect(within(feeRow).queryByText(/paga-se com/)).toBeNull();
     });
 
-    it("omits the break-even/ROI line when neither value is set", async () => {
+    it("omits the break-even/ROI line when neither value is set, keeping the conditions", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
@@ -348,14 +400,47 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      // still expandable — it carries the waiver sub-labels
       await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      expect(screen.queryByText(/a anuidade se paga a partir de/, { selector: "p" })).toBeNull();
-      expect(screen.queryByText(/cada R\$ 1/, { selector: "p" })).toBeNull();
-      expect(screen.getByText(/cobrada; isentaria com/, { selector: "p" })).toBeInTheDocument();
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      expect(within(feeRow).queryByText(/paga-se com/)).toBeNull();
+      expect(within(feeRow).queryByText(/cada R\$ 1/)).toBeNull();
+      expect(within(feeRow).getByText(/Cobrada · R\$\s?1\.068,00\/ano/)).toBeInTheDocument();
     });
 
-    it("uses 'Condições' as the sub-row label (not card names)", async () => {
+    it("never shows the break-even/ROI line under a card that does not charge a fee", async () => {
+      const user = userEvent.setup();
+      // current card has no fee at all, recommended one charges — break-even/ROI must not leak
+      const noFeeCurrent: ComparisonNarrative = {
+        ...variantANarrative,
+        currentBreakEvenMonthlySpendBrl: 4000,
+        currentRoiMultiple: 2.1,
+        rows: variantANarrative.rows.map((r) =>
+          r.key === "annual-fee"
+            ? {
+                ...r,
+                currentValueBrl: 0,
+                recommendedValueBrl: -1680,
+                tone: "current-better",
+                currentFeeDetail: { status: "no-fee", annualBrl: 0, routes: [] },
+                recommendedFeeDetail: {
+                  status: "charged",
+                  annualBrl: 1680,
+                  routes: [{ kind: "invest", amountBrl: 50000 }],
+                },
+              }
+            : r,
+        ),
+      };
+      render(
+        <CurrentVsRecommended narrative={noFeeCurrent} currentLabel="A" recommendedLabel="B" />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      expect(within(feeRow).getByText("Sem anuidade")).toBeInTheDocument();
+      expect(within(feeRow).queryByText(/paga-se com/)).toBeNull();
+    });
+
+    it("uses 'Condições' as the sub-row label, never the card names", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
@@ -366,7 +451,6 @@ describe("CurrentVsRecommended", () => {
       );
       await user.click(screen.getByRole("button", { name: "Anuidade" }));
       expect(screen.getByText("Condições")).toBeInTheDocument();
-      // card names must NOT appear as row labels
       const rows = document.querySelectorAll("tr");
       let foundNubank = false;
       let foundPicPay = false;
@@ -379,24 +463,7 @@ describe("CurrentVsRecommended", () => {
       expect(foundPicPay).toBe(false);
     });
 
-    it("renders current and recommended conditions in separate cells under 'Condições'", async () => {
-      const user = userEvent.setup();
-      render(
-        <CurrentVsRecommended
-          narrative={variantANarrative}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const condicoesRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      const cells = condicoesRow.querySelectorAll("td");
-      expect(cells).toHaveLength(2);
-      expect(cells[0]).toHaveTextContent(/cobrada; isentaria com/);
-      expect(cells[1]).toHaveTextContent(/isenta: gasto de/);
-    });
-
-    it("does not show '—' in the recommended cell when the recommended card charges a fee", async () => {
+    it("renders real content (not a bare em-dash) when the recommended card charges a fee", async () => {
       const user = userEvent.setup();
       const chargedFeeNarrative: ComparisonNarrative = {
         ...variantANarrative,
@@ -405,7 +472,12 @@ describe("CurrentVsRecommended", () => {
             ? {
                 ...r,
                 recommendedValueBrl: -1680,
-                recommendedSubLabel: "cobrada — isentaria com R$ 50.000,00 investidos",
+                tone: "current-better",
+                recommendedFeeDetail: {
+                  status: "charged",
+                  annualBrl: 1680,
+                  routes: [{ kind: "invest", amountBrl: 50000 }],
+                },
               }
             : r,
         ),
@@ -418,10 +490,11 @@ describe("CurrentVsRecommended", () => {
         />,
       );
       await user.click(screen.getByRole("button", { name: "Anuidade" }));
-      const condicoesRow = screen.getByText("Condições").closest("tr") as HTMLElement;
-      const cells = condicoesRow.querySelectorAll("td");
-      // The cell must have real content, not just a bare em-dash fallback.
-      expect(cells[1]).toHaveTextContent(/cobrada — isentaria com/);
+      const feeRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      const cells = feeRow.querySelectorAll("td");
+      expect(cells[1]).toHaveTextContent(/Cobrada · R\$\s?1\.680,00\/ano/);
+      expect(cells[1]).toHaveTextContent(/isenta com R\$\s?50\.000,00 investidos no banco/);
+      expect(cells[1]?.textContent).not.toBe("—");
     });
   });
 
