@@ -318,6 +318,83 @@ describe("CurrentVsRecommended", () => {
     });
   });
 
+  describe("verdict tag under column headers", () => {
+    const verdictNarrative: ComparisonNarrative = {
+      ...variantANarrative,
+      currentVerdict: { kind: "negative", label: "Atenção: tende a custar mais que retorna" },
+      recommendedVerdict: { kind: "strong", label: "Forte candidato para este perfil" },
+    };
+
+    it("renders the verdict tag under each column header", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={verdictNarrative}
+          currentLabel="Nubank Ultravioleta"
+          recommendedLabel="PicPay Card Black"
+        />,
+      );
+      const hojeTh = screen.getByText("HOJE").closest("th") as HTMLElement;
+      expect(
+        within(hojeTh).getByText(/Atenção: tende a custar mais que retorna/),
+      ).toBeInTheDocument();
+
+      const recomendadoTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
+      expect(
+        within(recomendadoTh).getByText(/Forte candidato para este perfil/),
+      ).toBeInTheDocument();
+    });
+
+    it("colors the verdict tag by kind", () => {
+      render(
+        <CurrentVsRecommended narrative={verdictNarrative} currentLabel="A" recommendedLabel="B" />,
+      );
+      expect(screen.getByText(/Forte candidato para este perfil/)).toHaveClass("text-accent");
+      expect(screen.getByText(/Atenção: tende a custar mais que retorna/)).toHaveClass(
+        "text-warning",
+      );
+    });
+
+    it("colors a viable verdict with text-ink-muted", () => {
+      const viableNarrative: ComparisonNarrative = {
+        ...variantANarrative,
+        currentVerdict: { kind: "viable", label: "Pode compensar dependendo do uso" },
+      };
+      render(
+        <CurrentVsRecommended narrative={viableNarrative} currentLabel="A" recommendedLabel="B" />,
+      );
+      expect(screen.getByText(/Pode compensar dependendo do uso/)).toHaveClass("text-ink-muted");
+    });
+
+    it("renders no verdict tag when the verdict is absent", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      expect(screen.queryByText(/Atenção: tende a custar/)).toBeNull();
+      expect(screen.queryByText(/Forte candidato/)).toBeNull();
+    });
+
+    it("renders only the present verdict tag when one side is absent", () => {
+      // variantANarrative carries no currentVerdict, so a plain spread leaves it absent.
+      const oneVerdictNarrative: ComparisonNarrative = {
+        ...variantANarrative,
+        recommendedVerdict: { kind: "strong", label: "Forte candidato para este perfil" },
+      };
+      render(
+        <CurrentVsRecommended
+          narrative={oneVerdictNarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      expect(screen.getByText(/Forte candidato para este perfil/)).toBeInTheDocument();
+      expect(screen.queryByText(/Atenção/)).toBeNull();
+    });
+  });
+
   describe("cell tints by tone", () => {
     // variantANarrative rows:
     //   cashback  tone:"current-better"   → current(750) positive, recommended(720) negative

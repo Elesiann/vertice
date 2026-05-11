@@ -4,6 +4,24 @@ import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 import type { ComparisonNarrative, ComparisonRow } from "@/lib/comparison-narrative";
 import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
+import type { ScoreLabVerdictKind } from "@/types";
+
+// Text-color classes for the verdict tag — distinct from ResultsView.VERDICT_TONE (Badge tones).
+const VERDICT_TEXT_TONE: Record<ScoreLabVerdictKind, string> = {
+  strong: "text-accent",
+  viable: "text-ink-muted",
+  negative: "text-warning",
+};
+
+const VerdictTag = ({
+  verdict,
+}: {
+  verdict: { kind: ScoreLabVerdictKind; label: string };
+}): JSX.Element => (
+  <span className={cn("mt-1.5 block text-xs leading-snug", VERDICT_TEXT_TONE[verdict.kind])}>
+    {verdict.label}
+  </span>
+);
 
 interface Props {
   narrative: ComparisonNarrative;
@@ -130,6 +148,9 @@ export const CurrentVsRecommended = ({
             <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
               <span className="text-caption text-ink-subtle block">HOJE</span>
               <span className="text-ink mt-1 block text-sm font-semibold">{currentLabel}</span>
+              {narrative.currentVerdict !== undefined ? (
+                <VerdictTag verdict={narrative.currentVerdict} />
+              ) : null}
             </th>
             <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
               <span className="text-caption text-ink-subtle block">RECOMENDADO</span>
@@ -138,6 +159,9 @@ export const CurrentVsRecommended = ({
                 <Star size={12} aria-hidden />
                 recomendado
               </Badge>
+              {narrative.recommendedVerdict !== undefined ? (
+                <VerdictTag verdict={narrative.recommendedVerdict} />
+              ) : null}
             </th>
           </tr>
         </thead>
