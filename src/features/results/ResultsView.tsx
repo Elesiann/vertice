@@ -85,7 +85,12 @@ const MILES_PROGRAMS = new Set<ProgramId>([
   "etihad-guest",
 ]);
 
-type AlternativeTabId = "lowest-barrier" | "traditional" | "fintech" | "highest-return";
+type AlternativeTabId =
+  | "lowest-barrier"
+  | "traditional"
+  | "fintech"
+  | "highest-return"
+  | "most-similar";
 
 interface AlternativeTab {
   id: AlternativeTabId;
@@ -364,6 +369,7 @@ const TAB_DESCRIPTIONS: Record<AlternativeTabId, string> = {
     "Cartões emitidos por Itaú, Bradesco, Santander ou Banco do Brasil sob a marca do banco.",
   fintech: "Bancos digitais, fintechs e produtos cobranded.",
   "highest-return": "Maior retorno líquido modelado — mesmo com barreiras adicionais.",
+  "most-similar": "Cartões com o perfil de uso mais parecido com o recomendado.",
 };
 
 const withinThreshold = (
@@ -379,6 +385,18 @@ const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluation): s
   if (Math.abs(delta) < 0.01) return "Mesmo retorno líquido anual do recomendado.";
   if (delta > 0) return `${formatAnnualBrl(delta)} acima do recomendado.`;
   return `${formatAnnualBrl(Math.abs(delta))} abaixo do recomendado.`;
+};
+
+const mostSimilarCompat = (
+  stacks: StackEvaluation[],
+  topStack: StackEvaluation,
+): Map<string, number> => {
+  const topScore = topStack.scoreLab?.score ?? 0;
+  const dist = (s: StackEvaluation): number => Math.abs((s.scoreLab?.score ?? 0) - topScore);
+  const minDist = stacks.length > 0 ? Math.min(...stacks.map(dist)) : 0;
+  return new Map(
+    stacks.map((s) => [stackId(s), Math.max(0, Math.round(100 - (dist(s) - minDist)))]),
+  );
 };
 
 const buildAlternativeTabs = (recommendation: Recommendation): AlternativeTab[] => {
@@ -407,11 +425,32 @@ const buildAlternativeTabs = (recommendation: Recommendation): AlternativeTab[] 
   const lowerBarrier = (stack: StackEvaluation): boolean =>
     recBarrier === 0 ? hasNoInvestmentBarrier(stack) : stackAccessBarrierBrl(stack) <= recBarrier;
 
+  // "Mais semelhantes" ranks the full pool by score proximity — deliberately NOT threshold-gated
+  // like the other tabs (it's a usage-fit lens, not a return lens). Cards without a score drop out.
+  const topScore = topStack.scoreLab?.score;
+  const mostSimilarStacks =
+    topScore === undefined
+      ? []
+      : pool
+          .filter((s) => s.scoreLab !== undefined)
+          .sort((a, b) => {
+            const da = Math.abs((a.scoreLab?.score ?? 0) - topScore);
+            const db = Math.abs((b.scoreLab?.score ?? 0) - topScore);
+            if (da !== db) return da - db;
+            return stackId(a).localeCompare(stackId(b));
+          })
+          .slice(0, ALTERNATIVES_PER_TAB);
+
   const tabs: AlternativeTab[] = [
     {
       id: "lowest-barrier",
       label: "Menor barreira",
       stacks: take(eligible.filter(lowerBarrier)),
+    },
+    {
+      id: "most-similar",
+      label: "Mais semelhantes",
+      stacks: mostSimilarStacks,
     },
     {
       id: "traditional",
@@ -627,6 +666,9 @@ export const ResultsView = (): JSX.Element => {
   const threshold = comparisonThreshold(topStack);
   const alternativeTabs = buildAlternativeTabs(displayRecommendation);
   const activeTab = alternativeTabs.find((tab) => tab.id === activeTabId) ?? alternativeTabs[0];
+  // Per-card compatibility % for the "Mais semelhantes" tab — the closest card is 100%.
+  const compatById =
+    activeTab?.id === "most-similar" ? mostSimilarCompat(activeTab.stacks, topStack) : null;
   const divergenceNotice = preferenceDivergenceNotice(profile, displayRecommendation, threshold);
   const _conditionalUpside = decisionTracks?.conditionalUpside;
   // const conditionalUpsideNotice =
@@ -856,6 +898,7 @@ export const ResultsView = (): JSX.Element => {
                 const fee = stack.yearOneAnnualFeeBrl;
                 const feeLabel = fee > 0 ? stackFeeLabel(stack) : null;
                 const barrier = stackAccessBarrierLabel(stack);
+                const compat = compatById?.get(stackId(stack));
                 const valueTone = delta.tone === "above" ? "text-accent" : "text-ink";
                 const deltaTone =
                   delta.tone === "above"
@@ -879,6 +922,12 @@ export const ResultsView = (): JSX.Element => {
                   metaParts.push({
                     key: "barrier",
                     node: <span className="text-warning">{barrier}</span>,
+                  });
+                }
+                if (compat !== undefined) {
+                  metaParts.push({
+                    key: "compat",
+                    node: <span className="text-ink-muted">{compat}% compatível</span>,
                   });
                 }
                 return (

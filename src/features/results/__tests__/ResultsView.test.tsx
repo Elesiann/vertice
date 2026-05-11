@@ -124,6 +124,7 @@ const makeStack = ({
   productReliabilityScore = 90,
   requiredInvestmentBrl,
   bank = "other",
+  score,
 }: {
   id: string;
   name: string;
@@ -132,6 +133,7 @@ const makeStack = ({
   productReliabilityScore?: number;
   requiredInvestmentBrl?: number;
   bank?: Bank;
+  score?: number;
 }): StackEvaluation => ({
   ...stack,
   cards: [
@@ -155,6 +157,7 @@ const makeStack = ({
   scoreLab: {
     ...stack.scoreLab,
     stackId: id,
+    score: score ?? stack.scoreLab.score,
     productReliabilityScore,
     modeledAnnual: {
       ...stack.scoreLab.modeledAnnual,
@@ -742,5 +745,71 @@ describe("ResultsView", () => {
     expect(
       await screen.findByRole("heading", { name: /Não conseguimos recomendar/i }),
     ).toBeInTheDocument();
+  });
+
+  it("shows the 'Mais semelhantes' tab ordered by score proximity", async () => {
+    // topStack has scoreLab.score = 87.39
+    // near: distance 1.39, mid: distance 7.39, far: distance 27.39
+    // Low netReturnBrl ensures they'd be filtered out of threshold-gated tabs (756 - 100 > 1500 threshold floor).
+    const near = makeStack({ id: "near", name: "Near Card", netReturnBrl: 100, score: 86 });
+    const mid = makeStack({ id: "mid", name: "Mid Card", netReturnBrl: 100, score: 80 });
+    const far = makeStack({ id: "far", name: "Far Card", netReturnBrl: 100, score: 60 });
+
+    mockRecommendation({
+      ...recommendationFixture,
+      alternatives: [near, mid, far],
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+
+    await userEvent.click(screen.getByRole("tab", { name: /Mais semelhantes/i }));
+
+    const nearLink = screen.getByRole("link", { name: /Near Card/ });
+    const farLink = screen.getByRole("link", { name: /Far Card/ });
+
+    // Near Card appears before Far Card in DOM order
+    expect(
+      nearLink.compareDocumentPosition(farLink) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Near Card (closest, rank #1) shows 100% compatível
+    expect(screen.getByText(/100% compatível/)).toBeInTheDocument();
+
+    // Raw scores are never rendered
+    expect(screen.queryByText(/87[,.]39/)).toBeNull();
+    expect(screen.queryByText(/86(?:[,.]0+)?(?!\s*%)/)).toBeNull();
+    expect(screen.queryByText(/60(?:[,.]0+)?(?!\s*%)/)).toBeNull();
+  });
+
+  it("excludes alternatives without a scoreLab from the 'Mais semelhantes' tab", async () => {
+    const scored = makeStack({ id: "scored", name: "Scored Card", netReturnBrl: 100, score: 86 });
+    const { scoreLab: _omit, ...unscored } = makeStack({
+      id: "unscored",
+      name: "Unscored Card",
+      netReturnBrl: 700,
+    });
+
+    mockRecommendation({
+      ...recommendationFixture,
+      alternatives: [scored, unscored],
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    await userEvent.click(screen.getByRole("tab", { name: /Mais semelhantes/i }));
+
+    expect(screen.getByRole("link", { name: /Scored Card/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Unscored Card/ })).toBeNull();
   });
 });
