@@ -53,12 +53,6 @@ const variantANarrative: ComparisonNarrative = {
   currentRoiMultiple: 3.59,
 };
 
-const narrativeWithoutBreakEven: ComparisonNarrative = {
-  ...variantANarrative,
-  currentBreakEvenMonthlySpendBrl: null,
-  currentRoiMultiple: null,
-};
-
 const travelNarrative: ComparisonNarrative = {
   variant: "current-positive",
   diagnosis: ["Seu cartão atual rende R$ 1.000,00/ano.", "O recomendado renderia mais."],
@@ -107,9 +101,6 @@ const cappedLoungeNarrative: ComparisonNarrative = {
 
 const rowEl = (rowLabel: string): HTMLElement =>
   screen.getByText(rowLabel).closest("tr") as HTMLElement;
-
-// The summary footer below the table — a <dl> anchored by the always-present "Gasto base" term.
-const footer = (): HTMLElement => screen.getByText("Gasto base").closest("dl") as HTMLElement;
 
 describe("CurrentVsRecommended", () => {
   it("renders both diagnosis paragraphs", () => {
@@ -180,15 +171,15 @@ describe("CurrentVsRecommended", () => {
     expect(verdict).not.toHaveClass("text-danger");
   });
 
-  it("shows the monthly-spend base in the summary footer", () => {
+  it("shows the spend assumption and the default access label in the meta line", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    expect(screen.getByText("Gasto base")).toBeInTheDocument();
-    expect(within(footer()).getByText(/^R\$\s?5\.000,00\/mês$/)).toBeInTheDocument();
+    expect(screen.getByText(/Gasto base: R\$\s?5\.000,00\/mês/)).toBeInTheDocument();
+    expect(screen.getByText(/Acesso: sem exigência financeira/)).toBeInTheDocument();
   });
 
-  it("appends the international spend to the footer base when present", () => {
+  it("appends the international spend to the meta line when present", () => {
     render(
       <CurrentVsRecommended
         narrative={{ ...variantANarrative, monthlyInternationalUsd: 1200 }}
@@ -197,30 +188,43 @@ describe("CurrentVsRecommended", () => {
       />,
     );
     expect(
-      within(footer()).getByText(/^R\$\s?5\.000,00\/mês\s*\+\s*\$1,200\.00\/mês internacional$/),
+      screen.getByText(/Gasto base: R\$\s?5\.000,00\/mês\s*\+\s*\$1,200\.00\/mês internacional/),
     ).toBeInTheDocument();
   });
 
-  it("renders the recommended-card access summary in the footer", () => {
+  it("shows the passed access label in the meta line", () => {
     render(
       <CurrentVsRecommended
         narrative={variantANarrative}
         currentLabel="A"
         recommendedLabel="B"
-        accessSummary="Acesso exige R$ 50.000,00 em investimentos no banco emissor."
+        accessLabel="exige R$ 50.000,00 investidos no emissor"
       />,
     );
-    expect(within(footer()).getByText("Acesso")).toBeInTheDocument();
     expect(
-      within(footer()).getByText(/Acesso exige R\$\s?50\.000,00 em investimentos no banco emissor/),
+      screen.getByText(/Acesso: exige R\$\s?50\.000,00 investidos no emissor/),
     ).toBeInTheDocument();
   });
 
-  it("falls back to a 'no requirement' access line when no summary is passed", () => {
+  it("renders the recommended card's benefit highlights under a 'Mais no {card}' heading", () => {
+    render(
+      <CurrentVsRecommended
+        narrative={variantANarrative}
+        currentLabel="A"
+        recommendedLabel="BRB Dux Visa Infinite"
+        recommendedBenefits={["Pontos não expiram", "Cartão em metal, design Athos Bulcão"]}
+      />,
+    );
+    expect(screen.getByText("Mais no BRB Dux Visa Infinite")).toBeInTheDocument();
+    expect(screen.getByText("Pontos não expiram")).toBeInTheDocument();
+    expect(screen.getByText("Cartão em metal, design Athos Bulcão")).toBeInTheDocument();
+  });
+
+  it("omits the highlights block when there are no benefits", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    expect(within(footer()).getByText(/Sem exigência financeira de acesso/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Mais no/)).toBeNull();
   });
 
   it("renders the preference-divergence notice as a third diagnosis paragraph when provided", () => {
@@ -419,82 +423,6 @@ describe("CurrentVsRecommended", () => {
       const cells = feeRow().querySelectorAll("td");
       expect(cells[1]).toHaveTextContent(/isenta com R\$\s?35\.000,00\/mês/);
       expect(cells[1]?.textContent).not.toBe("—");
-    });
-
-    it("shows the current card's annual-fee economics as a footer row when it charges a fee", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={variantANarrative}
-          currentLabel="Nubank Ultravioleta"
-          recommendedLabel="B"
-        />,
-      );
-      expect(within(footer()).getByText("Anuidade")).toBeInTheDocument();
-      expect(
-        within(footer()).getByText(
-          /Nubank Ultravioleta se paga com R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x\./,
-        ),
-      ).toBeInTheDocument();
-    });
-
-    it("shows the break-even half of the footer row when only the break-even spend is set", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={{ ...variantANarrative, currentRoiMultiple: null }}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      expect(
-        within(footer()).getByText(/A se paga com R\$\s?7\.120,00\/mês em gastos\./),
-      ).toBeInTheDocument();
-      expect(within(footer()).queryByText(/cada R\$ 1/)).toBeNull();
-    });
-
-    it("shows the ROI half of the footer row when only the ROI multiple is set", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={{ ...variantANarrative, currentBreakEvenMonthlySpendBrl: null }}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      expect(
-        within(footer()).getByText(/A retorna 3,59x em valor para cada R\$ 1 cobrado\./),
-      ).toBeInTheDocument();
-    });
-
-    it("omits the Anuidade footer row when neither break-even nor ROI is set", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={narrativeWithoutBreakEven}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      expect(within(footer()).queryByText("Anuidade")).toBeNull();
-    });
-
-    it("omits the Anuidade footer row when the current card does not charge a fee", () => {
-      const narrative: ComparisonNarrative = {
-        ...variantANarrative,
-        currentBreakEvenMonthlySpendBrl: 4000,
-        currentRoiMultiple: 2.1,
-        rows: variantANarrative.rows.map((r) =>
-          r.key === "annual-fee"
-            ? {
-                ...r,
-                currentValueBrl: 0,
-                recommendedValueBrl: -1680,
-                tone: "current-better",
-                currentFeeDetail: { status: "no-fee", annualBrl: 0, routes: [] },
-                recommendedFeeDetail: { status: "charged", annualBrl: 1680, routes: [] },
-              }
-            : r,
-        ),
-      };
-      render(<CurrentVsRecommended narrative={narrative} currentLabel="A" recommendedLabel="B" />);
-      expect(within(footer()).queryByText("Anuidade")).toBeNull();
     });
   });
 

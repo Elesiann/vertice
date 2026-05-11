@@ -308,7 +308,7 @@ describe("ResultsView", () => {
     expect(screen.getByText("Diferença anual")).toBeInTheDocument();
     expect(screen.getByText(/R\$\s?256,00/)).toBeInTheDocument();
 
-    expect(screen.getByText(/Sem exigência financeira de acesso/)).toBeInTheDocument();
+    expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();
   });
 
   it("renders the comparison view (variant A) when current net is non-positive", async () => {
@@ -352,7 +352,7 @@ describe("ResultsView", () => {
     ).toBeInTheDocument();
 
     expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/Sem exigência financeira de acesso/)).toBeInTheDocument();
+    expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();
   });
 
   it("renders heroNotes (e.g. preference divergence) in comparison mode", async () => {

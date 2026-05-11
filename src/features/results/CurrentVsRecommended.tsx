@@ -9,16 +9,19 @@ import type {
   FeeDetail,
   FeeWaiverRoute,
 } from "@/lib/comparison-narrative";
-import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
+import { formatBrl, formatUsd } from "@/lib/format";
 import type { ScoreLabVerdictKind } from "@/types";
 
 interface Props {
   narrative: ComparisonNarrative;
   currentLabel: string;
   recommendedLabel: string;
+  // Free-text highlights of the recommended card ("Lounge ilimitado (...)", "Pontos não expiram",
+  // ...) — the qualitative side the money table can't show. Rendered as the comparison footer.
+  recommendedBenefits?: string[];
   // Short eligibility line for the recommended card ("exige R$ X investidos no emissor" /
-  // "sem exigência financeira"). Shown in the comparison footer.
-  accessSummary?: string;
+  // "sem exigência financeira"). Shown in the thin meta line under the footer.
+  accessLabel?: string;
   // The "you picked X, the recommendation is Y" caveat, when the chosen redemption diverges
   // from the recommended card's. Rendered as a third diagnosis paragraph.
   preferenceNotice?: string;
@@ -50,18 +53,6 @@ const spendBaseValue = (n: ComparisonNarrative): string => {
   return n.monthlyInternationalUsd > 0
     ? `${base} + ${formatUsd(n.monthlyInternationalUsd)}/mês internacional`
     : base;
-};
-
-// The break-even / ROI for the *current* card's annual fee, phrased as a clause that follows
-// "A anuidade do {card} …". Only meaningful when the current card actually charges one.
-const annualFeeRoiClause = (n: ComparisonNarrative): string | null => {
-  const breakEven = n.currentBreakEvenMonthlySpendBrl;
-  const roi = n.currentRoiMultiple;
-  if (breakEven !== null && roi !== null)
-    return `se paga com ${formatBrl(breakEven)}/mês em gastos · cada R$ 1 retorna ${formatRoiMultiple(roi)}`;
-  if (breakEven !== null) return `se paga com ${formatBrl(breakEven)}/mês em gastos`;
-  if (roi !== null) return `retorna ${formatRoiMultiple(roi)} em valor para cada R$ 1 cobrado`;
-  return null;
 };
 
 // ─── annual-fee detail copy ───────────────────────────────────────────────────
@@ -231,12 +222,10 @@ export const CurrentVsRecommended = ({
   narrative,
   currentLabel,
   recommendedLabel,
-  accessSummary = "Sem exigência financeira de acesso.",
+  recommendedBenefits = [],
+  accessLabel = "sem exigência financeira",
   preferenceNotice,
 }: Props): JSX.Element => {
-  const annualFeeRow = narrative.rows.find((r) => r.key === "annual-fee");
-  const roiClause =
-    annualFeeRow?.currentFeeDetail?.status === "charged" ? annualFeeRoiClause(narrative) : null;
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string): void => {
     setExpandedRows((prev) => {
@@ -346,18 +335,29 @@ export const CurrentVsRecommended = ({
         </table>
       </div>
 
-      <dl className="border-line/60 grid grid-cols-[max-content_1fr] items-baseline gap-x-8 gap-y-3 border-t pt-5 text-sm">
-        <dt className="text-caption text-ink-subtle">Gasto base</dt>
-        <dd className="text-ink-muted tabular">{spendBaseValue(narrative)}</dd>
-        {roiClause !== null ? (
+      <div className="border-line/60 border-t pt-5">
+        {recommendedBenefits.length > 0 ? (
           <>
-            <dt className="text-caption text-ink-subtle">Anuidade</dt>
-            <dd className="text-ink-muted tabular">{`${currentLabel} ${roiClause}.`}</dd>
+            <p className="text-caption text-ink-subtle">Mais no {recommendedLabel}</p>
+            <ul className="text-ink-muted mt-3 space-y-1.5 text-sm leading-relaxed">
+              {recommendedBenefits.map((benefit) => (
+                <li key={benefit} className="flex gap-2.5">
+                  <span aria-hidden className="bg-line-strong mt-[0.55em] h-px w-2.5 shrink-0" />
+                  <span>{benefit}</span>
+                </li>
+              ))}
+            </ul>
           </>
         ) : null}
-        <dt className="text-caption text-ink-subtle">Acesso</dt>
-        <dd className="text-ink-muted tabular">{accessSummary}</dd>
-      </dl>
+        <p
+          className={cn(
+            "text-ink-subtle text-xs",
+            recommendedBenefits.length > 0 ? "mt-5" : undefined,
+          )}
+        >
+          Gasto base: {spendBaseValue(narrative)} · Acesso: {accessLabel}
+        </p>
+      </div>
     </section>
   );
 };

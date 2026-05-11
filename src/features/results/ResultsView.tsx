@@ -9,6 +9,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
+import { useStackBenefits } from "@/hooks/useStackBenefits";
 import { cn } from "@/lib/cn";
 import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
@@ -601,6 +602,9 @@ export const ResultsView = (): JSX.Element => {
   const { profile } = useSession();
   const result = useRecommendation();
   const [activeTabId, setActiveTabId] = useState<AlternativeTabId | null>(null);
+  const recommendedBenefits = useStackBenefits(
+    result?.ok ? displayStackFor(result.value) : undefined,
+  );
 
   if (profile === null) {
     return (
@@ -666,6 +670,7 @@ export const ResultsView = (): JSX.Element => {
     return undefined;
   })();
   const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
+  const recommendedAccessLabel = stackAccessBarrierLabel(topStack) ?? "sem exigência financeira";
   const threshold = comparisonThreshold(topStack);
   const alternativeTabs = buildAlternativeTabs(displayRecommendation);
   const activeTab = alternativeTabs.find((tab) => tab.id === activeTabId) ?? alternativeTabs[0];
@@ -747,7 +752,8 @@ export const ResultsView = (): JSX.Element => {
             narrative={comparisonNarrative}
             currentLabel={currentLabel}
             recommendedLabel={recommendedLabel}
-            accessSummary={accessibilitySummary}
+            recommendedBenefits={recommendedBenefits ?? []}
+            accessLabel={recommendedAccessLabel}
             {...(divergenceNotice !== null ? { preferenceNotice: divergenceNotice } : {})}
           />
         ) : (
