@@ -38,6 +38,9 @@
   --_color-amber-100: #fef3c7;
   --_color-amber-800: #92400e;
 
+  --_color-gold-100: #f7ecd0;
+  --_color-gold-800: #7a5a16;
+
   /* --- Tier 2: semantic colors (components consume these) --- */
   --color-ink: var(--_color-slate-900);
   --color-ink-muted: var(--_color-slate-500);
@@ -59,6 +62,9 @@
 
   --color-warning: var(--_color-amber-800);
   --color-warning-soft: var(--_color-amber-100);
+
+  --color-gold: var(--_color-gold-800);
+  --color-gold-soft: var(--_color-gold-100);
 
   /* --- Cell tints (comparison table heatmap, whisper-quiet) --- */
   --color-cell-positive: var(--_color-green-25);
@@ -111,6 +117,9 @@
 
   --color-warning: #fbbf24;
   --color-warning-soft: #3a2a10;
+
+  --color-gold: #d9b76a;
+  --color-gold-soft: #2a2110;
 
   /* --- Cell tints (dark) --- */
   --color-cell-positive: #131f1a;

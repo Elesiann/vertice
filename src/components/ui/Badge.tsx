@@ -1,13 +1,14 @@
 import { type HTMLAttributes, type JSX, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
-type Tone = "accent" | "neutral" | "danger" | "warning";
+type Tone = "accent" | "neutral" | "danger" | "warning" | "gold";
 
 const TONE: Record<Tone, string> = {
   accent: "bg-accent-soft text-accent",
   neutral: "bg-surface-sunken text-ink-muted",
   danger: "bg-danger-soft text-danger",
   warning: "bg-warning-soft text-warning",
+  gold: "bg-gold-soft text-gold",
 };
 
 interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

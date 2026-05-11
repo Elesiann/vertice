@@ -103,6 +103,26 @@ describe("CurrentVsRecommended", () => {
     expect(screen.getByText("PicPay Card Black")).toBeInTheDocument();
   });
 
+  it("the recommended column header shows a gold 'recomendado' pill", () => {
+    render(
+      <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
+    );
+    const pill = screen.getByText(/^recomendado$/);
+    expect(pill).toBeInTheDocument();
+    expect(pill).toHaveClass("text-gold");
+    expect(pill).toHaveClass("bg-gold-soft");
+    const recommendedTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
+    expect(within(recommendedTh).getByText(/^recomendado$/)).toBeInTheDocument();
+  });
+
+  it("the HOJE column header has no winner pill", () => {
+    render(
+      <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
+    );
+    const hojeTh = screen.getByText("HOJE").closest("th") as HTMLElement;
+    expect(within(hojeTh).queryByText(/^recomendado$/)).toBeNull();
+  });
+
   it("renders each row label and the formatted values per side", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,

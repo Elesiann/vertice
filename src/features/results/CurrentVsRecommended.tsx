@@ -1,5 +1,7 @@
 import { Fragment, useState, type JSX } from "react";
+import { Star } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { Badge } from "@/components/ui/Badge";
 import type { ComparisonNarrative, ComparisonRow } from "@/lib/comparison-narrative";
 import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
 
@@ -132,6 +134,10 @@ export const CurrentVsRecommended = ({
             <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
               <span className="text-caption text-ink-subtle block">RECOMENDADO</span>
               <span className="text-ink mt-1 block text-sm font-semibold">{recommendedLabel}</span>
+              <Badge tone="gold" className="mt-1.5">
+                <Star size={12} aria-hidden />
+                recomendado
+              </Badge>
             </th>
           </tr>
         </thead>
