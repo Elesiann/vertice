@@ -16,6 +16,11 @@ export type ComparisonRowKey =
   | "fx-iof"
   | "net";
 
+// The dominant difference is usually one row, but when the two cards earn in different currencies
+// (cashback vs points) the split rows each have one side artificially zero — comparing them is
+// apples-to-oranges, so we surface a single "rewards" comparison of the two modeled reward values.
+export type DominantKey = ComparisonRowKey | "rewards";
+
 export interface BenefitBreakdownPart {
   label: string; // "Sala VIP" | "Seguro" | "Bagagem"
   count: number;
@@ -59,7 +64,7 @@ export interface ComparisonNarrative {
   diagnosis: string[];
   rows: ComparisonRow[];
   verdictBrl: number;
-  dominantRowKey: ComparisonRowKey | null;
+  dominantRowKey: DominantKey | null;
   monthlySpendBrl: number;
   monthlyInternationalUsd: number;
   currentVerdict?: { kind: ScoreLabVerdictKind; label: string };
@@ -81,6 +86,10 @@ const fxValue = (stack: StackEvaluation): number =>
 
 const isCashbackStack = (stack: StackEvaluation): boolean =>
   stack.cards[0]?.pointsProgram === "cashback";
+
+// "de cashback" / "em pontos" — labels the reward kind in the rewards-comparison sentence.
+const rewardClause = (stack: StackEvaluation): string =>
+  isCashbackStack(stack) ? "de cashback" : "em pontos";
 
 const recommendedFeeClause = (topStack: StackEvaluation): string => {
   const fee = topStack.yearOneAnnualFeeBrl;
@@ -184,21 +193,42 @@ const rowTone = (
   return diff > 0 ? "recommended-better" : "current-better";
 };
 
-// ─── dominant row ─────────────────────────────────────────────────────────────
+// ─── dominant difference ──────────────────────────────────────────────────────
 
-const computeDominantRowKey = (rows: ComparisonRow[]): ComparisonRowKey | null => {
-  let best: ComparisonRow | undefined;
+const computeDominant = (rows: ComparisonRow[]): DominantKey | null => {
+  const cashbackRow = rows.find((r) => r.key === "cashback");
+  const pointsRow = rows.find((r) => r.key === "points");
+  // Both reward rows present iff the two cards earn in different currencies. Then each row has one
+  // side artificially zero, so they're folded into a single "rewards" candidate below.
+  const mixedRewards =
+    cashbackRow !== undefined && pointsRow !== undefined ? { cashbackRow, pointsRow } : null;
+
+  let best: DominantKey | undefined;
   let bestDiff = 0;
   for (const row of rows) {
     if (row.key === "net") continue;
+    if (mixedRewards !== null && (row.key === "cashback" || row.key === "points")) continue;
     const d = Math.abs(row.recommendedValueBrl - row.currentValueBrl);
     if (best === undefined || d > bestDiff) {
-      best = row;
+      best = row.key;
       bestDiff = d;
     }
   }
+
+  if (mixedRewards !== null) {
+    const curGross =
+      mixedRewards.cashbackRow.currentValueBrl + mixedRewards.pointsRow.currentValueBrl;
+    const recGross =
+      mixedRewards.cashbackRow.recommendedValueBrl + mixedRewards.pointsRow.recommendedValueBrl;
+    const rewardsDiff = Math.abs(recGross - curGross);
+    if (best === undefined || rewardsDiff > bestDiff) {
+      best = "rewards";
+      bestDiff = rewardsDiff;
+    }
+  }
+
   if (best === undefined || bestDiff < 0.01) return null;
-  return best.key;
+  return best;
 };
 
 // ─── diagnosis sentences ──────────────────────────────────────────────────────
@@ -228,10 +258,20 @@ const rawForProse = (key: ComparisonRowKey, valueBrl: number): number => {
   return valueBrl;
 };
 
-const sentence1 = (key: ComparisonRowKey, currentRow: ComparisonRow): string => {
-  const currentRaw = rawForProse(key, currentRow.currentValueBrl);
-  const recommendedRaw = rawForProse(key, currentRow.recommendedValueBrl);
-  return `A maior diferença está ${dominantFrase(key)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
+const sentence1 = (
+  domKey: DominantKey,
+  rows: ComparisonRow[],
+  currentStack: StackEvaluation,
+  topStack: StackEvaluation,
+): string | null => {
+  if (domKey === "rewards") {
+    return `A maior diferença está nas recompensas: ${formatBrl(grossValue(currentStack))} ${rewardClause(currentStack)} no atual, ${formatBrl(grossValue(topStack))} ${rewardClause(topStack)} no recomendado.`;
+  }
+  const row = rows.find((r) => r.key === domKey);
+  if (row === undefined) return null;
+  const currentRaw = rawForProse(domKey, row.currentValueBrl);
+  const recommendedRaw = rawForProse(domKey, row.recommendedValueBrl);
+  return `A maior diferença está ${dominantFrase(domKey)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
 };
 
 const sentence2VariantA = (currentStack: StackEvaluation, topStack: StackEvaluation): string => {
@@ -250,27 +290,25 @@ const sentence2VariantB = (currentStack: StackEvaluation, topStack: StackEvaluat
 const variantANarrative = (
   currentStack: StackEvaluation,
   topStack: StackEvaluation,
-  domKey: ComparisonRowKey | null,
+  domKey: DominantKey | null,
   rows: ComparisonRow[],
 ): string[] => {
   const s2 = sentence2VariantA(currentStack, topStack);
   if (domKey === null) return [s2];
-  const domRow = rows.find((r) => r.key === domKey);
-  if (domRow === undefined) return [s2];
-  return [sentence1(domKey, domRow), s2];
+  const s1 = sentence1(domKey, rows, currentStack, topStack);
+  return s1 === null ? [s2] : [s1, s2];
 };
 
 const variantBNarrative = (
   currentStack: StackEvaluation,
   topStack: StackEvaluation,
-  domKey: ComparisonRowKey | null,
+  domKey: DominantKey | null,
   rows: ComparisonRow[],
 ): string[] => {
   const s2 = sentence2VariantB(currentStack, topStack);
   if (domKey === null) return [s2];
-  const domRow = rows.find((r) => r.key === domKey);
-  if (domRow === undefined) return [s2];
-  return [sentence1(domKey, domRow), s2];
+  const s1 = sentence1(domKey, rows, currentStack, topStack);
+  return s1 === null ? [s2] : [s1, s2];
 };
 
 // ─── build rows ───────────────────────────────────────────────────────────────
@@ -372,7 +410,7 @@ export const buildComparisonNarrative = (
     currentStack.yearOneNetValueBrl <= 0 ? "current-negative" : "current-positive";
 
   const rows = buildRows(currentStack, topStack);
-  const domKey = computeDominantRowKey(rows);
+  const domKey = computeDominant(rows);
 
   const diagnosis =
     variant === "current-negative"

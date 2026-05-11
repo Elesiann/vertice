@@ -376,7 +376,7 @@ describe("CurrentVsRecommended", () => {
       expect(cells[1]?.textContent).not.toBe("—");
     });
 
-    it("shows the break-even/ROI caption below the table when the current card charges a fee", () => {
+    it("joins the spend caption with the current card's annual-fee economics when it charges a fee", () => {
       render(
         <CurrentVsRecommended
           narrative={variantANarrative}
@@ -384,10 +384,10 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      // currentBreakEvenMonthlySpendBrl 7120, currentRoiMultiple 3.59
+      // one footnote below the table, combining the spend assumption and the break-even/ROI line
       expect(
         screen.getByText(
-          /A anuidade do Nubank Ultravioleta se paga com R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x\./,
+          /Gasto base:\s*R\$\s?5\.000,00\/mês — A anuidade do Nubank Ultravioleta se paga com R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x\./,
         ),
       ).toBeInTheDocument();
     });

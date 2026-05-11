@@ -227,8 +227,12 @@ export const CurrentVsRecommended = ({
   recommendedLabel,
 }: Props): JSX.Element => {
   const annualFeeRow = narrative.rows.find((r) => r.key === "annual-fee");
-  const roiCaption =
+  const roiClause =
     annualFeeRow?.currentFeeDetail?.status === "charged" ? annualFeeRoiClause(narrative) : null;
+  const tableNote =
+    roiClause !== null
+      ? `${spendCaption(narrative)} — A anuidade do ${currentLabel} ${roiClause}.`
+      : spendCaption(narrative);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string): void => {
     setExpandedRows((prev) => {
@@ -251,8 +255,6 @@ export const CurrentVsRecommended = ({
           </p>
         ))}
       </div>
-
-      <p className="text-ink-subtle text-xs">{spendCaption(narrative)}</p>
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[28rem] table-fixed text-sm">
@@ -339,11 +341,7 @@ export const CurrentVsRecommended = ({
         </table>
       </div>
 
-      {roiCaption !== null ? (
-        <p className="text-ink-subtle text-xs">
-          A anuidade do {currentLabel} {roiCaption}.
-        </p>
-      ) : null}
+      <p className="text-ink-subtle text-xs">{tableNote}</p>
     </section>
   );
 };

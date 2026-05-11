@@ -592,6 +592,42 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("cashback");
     });
+
+    it("folds cashback vs points into a single 'rewards' difference when reward currencies differ", () => {
+      // current earns cashback (R$ 500), recommended earns points (R$ 720); no other meaningful row
+      const current = makeStack({
+        pointsProgram: "cashback",
+        grossValueBrl: 500,
+        netReturnBrl: 500,
+      });
+      const top = makeStack({ pointsProgram: "smiles", grossValueBrl: 720, netReturnBrl: 720 });
+      const out = buildComparisonNarrative(current, top);
+      expect(out.dominantRowKey).toBe("rewards");
+      expect(out.diagnosis[0]).toMatch(
+        /A maior diferença está nas recompensas: R\$\s?500,00 de cashback no atual, R\$\s?720,00 em pontos no recomendado\./,
+      );
+    });
+
+    it("a row still wins over 'rewards' when its delta exceeds the real reward-value gap", () => {
+      // reward-value gap = |600 - 500| = 100, but the annual-fee delta is 1068
+      const current = makeStack({
+        pointsProgram: "cashback",
+        grossValueBrl: 500,
+        annualFeeBrl: 1068,
+        netReturnBrl: -568,
+      });
+      const top = makeStack({
+        pointsProgram: "smiles",
+        grossValueBrl: 600,
+        annualFeeBrl: 0,
+        netReturnBrl: 600,
+      });
+      const out = buildComparisonNarrative(current, top);
+      expect(out.dominantRowKey).toBe("annual-fee");
+      expect(out.diagnosis[0]).toMatch(
+        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado\./,
+      );
+    });
   });
 
   describe("fee detail", () => {
