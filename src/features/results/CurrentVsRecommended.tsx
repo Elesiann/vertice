@@ -46,15 +46,15 @@ const spendCaption = (n: ComparisonNarrative): string => {
     : base;
 };
 
-// The break-even / ROI for paying the *current* card's annual fee. Only rendered when the
-// current card actually charges one (otherwise "paga-se a partir de…" is nonsensical).
-const annualFeeRoiLine = (n: ComparisonNarrative): string | null => {
+// The break-even / ROI for the *current* card's annual fee, phrased as a clause that follows
+// "A anuidade do {card} …". Only meaningful when the current card actually charges one.
+const annualFeeRoiClause = (n: ComparisonNarrative): string | null => {
   const breakEven = n.currentBreakEvenMonthlySpendBrl;
   const roi = n.currentRoiMultiple;
   if (breakEven !== null && roi !== null)
-    return `paga-se com ${formatBrl(breakEven)}/mês em gastos · cada R$ 1 retorna ${formatRoiMultiple(roi)}`;
-  if (breakEven !== null) return `paga-se com ${formatBrl(breakEven)}/mês em gastos`;
-  if (roi !== null) return `cada R$ 1 de anuidade retorna ${formatRoiMultiple(roi)}`;
+    return `se paga com ${formatBrl(breakEven)}/mês em gastos · cada R$ 1 retorna ${formatRoiMultiple(roi)}`;
+  if (breakEven !== null) return `se paga com ${formatBrl(breakEven)}/mês em gastos`;
+  if (roi !== null) return `retorna ${formatRoiMultiple(roi)} em valor para cada R$ 1 cobrado`;
   return null;
 };
 
@@ -62,27 +62,17 @@ const annualFeeRoiLine = (n: ComparisonNarrative): string | null => {
 
 const routeLabel = (route: FeeWaiverRoute): string =>
   route.kind === "spend"
-    ? `${formatBrl(route.amountBrl)}/mês em gastos`
-    : `${formatBrl(route.amountBrl)} investidos no banco`;
+    ? `${formatBrl(route.amountBrl)}/mês`
+    : `${formatBrl(route.amountBrl)} investidos`;
 
-const feeStatusText = (detail: FeeDetail): string => {
-  if (detail.status === "no-fee") return "Sem anuidade";
-  if (detail.status === "waived") return "Isenta";
-  return `Cobrada · ${formatBrl(detail.annualBrl)}/ano`;
+// The "Condições" cell — kept short so it fits the same column width as the travel-benefit
+// breakdown cells. The fee amount itself is already in the value cell above; this answers only
+// "how to get it waived". For a charged card "isenta com …" reads as the hypothetical.
+const feeConditionCellText = (detail: FeeDetail): string => {
+  if (detail.status === "no-fee") return "sem anuidade";
+  if (detail.routes.length === 0) return detail.status === "charged" ? "sem isenção" : "isenta";
+  return `isenta com ${detail.routes.map(routeLabel).join(" ou ")}`;
 };
-
-// Waiver condition(s). Charged card → "isenta com X ou Y" (hypothetical — sits under "Cobrada · …").
-// Waived card → "com X ou Y" (conditions being met — sits under "Isenta"). Null when there are none.
-const feeRoutesText = (detail: FeeDetail): string | null => {
-  if (detail.routes.length === 0) return null;
-  const joined = detail.routes.map(routeLabel).join(" ou ");
-  return detail.status === "charged" ? `isenta com ${joined}` : `com ${joined}`;
-};
-
-const feeShortfallText = (detail: FeeDetail): string | null =>
-  detail.spendShortfallAvailableBrl !== undefined
-    ? `você gasta ${formatBrl(detail.spendShortfallAvailableBrl)}/mês`
-    : null;
 
 // ─── verdict tag (amber only when there's something to warn about) ────────────
 
@@ -179,57 +169,20 @@ const ValueCell = ({
 
 // ─── detail sub-rows ──────────────────────────────────────────────────────────
 
-// Per-card "fee story" inside the expanded annual-fee panel: an eyebrow, a status headline,
-// the waiver condition(s), an optional spend-shortfall note, and — current card only, when it
-// actually charges a fee — the break-even/ROI line under a hairline.
-const FeeStory = ({
-  eyebrow,
-  detail,
-  roiLine,
-}: {
-  eyebrow: string;
-  detail: FeeDetail | undefined;
-  roiLine: string | null;
-}): JSX.Element => {
-  const routesText = detail !== undefined ? feeRoutesText(detail) : null;
-  const shortfallText = detail !== undefined ? feeShortfallText(detail) : null;
-  const showRoi = roiLine !== null && detail?.status === "charged";
-  return (
-    <div className="text-ink-muted text-xs leading-snug">
-      <span className="text-caption text-ink-subtle block">{eyebrow}</span>
-      <span className="text-ink mt-1.5 block text-sm font-medium">
-        {detail !== undefined ? feeStatusText(detail) : "—"}
-      </span>
-      {routesText !== null ? <span className="mt-1 block">{routesText}</span> : null}
-      {shortfallText !== null ? (
-        <span className="text-ink-subtle mt-1 block">{shortfallText}</span>
-      ) : null}
-      {showRoi ? (
-        <span className="border-line text-ink-subtle mt-2.5 block border-t pt-2.5">{roiLine}</span>
-      ) : null}
-    </div>
-  );
-};
-
-// The expanded annual-fee detail is a full-width panel — not prose crammed into the narrow value
-// columns — with the two cards' fee stories side by side.
-const AnnualFeeDetailRow = ({
-  row,
-  roiLine,
-}: {
-  row: ComparisonRow;
-  roiLine: string | null;
-}): JSX.Element => (
+// One sub-row, the same shape as the travel-benefit breakdown rows: a "Condições" label, then each
+// card's short waiver condition in its own value column (right-aligned, like the breakdown cells).
+const AnnualFeeDetailRow = ({ row }: { row: ComparisonRow }): JSX.Element => (
   <tr className="border-t-0">
-    <td
-      colSpan={3}
-      aria-label="Detalhe da anuidade"
-      className="bg-surface-sunken px-4 py-5 md:px-6"
-    >
-      <div className="grid gap-x-12 gap-y-5 sm:grid-cols-2">
-        <FeeStory eyebrow="SEU CARTÃO" detail={row.currentFeeDetail} roiLine={roiLine} />
-        <FeeStory eyebrow="RECOMENDADO" detail={row.recommendedFeeDetail} roiLine={null} />
-      </div>
+    <th scope="row" className="text-ink-subtle py-2 pr-6 pl-4 text-left text-xs font-normal">
+      Condições
+    </th>
+    <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs leading-snug">
+      {row.currentFeeDetail !== undefined ? feeConditionCellText(row.currentFeeDetail) : "—"}
+    </td>
+    <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs leading-snug">
+      {row.recommendedFeeDetail !== undefined
+        ? feeConditionCellText(row.recommendedFeeDetail)
+        : "—"}
     </td>
   </tr>
 );
@@ -263,7 +216,9 @@ export const CurrentVsRecommended = ({
   currentLabel,
   recommendedLabel,
 }: Props): JSX.Element => {
-  const roiLine = annualFeeRoiLine(narrative);
+  const annualFeeRow = narrative.rows.find((r) => r.key === "annual-fee");
+  const roiCaption =
+    annualFeeRow?.currentFeeDetail?.status === "charged" ? annualFeeRoiClause(narrative) : null;
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string): void => {
     setExpandedRows((prev) => {
@@ -351,9 +306,7 @@ export const CurrentVsRecommended = ({
                     <ValueCell row={row} side="recommended" value={row.recommendedValueBrl} />
                   </tr>
 
-                  {isExpanded && row.key === "annual-fee" ? (
-                    <AnnualFeeDetailRow row={row} roiLine={roiLine} />
-                  ) : null}
+                  {isExpanded && row.key === "annual-fee" ? <AnnualFeeDetailRow row={row} /> : null}
                   {isExpanded && row.key === "travel-benefit" ? (
                     <BreakdownDetailRows row={row} />
                   ) : null}
@@ -375,6 +328,12 @@ export const CurrentVsRecommended = ({
           </tfoot>
         </table>
       </div>
+
+      {roiCaption !== null ? (
+        <p className="text-ink-subtle text-xs">
+          A anuidade do {currentLabel} {roiCaption}.
+        </p>
+      ) : null}
     </section>
   );
 };
