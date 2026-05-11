@@ -8,8 +8,8 @@ import type { ComparisonNarrative } from "@/lib/comparison-narrative";
 const variantANarrative: ComparisonNarrative = {
   variant: "current-negative",
   diagnosis: [
-    `No seu gasto, seu cartão atual cobra ${formatBrl(1068)} de anuidade e fica negativo em ${formatBrl(318)}/ano.`,
-    `O recomendado renderia ${formatBrl(720)} líquido/ano sem anuidade.`,
+    `A maior diferença está na anuidade: ${formatBrl(1068)} no atual, ${formatBrl(0)} no recomendado.`,
+    `Seu cartão atual fica negativo em ${formatBrl(318)}/ano. O recomendado renderia ${formatBrl(720)} líquido/ano sem anuidade.`,
   ],
   rows: [
     {
@@ -72,6 +72,9 @@ const travelNarrative: ComparisonNarrative = {
   currentRoiMultiple: null,
 };
 
+const rowEl = (rowLabel: string): HTMLElement =>
+  screen.getByText(rowLabel).closest("tr") as HTMLElement;
+
 describe("CurrentVsRecommended", () => {
   it("renders both diagnosis paragraphs", () => {
     render(
@@ -82,7 +85,7 @@ describe("CurrentVsRecommended", () => {
       />,
     );
     expect(
-      screen.getByText(/seu cartão atual cobra R\$\s?1\.068,00 de anuidade/),
+      screen.getByText(/A maior diferença está na anuidade: R\$\s?1\.068,00 no atual/),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/O recomendado renderia R\$\s?720,00 líquido\/ano sem anuidade/),
@@ -103,22 +106,14 @@ describe("CurrentVsRecommended", () => {
     expect(screen.getByText("PicPay Card Black")).toBeInTheDocument();
   });
 
-  it("the recommended column header shows a gold 'recomendado' pill", () => {
+  it("the recommended column header shows a gold 'recomendado' pill, none on HOJE", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
     const pill = screen.getByText(/^recomendado$/);
-    expect(pill).toBeInTheDocument();
-    expect(pill).toHaveClass("text-gold");
-    expect(pill).toHaveClass("bg-gold-soft");
+    expect(pill).toHaveClass("text-gold", "bg-gold-soft");
     const recommendedTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
     expect(within(recommendedTh).getByText(/^recomendado$/)).toBeInTheDocument();
-  });
-
-  it("the HOJE column header has no winner pill", () => {
-    render(
-      <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
-    );
     const hojeTh = screen.getByText("HOJE").closest("th") as HTMLElement;
     expect(within(hojeTh).queryByText(/^recomendado$/)).toBeNull();
   });
@@ -128,17 +123,19 @@ describe("CurrentVsRecommended", () => {
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
     expect(screen.getByText("Cashback")).toBeInTheDocument();
-    expect(screen.getByText("Anuidade")).toBeInTheDocument();
+    // the annual-fee row label is a toggle button (it carries expandable detail)
+    expect(screen.getByRole("button", { name: "Anuidade" })).toBeInTheDocument();
     expect(screen.getByText("Líquido anual")).toBeInTheDocument();
     expect(screen.getByText(/750,00/)).toBeInTheDocument();
     // 720 appears in three places: diagnosis sentence + cashback rec cell + net rec cell.
     expect(screen.getAllByText(/720,00/).length).toBe(3);
     expect(screen.getByText(/-R\$\s?1\.068,00/)).toBeInTheDocument();
-    expect(screen.getByText(/R\$\s?0,00/)).toBeInTheDocument();
+    // R$ 0,00 shows in the annual-fee recommended cell and once in the diagnosis sentence.
+    expect(screen.getAllByText(/R\$\s?0,00/).length).toBe(2);
     expect(screen.getByText(/-R\$\s?318,00/)).toBeInTheDocument();
   });
 
-  it("renders the verdict in accent and never in danger", () => {
+  it("renders the difference verdict in accent, never in danger", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
@@ -146,15 +143,6 @@ describe("CurrentVsRecommended", () => {
     const verdict = screen.getByText(/1\.038,00/);
     expect(verdict).toHaveClass("text-accent");
     expect(verdict).not.toHaveClass("text-danger");
-  });
-
-  it("colors a negative net row in warning", () => {
-    render(
-      <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
-    );
-    const negativeNet = screen.getByText(/-R\$\s?318,00/);
-    expect(negativeNet).toHaveClass("text-warning");
-    expect(negativeNet).not.toHaveClass("text-danger");
   });
 
   it("renders the monthly-spend caption", () => {
@@ -177,67 +165,176 @@ describe("CurrentVsRecommended", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the annual-fee waiver sub-lines per side", () => {
-    render(
-      <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
-    );
-    expect(
-      screen.getByText(
-        /cobrada; isentaria com R\$\s?50\.000,00 investidos ou R\$\s?8\.000,00\/mês/,
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/isenta: gasto de R\$\s?5\.000,00\/mês satisfaz \(alternativa:/),
-    ).toBeInTheDocument();
+  describe("per-row winner/loser styling", () => {
+    it("emphasizes the winning value and recesses the losing one", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      const cashback = rowEl("Cashback");
+      // current (R$ 750,00) wins over recommended (R$ 720,00)
+      expect(within(cashback).getByText(/750,00/)).toHaveClass("font-medium", "text-ink");
+      expect(within(cashback).getByText(/720,00/)).toHaveClass("font-normal", "text-ink-muted");
+    });
+
+    it("marks only the winning value with a screen-reader 'melhor' note", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      const cashback = rowEl("Cashback");
+      expect(
+        within(within(cashback).getByText(/750,00/)).getByText(/melhor neste item/),
+      ).toBeInTheDocument();
+      expect(
+        within(within(cashback).getByText(/720,00/)).queryByText(/melhor neste item/),
+      ).toBeNull();
+    });
+
+    it("keeps the net row bold on both sides and the negative current net in warning", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      const net = rowEl("Líquido anual");
+      const currentNet = within(net).getByText(/-R\$\s?318,00/);
+      expect(currentNet).toHaveClass("font-semibold", "text-warning");
+      expect(currentNet).not.toHaveClass("text-danger");
+      const recommendedNet = within(net).getByText(/720,00/);
+      expect(recommendedNet).toHaveClass("font-semibold", "text-ink");
+      expect(within(recommendedNet).getByText(/melhor neste item/)).toBeInTheDocument();
+    });
+
+    it("leaves a tied row neutral — no emphasis, no marker", () => {
+      const tied: ComparisonNarrative = {
+        ...variantANarrative,
+        rows: [
+          {
+            key: "fx-iof",
+            label: "FX/IOF",
+            currentValueBrl: -444,
+            recommendedValueBrl: -444,
+            tone: "tie",
+          },
+          { key: "net", label: "Líquido anual", currentValueBrl: -444, recommendedValueBrl: -444 },
+        ],
+      };
+      render(<CurrentVsRecommended narrative={tied} currentLabel="A" recommendedLabel="B" />);
+      const fxCells = within(rowEl("FX/IOF")).getAllByText(/-R\$\s?444,00/);
+      expect(fxCells).toHaveLength(2);
+      for (const cell of fxCells) {
+        expect(cell).toHaveClass("text-ink", "font-normal");
+        expect(within(cell).queryByText(/melhor neste item/)).toBeNull();
+      }
+    });
   });
 
-  it("shows the break-even and ROI clause on the current side when both are set", () => {
-    render(
-      <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
-    );
-    expect(
-      screen.getByText(
-        /a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x/,
-      ),
-    ).toBeInTheDocument();
-  });
+  describe("annual-fee detail (progressive disclosure)", () => {
+    it("hides the waiver/break-even detail until the row is expanded", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      const toggle = screen.getByRole("button", { name: "Anuidade" });
+      expect(toggle).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText(/cobrada; isentaria com/)).not.toBeInTheDocument();
 
-  it("hides the break-even/ROI clause when both values are null", () => {
-    render(
-      <CurrentVsRecommended
-        narrative={narrativeWithoutBreakEven}
-        currentLabel="A"
-        recommendedLabel="B"
-      />,
-    );
-    expect(screen.queryByText(/a anuidade se paga a partir de/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/cada R\$ 1/)).not.toBeInTheDocument();
-  });
+      await user.click(toggle);
 
-  it("shows the ROI clause alone when only currentRoiMultiple is set", () => {
-    render(
-      <CurrentVsRecommended
-        narrative={{ ...variantANarrative, currentBreakEvenMonthlySpendBrl: null }}
-        currentLabel="A"
-        recommendedLabel="B"
-      />,
-    );
-    expect(screen.getByText(/cada R\$ 1 de anuidade retorna 3,59x/)).toBeInTheDocument();
-    expect(screen.queryByText(/a anuidade se paga a partir de/)).not.toBeInTheDocument();
-  });
+      expect(toggle).toHaveAttribute("aria-expanded", "true");
+      expect(
+        screen.getByText(
+          /cobrada; isentaria com R\$\s?50\.000,00 investidos ou R\$\s?8\.000,00\/mês/,
+          { selector: "p" },
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/isenta: gasto de R\$\s?5\.000,00\/mês satisfaz \(alternativa:/, {
+          selector: "p",
+        }),
+      ).toBeInTheDocument();
+    });
 
-  it("shows the break-even clause alone when only currentBreakEvenMonthlySpendBrl is set", () => {
-    render(
-      <CurrentVsRecommended
-        narrative={{ ...variantANarrative, currentRoiMultiple: null }}
-        currentLabel="A"
-        recommendedLabel="B"
-      />,
-    );
-    expect(
-      screen.getByText(/a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos/),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/cada R\$ 1/)).not.toBeInTheDocument();
+    it("shows the break-even and ROI line when both are set", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      expect(
+        screen.getByText(
+          /a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos · cada R\$ 1 retorna 3,59x/,
+          { selector: "p" },
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("shows the break-even line alone when only the break-even spend is set", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={{ ...variantANarrative, currentRoiMultiple: null }}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      expect(
+        screen.getByText(/a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos/, {
+          selector: "p",
+        }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/cada R\$ 1/, { selector: "p" })).toBeNull();
+    });
+
+    it("shows the ROI line alone when only the ROI multiple is set", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={{ ...variantANarrative, currentBreakEvenMonthlySpendBrl: null }}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      expect(
+        screen.getByText(/cada R\$ 1 de anuidade retorna 3,59x/, { selector: "p" }),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/a anuidade se paga a partir de/, { selector: "p" })).toBeNull();
+    });
+
+    it("omits the break-even/ROI line when neither value is set", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={narrativeWithoutBreakEven}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      // still expandable — it carries the waiver sub-labels
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      expect(screen.queryByText(/a anuidade se paga a partir de/, { selector: "p" })).toBeNull();
+      expect(screen.queryByText(/cada R\$ 1/, { selector: "p" })).toBeNull();
+      expect(screen.getByText(/cobrada; isentaria com/, { selector: "p" })).toBeInTheDocument();
+    });
   });
 
   describe("travel-benefit row expandable breakdown", () => {
@@ -250,7 +347,6 @@ describe("CurrentVsRecommended", () => {
         />,
       );
       const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
-      expect(btn).toBeInTheDocument();
       expect(btn).toHaveAttribute("aria-expanded", "false");
       expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
       expect(screen.queryByText("Seguro")).not.toBeInTheDocument();
@@ -269,18 +365,13 @@ describe("CurrentVsRecommended", () => {
       await user.click(btn);
 
       expect(btn).toHaveAttribute("aria-expanded", "true");
-
       expect(screen.getByText("Sala VIP")).toBeInTheDocument();
       expect(screen.getByText("Seguro")).toBeInTheDocument();
 
-      // Sala VIP: both sides show R$ 2.400,00
       const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
-      expect(salaVipRow).not.toBeNull();
       expect(within(salaVipRow).getAllByText(/R\$\s?2\.400,00/).length).toBe(2);
 
-      // Seguro: current side shows R$ 1.750,00; recommended side shows em-dash
       const seguroRow = screen.getByText("Seguro").closest("tr") as HTMLElement;
-      expect(seguroRow).not.toBeNull();
       expect(within(seguroRow).getByText(/R\$\s?1\.750,00/)).toBeInTheDocument();
       expect(within(seguroRow).getByText("—")).toBeInTheDocument();
     });
@@ -300,10 +391,9 @@ describe("CurrentVsRecommended", () => {
 
       expect(btn).toHaveAttribute("aria-expanded", "false");
       expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
-      expect(screen.queryByText("Seguro")).not.toBeInTheDocument();
     });
 
-    it("a narrative without a travel-benefit breakdown shows no toggle", () => {
+    it("a narrative without a travel-benefit breakdown shows no benefit toggle", () => {
       render(
         <CurrentVsRecommended
           narrative={variantANarrative}
@@ -337,32 +427,34 @@ describe("CurrentVsRecommended", () => {
       expect(
         within(hojeTh).getByText(/Atenção: tende a custar mais que retorna/),
       ).toBeInTheDocument();
-
       const recomendadoTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
       expect(
         within(recomendadoTh).getByText(/Forte candidato para este perfil/),
       ).toBeInTheDocument();
     });
 
-    it("colors the verdict tag by kind", () => {
+    it("paints a negative verdict in warning and a non-negative one in subtle ink", () => {
       render(
         <CurrentVsRecommended narrative={verdictNarrative} currentLabel="A" recommendedLabel="B" />,
       );
-      expect(screen.getByText(/Forte candidato para este perfil/)).toHaveClass("text-accent");
+      expect(screen.getByText(/Forte candidato para este perfil/)).toHaveClass("text-ink-subtle");
       expect(screen.getByText(/Atenção: tende a custar mais que retorna/)).toHaveClass(
         "text-warning",
       );
     });
 
-    it("colors a viable verdict with text-ink-muted", () => {
-      const viableNarrative: ComparisonNarrative = {
-        ...variantANarrative,
-        currentVerdict: { kind: "viable", label: "Pode compensar dependendo do uso" },
-      };
+    it("paints a viable verdict in subtle ink too", () => {
       render(
-        <CurrentVsRecommended narrative={viableNarrative} currentLabel="A" recommendedLabel="B" />,
+        <CurrentVsRecommended
+          narrative={{
+            ...variantANarrative,
+            currentVerdict: { kind: "viable", label: "Pode compensar dependendo do uso" },
+          }}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
       );
-      expect(screen.getByText(/Pode compensar dependendo do uso/)).toHaveClass("text-ink-muted");
+      expect(screen.getByText(/Pode compensar dependendo do uso/)).toHaveClass("text-ink-subtle");
     });
 
     it("renders no verdict tag when the verdict is absent", () => {
@@ -378,109 +470,18 @@ describe("CurrentVsRecommended", () => {
     });
 
     it("renders only the present verdict tag when one side is absent", () => {
-      // variantANarrative carries no currentVerdict, so a plain spread leaves it absent.
-      const oneVerdictNarrative: ComparisonNarrative = {
-        ...variantANarrative,
-        recommendedVerdict: { kind: "strong", label: "Forte candidato para este perfil" },
-      };
       render(
         <CurrentVsRecommended
-          narrative={oneVerdictNarrative}
+          narrative={{
+            ...variantANarrative,
+            recommendedVerdict: { kind: "strong", label: "Forte candidato para este perfil" },
+          }}
           currentLabel="A"
           recommendedLabel="B"
         />,
       );
       expect(screen.getByText(/Forte candidato para este perfil/)).toBeInTheDocument();
       expect(screen.queryByText(/Atenção/)).toBeNull();
-    });
-  });
-
-  describe("cell tints by tone", () => {
-    // variantANarrative rows:
-    //   cashback  tone:"current-better"   → current(750) positive, recommended(720) negative
-    //   annual-fee tone:"recommended-better" → current(-1068) negative, recommended(0) positive
-    //   net       (no tone)               → no bg-cell-* class
-
-    it("current-better row: current cell gets bg-cell-positive, recommended gets bg-cell-negative", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={variantANarrative}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      // cashback current = R$ 750,00
-      const currentCashback = screen.getByText(/750,00/);
-      expect(currentCashback).toHaveClass("bg-cell-positive");
-      expect(currentCashback).not.toHaveClass("bg-cell-negative");
-
-      // cashback recommended = R$ 720,00 appears multiple times; find the table cell (td)
-      const allSevenTwenty = screen.getAllByText(/720,00/);
-      const cashbackRecommendedTd = allSevenTwenty.find((el) => el.tagName === "TD");
-      expect(cashbackRecommendedTd).toBeDefined();
-      expect(cashbackRecommendedTd).toHaveClass("bg-cell-negative");
-      expect(cashbackRecommendedTd).not.toHaveClass("bg-cell-positive");
-    });
-
-    it("recommended-better row: current cell gets bg-cell-negative, recommended gets bg-cell-positive", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={variantANarrative}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      // annual-fee current = -R$ 1.068,00 (unambiguous)
-      const currentFee = screen.getByText(/-R\$\s?1\.068,00/);
-      expect(currentFee).toHaveClass("bg-cell-negative");
-      expect(currentFee).not.toHaveClass("bg-cell-positive");
-
-      // annual-fee recommended = R$ 0,00 (unambiguous)
-      const recommendedFee = screen.getByText(/R\$\s?0,00/);
-      expect(recommendedFee).toHaveClass("bg-cell-positive");
-      expect(recommendedFee).not.toHaveClass("bg-cell-negative");
-    });
-
-    it("net row has no bg-cell-* class on either side", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={variantANarrative}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      const netRow = screen.getByText("Líquido anual").closest("tr") as HTMLElement;
-      expect(netRow).not.toBeNull();
-      const [netCurrentTd, netRecommendedTd] = within(netRow).getAllByRole("cell");
-      expect(netCurrentTd?.className).not.toMatch(/bg-cell-/);
-      expect(netRecommendedTd?.className).not.toMatch(/bg-cell-/);
-    });
-
-    it("tied row: both cells get bg-cell-neutral", () => {
-      const tiedNarrative: ComparisonNarrative = {
-        ...variantANarrative,
-        rows: [
-          {
-            key: "fx-iof",
-            label: "FX/IOF",
-            currentValueBrl: -444,
-            recommendedValueBrl: -444,
-            tone: "tie",
-          },
-          { key: "net", label: "Líquido anual", currentValueBrl: -444, recommendedValueBrl: -444 },
-        ],
-      };
-      render(
-        <CurrentVsRecommended narrative={tiedNarrative} currentLabel="A" recommendedLabel="B" />,
-      );
-      // Both fx-iof cells show -R$ 444,00; they are the two TDs in the fx-iof row
-      const fxRow = screen.getByText("FX/IOF").closest("tr") as HTMLElement;
-      expect(fxRow).not.toBeNull();
-      const cells = within(fxRow).getAllByText(/-R\$\s?444,00/);
-      expect(cells).toHaveLength(2);
-      for (const cell of cells) {
-        expect(cell).toHaveClass("bg-cell-neutral");
-      }
     });
   });
 });
