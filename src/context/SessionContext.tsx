@@ -40,7 +40,7 @@ const StoredProfileSchema = z.object({
       z.object({ kind: z.literal("any") }),
     ]),
     currentCardIds: z.array(z.string()).optional(),
-    travelFrequency: z.enum(["none", "occasional", "frequent"]).optional(),
+    tripsPerYear: z.number().int().min(0).optional(),
   }),
   savedAt: z.string(),
 });

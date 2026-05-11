@@ -60,11 +60,6 @@ export type RedemptionPreference =
   | { kind: "cashback" }
   | { kind: "any" };
 
-// Frequência declarada de viagens internacionais. Espelha o backend
-// (src/domain/types.ts) — alimenta defaults para visitas a salas VIP e
-// número de viagens/ano nos cálculos de benefitUtilityBrl.
-export type TravelFrequency = "none" | "occasional" | "frequent";
-
 export interface SpendingProfile {
   monthlyDomesticBrl: number;
   monthlyInternationalUsd: number;
@@ -72,7 +67,7 @@ export interface SpendingProfile {
   availableToInvestBrl?: number;
   redemption: RedemptionPreference;
   currentCardIds?: string[];
-  travelFrequency?: TravelFrequency;
+  tripsPerYear?: number;
 }
 
 export interface CardAllocation {
@@ -126,10 +121,16 @@ export interface ScoreComponent {
 
 export type ScoreBreakdown = Record<ScoreCategory, ScoreComponent>;
 
+// Per-component benefit breakdown. Mirrors the API's ScoreLabBenefitBreakdown.
+export interface BenefitComponentValue {
+  count: number; // visits applied (lounge) or trips applied (insurance/baggage); 0 when component contributes nothing
+  unitBrl: number; // R$ per visit/trip — lounge: 200; insurance: card-level value; baggage: 200
+  totalBrl: number; // count * unitBrl, rounded
+}
 export interface BenefitBreakdown {
-  loungeValueBrl: number;
-  insuranceValueBrl: number;
-  baggageValueBrl: number;
+  lounge: BenefitComponentValue;
+  insurance: BenefitComponentValue;
+  baggage: BenefitComponentValue;
   totalBrl: number;
 }
 

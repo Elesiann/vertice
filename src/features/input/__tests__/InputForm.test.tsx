@@ -159,7 +159,7 @@ describe("InputForm", () => {
           monthlyDomesticBrl: 7000,
           monthlyInternationalUsd: 350,
           redemption: { kind: "miles", program: "smiles" },
-          travelFrequency: "frequent",
+          tripsPerYear: 5,
         },
         savedAt: new Date().toISOString(),
       }),
@@ -170,7 +170,7 @@ describe("InputForm", () => {
     expect(await screen.findByLabelText(/Gasto mensal \(R\$\)/i)).toHaveValue(7000);
     expect(screen.queryByLabelText(/Gasto mensal em viagens/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Forma de resgate/i)).toHaveValue("miles:smiles");
-    expect(screen.getByLabelText(/Frequência de viagens/i)).toHaveValue("frequent");
+    expect(screen.getByLabelText(/Quantas viagens/i)).toHaveValue(5);
     expect(screen.getByText(/Última edição/i)).toBeInTheDocument();
   });
 

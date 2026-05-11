@@ -56,10 +56,10 @@ const travelNarrative: ComparisonNarrative = {
       currentValueBrl: 4150,
       recommendedValueBrl: 2400,
       currentBreakdown: [
-        { label: "Sala VIP", valueBrl: 2400 },
-        { label: "Seguro", valueBrl: 1750 },
+        { label: "Sala VIP", count: 12, unitBrl: 200, totalBrl: 2400 },
+        { label: "Seguro", count: 5, unitBrl: 350, totalBrl: 1750 },
       ],
-      recommendedBreakdown: [{ label: "Sala VIP", valueBrl: 2400 }],
+      recommendedBreakdown: [{ label: "Sala VIP", count: 12, unitBrl: 200, totalBrl: 2400 }],
       tone: "current-better",
     },
     { key: "net", label: "Líquido anual", currentValueBrl: 4150, recommendedValueBrl: 2400 },
@@ -351,7 +351,7 @@ describe("CurrentVsRecommended", () => {
       expect(screen.queryByText("Seguro")).not.toBeInTheDocument();
     });
 
-    it("expanding the travel-benefit row reveals the breakdown with correct values", async () => {
+    it("expanding the travel-benefit row reveals each component with count × unit = total format", async () => {
       const user = userEvent.setup();
       render(
         <CurrentVsRecommended
@@ -367,34 +367,17 @@ describe("CurrentVsRecommended", () => {
       expect(screen.getByText("Sala VIP")).toBeInTheDocument();
       expect(screen.getByText("Seguro")).toBeInTheDocument();
 
+      // Sala VIP: count=12, unitBrl=200, totalBrl=2400 — on both sides (same fixture data).
       const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
-      expect(within(salaVipRow).getAllByText(/R\$\s?2\.400,00/).length).toBe(2);
+      expect(
+        within(salaVipRow).getAllByText(/12 acessos × R\$\s?200,00 = R\$\s?2\.400,00/).length,
+      ).toBe(2);
 
+      // Seguro: count=5, unitBrl=350, totalBrl=1750 on current; absent → em-dash on recommended.
       const seguroRow = screen.getByText("Seguro").closest("tr") as HTMLElement;
-      expect(within(seguroRow).getByText(/R\$\s?1\.750,00/)).toBeInTheDocument();
-      expect(within(seguroRow).getByText("—")).toBeInTheDocument();
-    });
-
-    it("breaks each component into 'N × per-trip = total' when a trip count is given", async () => {
-      const user = userEvent.setup();
-      render(
-        <CurrentVsRecommended
-          narrative={travelNarrative}
-          currentLabel="Card A"
-          recommendedLabel="Card B"
-          tripsPerYear={2}
-        />,
-      );
-      await user.click(screen.getByRole("button", { name: /Benefício de viagem/i }));
-
-      // Sala VIP: R$ 2.400,00 over 2 trips → 2 × R$ 1.200,00 = R$ 2.400,00 on both sides.
-      const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
-      expect(within(salaVipRow).getAllByText(/2 × R\$\s?1\.200,00 = R\$\s?2\.400,00/).length).toBe(
-        2,
-      );
-      // Seguro: R$ 1.750,00 / 2 = R$ 875,00 on the current side; absent → em-dash on the other.
-      const seguroRow = screen.getByText("Seguro").closest("tr") as HTMLElement;
-      expect(within(seguroRow).getByText(/2 × R\$\s?875,00 = R\$\s?1\.750,00/)).toBeInTheDocument();
+      expect(
+        within(seguroRow).getByText(/5 viagens × R\$\s?350,00 = R\$\s?1\.750,00/),
+      ).toBeInTheDocument();
       expect(within(seguroRow).getByText("—")).toBeInTheDocument();
     });
 

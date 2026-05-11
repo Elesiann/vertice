@@ -2,7 +2,11 @@ import { Fragment, useState, type JSX } from "react";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
-import type { ComparisonNarrative, ComparisonRow } from "@/lib/comparison-narrative";
+import type {
+  BenefitBreakdownPart,
+  ComparisonNarrative,
+  ComparisonRow,
+} from "@/lib/comparison-narrative";
 import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
 import type { ScoreLabVerdictKind } from "@/types";
 
@@ -10,21 +14,19 @@ interface Props {
   narrative: ComparisonNarrative;
   currentLabel: string;
   recommendedLabel: string;
-  // Trips/year derived from the spending profile's travel frequency (0 when no travel declared);
-  // used to break each travel-benefit component into "N × per-trip value = total".
-  tripsPerYear?: number;
 }
 
 type Side = "current" | "recommended";
 
-// "N × R$ x = R$ total" when a trip count is known, else just the total; em-dash when the
-// component is absent on that side.
-const breakdownCellText = (value: number | null, tripsPerYear: number): string => {
-  if (value === null) return "—";
-  if (tripsPerYear > 0) {
-    return `${String(tripsPerYear)} × ${formatBrl(value / tripsPerYear)} = ${formatBrl(value)}`;
-  }
-  return formatBrl(value);
+const benefitUnit = (label: string, count: number): string => {
+  const plural = count !== 1;
+  return label === "Sala VIP" ? (plural ? "acessos" : "acesso") : plural ? "viagens" : "viagem";
+};
+
+// "{count} {unit} × {unitBrl} = {totalBrl}"; em-dash when the component is absent on that side.
+const breakdownCellText = (part: BenefitBreakdownPart | undefined): string => {
+  if (part === undefined) return "—";
+  return `${String(part.count)} ${benefitUnit(part.label, part.count)} × ${formatBrl(part.unitBrl)} = ${formatBrl(part.totalBrl)}`;
 };
 
 // ─── copy helpers ─────────────────────────────────────────────────────────────
@@ -192,29 +194,21 @@ const AnnualFeeDetailRows = ({
   </>
 );
 
-const BreakdownDetailRows = ({
-  row,
-  tripsPerYear,
-}: {
-  row: ComparisonRow;
-  tripsPerYear: number;
-}): JSX.Element => (
+const BreakdownDetailRows = ({ row }: { row: ComparisonRow }): JSX.Element => (
   <>
     {mergeBreakdownLabels(row).map((label) => {
-      // null = component absent on that side → em-dash.
-      const current = row.currentBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
-      const recommended =
-        row.recommendedBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
+      const current = row.currentBreakdown?.find((p) => p.label === label);
+      const recommended = row.recommendedBreakdown?.find((p) => p.label === label);
       return (
         <tr key={label} className="border-t-0">
           <th scope="row" className="text-ink-subtle py-2 pr-6 pl-4 text-left text-xs font-normal">
             {label}
           </th>
           <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
-            {breakdownCellText(current, tripsPerYear)}
+            {breakdownCellText(current)}
           </td>
           <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
-            {breakdownCellText(recommended, tripsPerYear)}
+            {breakdownCellText(recommended)}
           </td>
         </tr>
       );
@@ -228,7 +222,6 @@ export const CurrentVsRecommended = ({
   narrative,
   currentLabel,
   recommendedLabel,
-  tripsPerYear = 0,
 }: Props): JSX.Element => {
   const roiLine = annualFeeRoiLine(narrative);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
@@ -327,7 +320,7 @@ export const CurrentVsRecommended = ({
                     />
                   ) : null}
                   {isExpanded && row.key === "travel-benefit" ? (
-                    <BreakdownDetailRows row={row} tripsPerYear={tripsPerYear} />
+                    <BreakdownDetailRows row={row} />
                   ) : null}
                 </Fragment>
               );

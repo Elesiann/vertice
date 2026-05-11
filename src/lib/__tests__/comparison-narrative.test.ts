@@ -713,9 +713,9 @@ describe("buildComparisonNarrative", () => {
 
     it("attaches breakdown parts with only >0 components to travel-benefit row", () => {
       const breakdown: BenefitBreakdown = {
-        loungeValueBrl: 2400,
-        insuranceValueBrl: 1750,
-        baggageValueBrl: 0,
+        lounge: { count: 12, unitBrl: 200, totalBrl: 2400 },
+        insurance: { count: 5, unitBrl: 350, totalBrl: 1750 },
+        baggage: { count: 0, unitBrl: 200, totalBrl: 0 },
         totalBrl: 4150,
       };
       const current = makeStack({ benefitUtilityBrl: 0 });
@@ -729,8 +729,13 @@ describe("buildComparisonNarrative", () => {
 
       const recBreakdown = travel?.recommendedBreakdown ?? [];
       expect(recBreakdown).toHaveLength(2);
-      expect(recBreakdown[0]).toEqual({ label: "Sala VIP", valueBrl: 2400 });
-      expect(recBreakdown[1]).toEqual({ label: "Seguro", valueBrl: 1750 });
+      expect(recBreakdown[0]).toEqual({
+        label: "Sala VIP",
+        count: 12,
+        unitBrl: 200,
+        totalBrl: 2400,
+      });
+      expect(recBreakdown[1]).toEqual({ label: "Seguro", count: 5, unitBrl: 350, totalBrl: 1750 });
 
       const curBreakdown = travel?.currentBreakdown ?? [];
       expect(curBreakdown).toEqual([]);
@@ -738,9 +743,9 @@ describe("buildComparisonNarrative", () => {
 
     it("attaches all three components when all > 0", () => {
       const breakdown: BenefitBreakdown = {
-        loungeValueBrl: 2400,
-        insuranceValueBrl: 1750,
-        baggageValueBrl: 600,
+        lounge: { count: 12, unitBrl: 200, totalBrl: 2400 },
+        insurance: { count: 5, unitBrl: 350, totalBrl: 1750 },
+        baggage: { count: 3, unitBrl: 200, totalBrl: 600 },
         totalBrl: 4750,
       };
       const top = makeStack({

@@ -17,8 +17,10 @@ export type ComparisonRowKey =
   | "net";
 
 export interface BenefitBreakdownPart {
-  label: string;
-  valueBrl: number;
+  label: string; // "Sala VIP" | "Seguro" | "Bagagem"
+  count: number;
+  unitBrl: number;
+  totalBrl: number;
 }
 
 export interface ComparisonRow {
@@ -74,9 +76,27 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
   const bd: BenefitBreakdown | undefined = stack.scoreLab?.modeledAnnual.benefitBreakdown;
   if (bd === undefined) return [];
   const parts: BenefitBreakdownPart[] = [];
-  if (bd.loungeValueBrl > 0) parts.push({ label: "Sala VIP", valueBrl: bd.loungeValueBrl });
-  if (bd.insuranceValueBrl > 0) parts.push({ label: "Seguro", valueBrl: bd.insuranceValueBrl });
-  if (bd.baggageValueBrl > 0) parts.push({ label: "Bagagem", valueBrl: bd.baggageValueBrl });
+  if (bd.lounge.totalBrl > 0)
+    parts.push({
+      label: "Sala VIP",
+      count: bd.lounge.count,
+      unitBrl: bd.lounge.unitBrl,
+      totalBrl: bd.lounge.totalBrl,
+    });
+  if (bd.insurance.totalBrl > 0)
+    parts.push({
+      label: "Seguro",
+      count: bd.insurance.count,
+      unitBrl: bd.insurance.unitBrl,
+      totalBrl: bd.insurance.totalBrl,
+    });
+  if (bd.baggage.totalBrl > 0)
+    parts.push({
+      label: "Bagagem",
+      count: bd.baggage.count,
+      unitBrl: bd.baggage.unitBrl,
+      totalBrl: bd.baggage.totalBrl,
+    });
   return parts;
 };
 

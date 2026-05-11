@@ -8,13 +8,7 @@ import { useSession } from "@/context/SessionContext";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
 import { CardCombobox } from "@/features/input/CardCombobox";
-import type {
-  CardOption,
-  ProgramId,
-  RedemptionPreference,
-  SpendingProfile,
-  TravelFrequency,
-} from "@/types";
+import type { CardOption, ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
 
 const MILES_PROGRAMS = ["smiles", "latam-pass", "tudoazul"] as const satisfies ProgramId[];
 
@@ -24,12 +18,6 @@ const REDEMPTION_OPTIONS: { value: string; label: string }[] = [
   { value: "miles:latam-pass", label: "Milhas Latam Pass" },
   { value: "miles:tudoazul", label: "Milhas TudoAzul" },
   { value: "cashback", label: "Cashback" },
-];
-
-const TRAVEL_FREQUENCY_OPTIONS: { value: TravelFrequency; label: string }[] = [
-  { value: "none", label: "Não viajo internacional" },
-  { value: "occasional", label: "Esporadicamente (≈2 viagens/ano)" },
-  { value: "frequent", label: "Frequentemente (5+ viagens/ano)" },
 ];
 
 const inputSchema = z.object({
@@ -43,7 +31,7 @@ const inputSchema = z.object({
     z.number().min(0, "O valor não pode ser negativo.").optional(),
   ),
   redemptionRaw: z.string().min(1, "Selecione uma preferência."),
-  travelFrequency: z.enum(["none", "occasional", "frequent"]),
+  tripsPerYear: z.coerce.number().int().min(0).max(50),
   currentCardIds: z.array(z.string()),
 });
 
@@ -53,7 +41,7 @@ type InputFormValues = z.output<typeof inputSchema>;
 const FORM_DEFAULTS: Partial<InputFormInput> = {
   monthlyDomesticBrl: 5000,
   redemptionRaw: "any",
-  travelFrequency: "none",
+  tripsPerYear: 0,
   currentCardIds: [],
 };
 
@@ -86,7 +74,7 @@ const profileToFormDefaults = (profile: SpendingProfile | null): Partial<InputFo
       ? { availableToInvestBrl: profile.availableToInvestBrl }
       : {}),
     redemptionRaw: redemptionToRaw(profile.redemption),
-    travelFrequency: profile.travelFrequency ?? "none",
+    tripsPerYear: profile.tripsPerYear ?? 0,
     currentCardIds: profile.currentCardIds ?? [],
   };
 };
@@ -206,7 +194,7 @@ export const InputForm = (): JSX.Element => {
         ? { availableToInvestBrl: values.availableToInvestBrl }
         : {}),
       redemption: parseRedemption(values.redemptionRaw),
-      ...(values.travelFrequency !== "none" ? { travelFrequency: values.travelFrequency } : {}),
+      ...(values.tripsPerYear > 0 ? { tripsPerYear: values.tripsPerYear } : {}),
       ...(values.currentCardIds.length > 0 ? { currentCardIds: values.currentCardIds } : {}),
     };
     setProfile(next);
@@ -323,16 +311,19 @@ export const InputForm = (): JSX.Element => {
               </Field>
 
               <Field
-                label="Frequência de viagens internacionais"
-                hint="Define o peso de sala VIP, seguro e bagagem na recomendação."
+                label="Quantas viagens (ida e volta) por ano?"
+                hint="Conta cada ida e volta como uma viagem. Vazio ou zero = não viaja."
+                error={errors.tripsPerYear?.message}
               >
-                <Select {...register("travelFrequency")}>
-                  {TRAVEL_FREQUENCY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
+                <Input
+                  type="number"
+                  step="1"
+                  min="0"
+                  inputMode="numeric"
+                  placeholder="0"
+                  className="tabular"
+                  {...register("tripsPerYear")}
+                />
               </Field>
             </FieldGroup>
 
