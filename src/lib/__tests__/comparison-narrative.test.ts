@@ -606,11 +606,36 @@ describe("buildComparisonNarrative", () => {
       expect(feeRow?.recommendedSubLabel).toMatch(/R\$\s?50\.000,00/);
     });
 
-    it("recommended sub-label: undefined when top has fee > 0", () => {
-      const top = makeStack({ annualFeeBrl: 300, netReturnBrl: 300 });
+    it("recommended sub-label: cobrada when top has fee > 0 and no waiver routes", () => {
+      const top = makeStack({ annualFeeBrl: 300, netReturnBrl: 300, requirements: [] });
       const out = buildComparisonNarrative(liveCurrentStack, top);
       const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.recommendedSubLabel).toBeUndefined();
+      expect(feeRow?.recommendedSubLabel).toBe("cobrada");
+    });
+
+    it("recommended sub-label: cobrada — isentaria when top has fee > 0 and waiver routes", () => {
+      const top = makeStack({
+        annualFeeBrl: 1680,
+        netReturnBrl: 500,
+        requirements: [
+          {
+            cardId: "brb-dux",
+            kind: "investment-fee-waiver",
+            label: "Isenção por investimento",
+            required: 50000,
+            available: 0,
+            gap: 50000,
+            unit: "BRL",
+            satisfied: false,
+            fit: 0,
+          },
+        ],
+      });
+      const out = buildComparisonNarrative(liveCurrentStack, top);
+      const feeRow = out.rows.find((r) => r.key === "annual-fee");
+      expect(feeRow?.recommendedSubLabel).toMatch(/cobrada/);
+      expect(feeRow?.recommendedSubLabel).toMatch(/isentaria/);
+      expect(feeRow?.recommendedSubLabel).toMatch(/R\$\s?50\.000,00/);
     });
 
     it("recommended sub-label: sem anuidade fallback when fee=0 and no benefitsApplied waiver", () => {
@@ -650,12 +675,12 @@ describe("buildComparisonNarrative", () => {
       expect(feeRow?.currentSubLabel).toBe("cobrada");
     });
 
-    it("current sub-label: undefined when current has no fee", () => {
-      const current = makeStack({ annualFeeBrl: 0, netReturnBrl: 500 });
+    it("current sub-label: sem anuidade when current has no fee and no waiver entry", () => {
+      const current = makeStack({ annualFeeBrl: 0, netReturnBrl: 500, benefitsApplied: [] });
       const top = makeStack({ annualFeeBrl: 300, netReturnBrl: 300 });
       const out = buildComparisonNarrative(current, top);
       const feeRow = out.rows.find((r) => r.key === "annual-fee");
-      expect(feeRow?.currentSubLabel).toBeUndefined();
+      expect(feeRow?.currentSubLabel).toBe("sem anuidade");
     });
 
     it("investment-fee-waiver only route on recommended side", () => {
@@ -732,20 +757,57 @@ describe("buildComparisonNarrative", () => {
       expect(recBreakdown[0]).toEqual({
         label: "Sala VIP",
         count: 12,
+        demanded: 12,
         unitBrl: 200,
         totalBrl: 2400,
       });
-      expect(recBreakdown[1]).toEqual({ label: "Seguro", count: 5, unitBrl: 350, totalBrl: 1750 });
+      expect(recBreakdown[1]).toEqual({
+        label: "Seguro",
+        count: 5,
+        demanded: 5,
+        unitBrl: 350,
+        totalBrl: 1750,
+      });
 
       const curBreakdown = travel?.currentBreakdown ?? [];
       expect(curBreakdown).toEqual([]);
     });
 
+    it("demanded defaults to count when the API field is absent", () => {
+      const breakdown: BenefitBreakdown = {
+        lounge: { count: 8, unitBrl: 200, totalBrl: 1600 },
+        insurance: { count: 0, unitBrl: 0, totalBrl: 0 },
+        baggage: { count: 0, unitBrl: 0, totalBrl: 0 },
+        totalBrl: 1600,
+      };
+      const top = makeStack({ benefitUtilityBrl: 1600, benefitBreakdown: breakdown });
+      const out = buildComparisonNarrative(makeStack({ benefitUtilityBrl: 0 }), top);
+      const travel = out.rows.find((r) => r.key === "travel-benefit");
+      const part = travel?.recommendedBreakdown?.[0];
+      expect(part?.demanded).toBe(8);
+      expect(part?.count).toBe(8);
+    });
+
+    it("demanded differs from count when the API signals a lounge cap", () => {
+      const breakdown: BenefitBreakdown = {
+        lounge: { count: 4, demanded: 8, unitBrl: 200, totalBrl: 800 },
+        insurance: { count: 0, unitBrl: 0, totalBrl: 0 },
+        baggage: { count: 0, unitBrl: 0, totalBrl: 0 },
+        totalBrl: 800,
+      };
+      const top = makeStack({ benefitUtilityBrl: 800, benefitBreakdown: breakdown });
+      const out = buildComparisonNarrative(makeStack({ benefitUtilityBrl: 0 }), top);
+      const travel = out.rows.find((r) => r.key === "travel-benefit");
+      const part = travel?.recommendedBreakdown?.[0];
+      expect(part?.count).toBe(4);
+      expect(part?.demanded).toBe(8);
+    });
+
     it("attaches all three components when all > 0", () => {
       const breakdown: BenefitBreakdown = {
-        lounge: { count: 12, unitBrl: 200, totalBrl: 2400 },
-        insurance: { count: 5, unitBrl: 350, totalBrl: 1750 },
-        baggage: { count: 3, unitBrl: 200, totalBrl: 600 },
+        lounge: { count: 12, demanded: 12, unitBrl: 200, totalBrl: 2400 },
+        insurance: { count: 5, demanded: 5, unitBrl: 350, totalBrl: 1750 },
+        baggage: { count: 3, demanded: 3, unitBrl: 200, totalBrl: 600 },
         totalBrl: 4750,
       };
       const top = makeStack({

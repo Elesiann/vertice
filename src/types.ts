@@ -124,6 +124,7 @@ export type ScoreBreakdown = Record<ScoreCategory, ScoreComponent>;
 // Per-component benefit breakdown. Mirrors the API's ScoreLabBenefitBreakdown.
 export interface BenefitComponentValue {
   count: number; // visits applied (lounge) or trips applied (insurance/baggage); 0 when component contributes nothing
+  demanded?: number; // visits/trips the traveler would actually use (API field added in feat/carded-lounge-caps; optional — older builds omit it)
   unitBrl: number; // R$ per visit/trip — lounge: 200; insurance: card-level value; baggage: 200
   totalBrl: number; // count * unitBrl, rounded
 }

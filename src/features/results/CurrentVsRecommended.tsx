@@ -23,10 +23,16 @@ const benefitUnit = (label: string, count: number): string => {
   return label === "Sala VIP" ? (plural ? "acessos" : "acesso") : plural ? "viagens" : "viagem";
 };
 
-// "{count} {unit} × {unitBrl} = {totalBrl}"; em-dash when the component is absent on that side.
+// "{count} {unit} × {unitBrl} = {totalBrl}"; "N de M unit" prefix when the card caps visits below demand.
+// Em-dash when the component is absent on that side.
 const breakdownCellText = (part: BenefitBreakdownPart | undefined): string => {
   if (part === undefined) return "—";
-  return `${String(part.count)} ${benefitUnit(part.label, part.count)} × ${formatBrl(part.unitBrl)} = ${formatBrl(part.totalBrl)}`;
+  const unit = benefitUnit(part.label, part.count);
+  const countStr =
+    part.demanded > part.count
+      ? `${String(part.count)} de ${String(part.demanded)} ${unit}`
+      : `${String(part.count)} ${unit}`;
+  return `${countStr} × ${formatBrl(part.unitBrl)} = ${formatBrl(part.totalBrl)}`;
 };
 
 // ─── copy helpers ─────────────────────────────────────────────────────────────
@@ -148,50 +154,30 @@ const ValueCell = ({
 
 // ─── detail sub-rows ──────────────────────────────────────────────────────────
 
-// One indented sub-row per card: card name in the label column, its fee conditions (and, for the
-// current card, the break-even/ROI line) left-aligned across the value columns.
-const DetailLine = ({
-  label,
-  body,
-  extra,
+// One sub-row: "Condições" label in col 1, current card's conditions in col 2, recommended's in col 3.
+// The current card's cell also carries the break-even/ROI line below the waiver text.
+const AnnualFeeDetailRows = ({
+  row,
+  roiLine,
 }: {
-  label: string;
-  body: string;
-  extra?: string;
+  row: ComparisonRow;
+  roiLine: string | null;
 }): JSX.Element => (
   <tr className="border-t-0">
     <th
       scope="row"
       className="text-ink-subtle py-2 pr-6 pl-4 text-left align-top text-xs font-normal"
     >
-      {label}
+      Condições
     </th>
-    <td colSpan={2} className="text-ink-subtle py-2 pl-6 text-left align-top text-xs leading-snug">
-      <p>{body}</p>
-      {extra !== undefined ? <p className="mt-1">{extra}</p> : null}
+    <td className="text-ink-subtle py-2 pl-6 text-left align-top text-xs leading-snug">
+      <p>{row.currentSubLabel ?? "—"}</p>
+      {roiLine !== null ? <p className="text-ink-subtle/80 mt-1">{roiLine}</p> : null}
+    </td>
+    <td className="text-ink-subtle py-2 pl-6 text-left align-top text-xs leading-snug">
+      <p>{row.recommendedSubLabel ?? "—"}</p>
     </td>
   </tr>
-);
-
-const AnnualFeeDetailRows = ({
-  row,
-  currentLabel,
-  recommendedLabel,
-  roiLine,
-}: {
-  row: ComparisonRow;
-  currentLabel: string;
-  recommendedLabel: string;
-  roiLine: string | null;
-}): JSX.Element => (
-  <>
-    <DetailLine
-      label={currentLabel}
-      body={row.currentSubLabel ?? "—"}
-      {...(roiLine !== null ? { extra: roiLine } : {})}
-    />
-    <DetailLine label={recommendedLabel} body={row.recommendedSubLabel ?? "—"} />
-  </>
 );
 
 const BreakdownDetailRows = ({ row }: { row: ComparisonRow }): JSX.Element => (
@@ -312,12 +298,7 @@ export const CurrentVsRecommended = ({
                   </tr>
 
                   {isExpanded && row.key === "annual-fee" ? (
-                    <AnnualFeeDetailRows
-                      row={row}
-                      currentLabel={currentLabel}
-                      recommendedLabel={recommendedLabel}
-                      roiLine={roiLine}
-                    />
+                    <AnnualFeeDetailRows row={row} roiLine={roiLine} />
                   ) : null}
                   {isExpanded && row.key === "travel-benefit" ? (
                     <BreakdownDetailRows row={row} />

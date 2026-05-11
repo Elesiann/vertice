@@ -56,10 +56,12 @@ const travelNarrative: ComparisonNarrative = {
       currentValueBrl: 4150,
       recommendedValueBrl: 2400,
       currentBreakdown: [
-        { label: "Sala VIP", count: 12, unitBrl: 200, totalBrl: 2400 },
-        { label: "Seguro", count: 5, unitBrl: 350, totalBrl: 1750 },
+        { label: "Sala VIP", count: 12, demanded: 12, unitBrl: 200, totalBrl: 2400 },
+        { label: "Seguro", count: 5, demanded: 5, unitBrl: 350, totalBrl: 1750 },
       ],
-      recommendedBreakdown: [{ label: "Sala VIP", count: 12, unitBrl: 200, totalBrl: 2400 }],
+      recommendedBreakdown: [
+        { label: "Sala VIP", count: 12, demanded: 12, unitBrl: 200, totalBrl: 2400 },
+      ],
       tone: "current-better",
     },
     { key: "net", label: "Líquido anual", currentValueBrl: 4150, recommendedValueBrl: 2400 },
@@ -70,6 +72,24 @@ const travelNarrative: ComparisonNarrative = {
   monthlyInternationalUsd: 0,
   currentBreakEvenMonthlySpendBrl: null,
   currentRoiMultiple: null,
+};
+
+const cappedLoungeNarrative: ComparisonNarrative = {
+  ...travelNarrative,
+  rows: [
+    {
+      key: "travel-benefit",
+      label: "Benefício de viagem",
+      currentValueBrl: 800,
+      recommendedValueBrl: 1600,
+      currentBreakdown: [{ label: "Sala VIP", count: 4, demanded: 8, unitBrl: 200, totalBrl: 800 }],
+      recommendedBreakdown: [
+        { label: "Sala VIP", count: 8, demanded: 8, unitBrl: 200, totalBrl: 1600 },
+      ],
+      tone: "recommended-better",
+    },
+    { key: "net", label: "Líquido anual", currentValueBrl: 800, recommendedValueBrl: 1600 },
+  ],
 };
 
 const rowEl = (rowLabel: string): HTMLElement =>
@@ -334,6 +354,75 @@ describe("CurrentVsRecommended", () => {
       expect(screen.queryByText(/cada R\$ 1/, { selector: "p" })).toBeNull();
       expect(screen.getByText(/cobrada; isentaria com/, { selector: "p" })).toBeInTheDocument();
     });
+
+    it("uses 'Condições' as the sub-row label (not card names)", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="Nubank Ultravioleta"
+          recommendedLabel="PicPay Card Black"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      expect(screen.getByText("Condições")).toBeInTheDocument();
+      // card names must NOT appear as row labels
+      const rows = document.querySelectorAll("tr");
+      let foundNubank = false;
+      let foundPicPay = false;
+      for (const row of rows) {
+        const th = row.querySelector("th");
+        if (th?.textContent === "Nubank Ultravioleta") foundNubank = true;
+        if (th?.textContent === "PicPay Card Black") foundPicPay = true;
+      }
+      expect(foundNubank).toBe(false);
+      expect(foundPicPay).toBe(false);
+    });
+
+    it("renders current and recommended conditions in separate cells under 'Condições'", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const condicoesRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      const cells = condicoesRow.querySelectorAll("td");
+      expect(cells).toHaveLength(2);
+      expect(cells[0]).toHaveTextContent(/cobrada; isentaria com/);
+      expect(cells[1]).toHaveTextContent(/isenta: gasto de/);
+    });
+
+    it("does not show '—' in the recommended cell when the recommended card charges a fee", async () => {
+      const user = userEvent.setup();
+      const chargedFeeNarrative: ComparisonNarrative = {
+        ...variantANarrative,
+        rows: variantANarrative.rows.map((r) =>
+          r.key === "annual-fee"
+            ? {
+                ...r,
+                recommendedValueBrl: -1680,
+                recommendedSubLabel: "cobrada — isentaria com R$ 50.000,00 investidos",
+              }
+            : r,
+        ),
+      };
+      render(
+        <CurrentVsRecommended
+          narrative={chargedFeeNarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      const condicoesRow = screen.getByText("Condições").closest("tr") as HTMLElement;
+      const cells = condicoesRow.querySelectorAll("td");
+      // The cell must have real content, not just a bare em-dash fallback.
+      expect(cells[1]).toHaveTextContent(/cobrada — isentaria com/);
+    });
   });
 
   describe("travel-benefit row expandable breakdown", () => {
@@ -379,6 +468,28 @@ describe("CurrentVsRecommended", () => {
         within(seguroRow).getByText(/5 viagens × R\$\s?350,00 = R\$\s?1\.750,00/),
       ).toBeInTheDocument();
       expect(within(seguroRow).getByText("—")).toBeInTheDocument();
+    });
+
+    it("shows 'N de M acessos' when the card caps lounge visits below demand", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={cappedLoungeNarrative}
+          currentLabel="Card A"
+          recommendedLabel="Card B"
+        />,
+      );
+      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      await user.click(btn);
+
+      const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
+      expect(
+        within(salaVipRow).getByText(/4 de 8 acessos × R\$\s?200,00 = R\$\s?800,00/),
+      ).toBeInTheDocument();
+      // uncapped side renders normally
+      expect(
+        within(salaVipRow).getByText(/8 acessos × R\$\s?200,00 = R\$\s?1\.600,00/),
+      ).toBeInTheDocument();
     });
 
     it("collapsing again hides the breakdown and resets aria-expanded", async () => {

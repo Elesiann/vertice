@@ -19,6 +19,7 @@ export type ComparisonRowKey =
 export interface BenefitBreakdownPart {
   label: string; // "Sala VIP" | "Seguro" | "Bagagem"
   count: number;
+  demanded: number; // visits/trips the traveler would use; equals count when the card isn't capped
   unitBrl: number;
   totalBrl: number;
 }
@@ -80,6 +81,7 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
     parts.push({
       label: "Sala VIP",
       count: bd.lounge.count,
+      demanded: bd.lounge.demanded ?? bd.lounge.count,
       unitBrl: bd.lounge.unitBrl,
       totalBrl: bd.lounge.totalBrl,
     });
@@ -87,6 +89,7 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
     parts.push({
       label: "Seguro",
       count: bd.insurance.count,
+      demanded: bd.insurance.demanded ?? bd.insurance.count,
       unitBrl: bd.insurance.unitBrl,
       totalBrl: bd.insurance.totalBrl,
     });
@@ -94,6 +97,7 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
     parts.push({
       label: "Bagagem",
       count: bd.baggage.count,
+      demanded: bd.baggage.demanded ?? bd.baggage.count,
       unitBrl: bd.baggage.unitBrl,
       totalBrl: bd.baggage.totalBrl,
     });
@@ -101,82 +105,61 @@ const benefitBreakdownParts = (stack: StackEvaluation): BenefitBreakdownPart[] =
 };
 
 // ─── fee waiver sub-lines ─────────────────────────────────────────────────────
-// Copy mirrors ResultsView.heroWaiverHint for the recommended side and is generic re: card names.
-// "isenta/cobrada" sub-labels surfaced on the annual-fee row.
+// Symmetric helper: returns a descriptive string for ANY stack regardless of whether its fee
+// is 0 (waived/no-fee) or > 0 (charged). Generic — no hardcoded card names.
 
-const feeWaiverSubLines = (
-  currentStack: StackEvaluation,
-  topStack: StackEvaluation,
-): { current: string | undefined; recommended: string | undefined } => {
-  // ── Recommended side: only when fee is 0
-  let recommended: string | undefined;
-  if (topStack.yearOneAnnualFeeBrl === 0) {
-    const waiver = topStack.scoreLab?.benefitsApplied.find(
+const feeSubLine = (stack: StackEvaluation): string => {
+  if (stack.yearOneAnnualFeeBrl === 0) {
+    // Fee is zero — either genuinely waived or a no-fee card.
+    const waiver = stack.scoreLab?.benefitsApplied.find(
       (b) => b.kind === "annual-fee-waiver" && b.valueBrl > 0,
     );
     if (waiver !== undefined) {
       const req = waiver.requirement;
-      let base: string;
       if (req?.kind === "spend-fee-waiver") {
-        base = `isenta: gasto de ${formatBrl(req.required)}/mês satisfaz`;
-        // the only alternative route is the other kind (investment), so no need to
-        // dedupe against the trigger requirement.
-        const altInvest = topStack.scoreLab?.requirements.find(
+        let base = `isenta: gasto de ${formatBrl(req.required)}/mês satisfaz`;
+        const altInvest = stack.scoreLab?.requirements.find(
           (r: ScoreLabRequirement) => r.kind === "investment-fee-waiver",
         );
         if (altInvest !== undefined) {
           base += ` (alternativa: ${formatBrl(altInvest.required)} investidos)`;
         }
+        return base;
       } else if (req?.kind === "investment-fee-waiver") {
-        base = `isenta: ${formatBrl(req.required)} investidos no emissor satisfazem`;
-        const altSpend = topStack.scoreLab?.requirements.find(
+        let base = `isenta: ${formatBrl(req.required)} investidos no emissor satisfazem`;
+        const altSpend = stack.scoreLab?.requirements.find(
           (r: ScoreLabRequirement) => r.kind === "spend-fee-waiver",
         );
         if (altSpend !== undefined) {
           base += ` (ou ${formatBrl(altSpend.required)}/mês em gastos)`;
         }
-      } else {
-        base = "sem anuidade";
+        return base;
       }
-      recommended = base;
-    } else {
-      recommended = "sem anuidade";
+      return "sem anuidade";
     }
+    return "sem anuidade";
   }
 
-  // ── Current side: only when fee > 0
-  let current: string | undefined;
-  if (currentStack.yearOneAnnualFeeBrl > 0) {
-    // collect distinct waiver routes from requirements
-    const reqs: ScoreLabRequirement[] = currentStack.scoreLab?.requirements ?? [];
-    const investReq = reqs.find((r) => r.kind === "investment-fee-waiver");
-    const spendReq = reqs.find((r) => r.kind === "spend-fee-waiver");
+  // Fee is > 0 — charged; show waiver routes if known.
+  const reqs: ScoreLabRequirement[] = stack.scoreLab?.requirements ?? [];
+  const investReq = reqs.find((r) => r.kind === "investment-fee-waiver");
+  const spendReq = reqs.find((r) => r.kind === "spend-fee-waiver");
 
-    const routes: string[] = [];
-    if (investReq !== undefined) {
-      routes.push(`${formatBrl(investReq.required)} investidos`);
-    }
-    if (spendReq !== undefined) {
-      routes.push(`${formatBrl(spendReq.required)}/mês`);
-    }
-
-    if (routes.length === 0) {
-      current = "cobrada";
-    } else {
-      let line = `cobrada; isentaria com ${routes.join(" ou ")}`;
-      // partial spend note: user already spends some amount toward a spend waiver
-      if (
-        spendReq !== undefined &&
-        spendReq.available > 0 &&
-        spendReq.available < spendReq.required
-      ) {
-        line += ` — você gasta ${formatBrl(spendReq.available)}/mês`;
-      }
-      current = line;
-    }
+  const routes: string[] = [];
+  if (investReq !== undefined) {
+    routes.push(`${formatBrl(investReq.required)} investidos`);
+  }
+  if (spendReq !== undefined) {
+    routes.push(`${formatBrl(spendReq.required)}/mês`);
   }
 
-  return { current, recommended };
+  if (routes.length === 0) return "cobrada";
+
+  let line = `cobrada — isentaria com ${routes.join(" ou ")}`;
+  if (spendReq !== undefined && spendReq.available > 0 && spendReq.available < spendReq.required) {
+    line += `; você gasta ${formatBrl(spendReq.available)}/mês`;
+  }
+  return line;
 };
 
 // ─── row tone ─────────────────────────────────────────────────────────────────
@@ -332,14 +315,13 @@ const buildRows = (currentStack: StackEvaluation, topStack: StackEvaluation): Co
   if (feeCurrent > 0 || feeRecommended > 0) {
     const currentValueBrl = feeCurrent > 0 ? -feeCurrent : 0;
     const recommendedValueBrl = feeRecommended > 0 ? -feeRecommended : 0;
-    const subLines = feeWaiverSubLines(currentStack, topStack);
     rows.push({
       key: "annual-fee",
       label: "Anuidade",
       currentValueBrl,
       recommendedValueBrl,
-      ...(subLines.current !== undefined ? { currentSubLabel: subLines.current } : {}),
-      ...(subLines.recommended !== undefined ? { recommendedSubLabel: subLines.recommended } : {}),
+      currentSubLabel: feeSubLine(currentStack),
+      recommendedSubLabel: feeSubLine(topStack),
       tone: rowTone(currentValueBrl, recommendedValueBrl),
     });
   }
