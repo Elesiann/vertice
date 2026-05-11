@@ -26,6 +26,9 @@ export const formatMonths = (months: number): string =>
 export const formatCashbackRate = (rate: number): string =>
   `${(rate * 100).toFixed(2).replace(".", ",")}%`;
 
+export const formatRoiMultiple = (value: number): string =>
+  `${value.toFixed(2).replace(".", ",")}x`;
+
 // `lastVerified` vem do YAML como date-only ISO ("2026-05-07"). Date(string) interpreta
 // como UTC midnight, e em fuso BRT (UTC-3) toLocaleDateString cai no dia anterior.
 // Esse helper formata respeitando a data calendário declarada.

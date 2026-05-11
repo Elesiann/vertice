@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatBrl, formatCashbackRate, formatMonths, formatPoints, formatUsd } from "@/lib/format";
+import {
+  formatBrl,
+  formatCashbackRate,
+  formatMonths,
+  formatPoints,
+  formatRoiMultiple,
+  formatUsd,
+} from "@/lib/format";
 
 describe("formatBrl", () => {
   it("formats with R$ prefix and BR thousand/decimal separators", () => {
@@ -61,5 +68,15 @@ describe("formatCashbackRate", () => {
 
   it("rounds to two decimals", () => {
     expect(formatCashbackRate(0.012345)).toBe("1,23%");
+  });
+});
+
+describe("formatRoiMultiple", () => {
+  it("formats with two decimals, BR separator and an x suffix", () => {
+    expect(formatRoiMultiple(3.59)).toBe("3,59x");
+  });
+
+  it("keeps trailing zeros", () => {
+    expect(formatRoiMultiple(2)).toBe("2,00x");
   });
 });

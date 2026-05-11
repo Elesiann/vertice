@@ -11,7 +11,7 @@ import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { cn } from "@/lib/cn";
 import { buildErrorReportUrl } from "@/lib/feedback";
-import { formatBrl, formatUsd } from "@/lib/format";
+import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
 import { whyWonSentences } from "@/lib/why-won";
 import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
 import { buildComparisonNarrative } from "@/lib/comparison-narrative";
@@ -265,8 +265,6 @@ const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral
   viable: "neutral",
   negative: "warning",
 };
-
-const formatRoiMultiple = (value: number): string => `${value.toFixed(2).replace(".", ",")}x`;
 
 const formatAnnualBrl = (value: number): string => `${formatBrl(value)}/ano`;
 
