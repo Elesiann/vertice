@@ -1,4 +1,3 @@
-import { formatBrl } from "@/lib/format";
 import type {
   StackEvaluation,
   ScoreLabVerdictKind,
@@ -86,16 +85,6 @@ const fxValue = (stack: StackEvaluation): number =>
 
 const isCashbackStack = (stack: StackEvaluation): boolean =>
   stack.cards[0]?.pointsProgram === "cashback";
-
-// "de cashback" / "em pontos" — labels the reward kind in the rewards-comparison sentence.
-const rewardClause = (stack: StackEvaluation): string =>
-  isCashbackStack(stack) ? "de cashback" : "em pontos";
-
-const recommendedFeeClause = (topStack: StackEvaluation): string => {
-  const fee = topStack.yearOneAnnualFeeBrl;
-  if (fee <= 0) return "sem anuidade";
-  return `com ${formatBrl(fee)} de anuidade`;
-};
 
 // ─── benefit breakdown parts ─────────────────────────────────────────────────
 // Mirrors the `benefitParts` derivation in ResultsView.heroWaiverHint / benefitParts (~line 648).
@@ -231,9 +220,12 @@ const computeDominant = (rows: ComparisonRow[]): DominantKey | null => {
   return best;
 };
 
-// ─── diagnosis sentences ──────────────────────────────────────────────────────
+// ─── diagnosis lead-in ────────────────────────────────────────────────────────
+// One short line above the table that frames it ("the headline is X — see:"). The numbers
+// (per-row values, net totals, the annual difference) live in the table itself, so this stays
+// qualitative — direction-neutral too, since a row can favour either side.
 
-// Returns the "em"+article contraction ("na"/"no"/"nos") so it slots into "A maior diferença está ___:".
+// "em"+article contraction ("na"/"no"/"nos") that slots into "a maior diferença está ___:".
 const dominantFrase = (key: ComparisonRowKey): string => {
   switch (key) {
     case "cashback":
@@ -246,81 +238,18 @@ const dominantFrase = (key: ComparisonRowKey): string => {
       return "na anuidade";
     case "fx-iof":
       return "no custo de câmbio";
-    // "net" is filtered out before dominantFrase is called; case exists for exhaustiveness.
+    // "net" is filtered out before this is called; case exists for exhaustiveness.
     case "net":
       return "no líquido";
   }
 };
 
-// For fee/fx rows the row values are negated costs; revert to raw positive amounts for prose.
-const rawForProse = (key: ComparisonRowKey, valueBrl: number): number => {
-  if (key === "annual-fee" || key === "fx-iof") return Math.abs(valueBrl);
-  return valueBrl;
-};
+const dominantPhrase = (domKey: DominantKey): string =>
+  domKey === "rewards" ? "nas recompensas" : dominantFrase(domKey);
 
-const sentence1 = (
-  domKey: DominantKey,
-  rows: ComparisonRow[],
-  currentStack: StackEvaluation,
-  topStack: StackEvaluation,
-): string | null => {
-  if (domKey === "rewards") {
-    return `A maior diferença está nas recompensas: ${formatBrl(grossValue(currentStack))} ${rewardClause(currentStack)} no atual contra ${formatBrl(grossValue(topStack))} ${rewardClause(topStack)} no recomendado.`;
-  }
-  const row = rows.find((r) => r.key === domKey);
-  if (row === undefined) return null;
-  const currentRaw = rawForProse(domKey, row.currentValueBrl);
-  const recommendedRaw = rawForProse(domKey, row.recommendedValueBrl);
-  return `A maior diferença está ${dominantFrase(domKey)}: ${formatBrl(currentRaw)} no atual contra ${formatBrl(recommendedRaw)} no recomendado.`;
-};
-
-// The bottom-line sentence. When a dominant-component sentence precedes it, it opens with
-// "Somando isso ao resto, …" so the two read as one thought (component → total).
-const sentence2VariantA = (
-  currentStack: StackEvaluation,
-  topStack: StackEvaluation,
-  linked: boolean,
-): string => {
-  const loss = formatBrl(Math.abs(currentStack.yearOneNetValueBrl));
-  const rec = formatBrl(topStack.yearOneNetValueBrl);
-  const feeClause = recommendedFeeClause(topStack);
-  const lead = linked
-    ? "Somando isso ao resto, seu cartão atual fica negativo"
-    : "Seu cartão atual fica negativo";
-  return `${lead} em ${loss}/ano, enquanto o recomendado renderia ${rec} líquido/ano ${feeClause}.`;
-};
-
-const sentence2VariantB = (
-  currentStack: StackEvaluation,
-  topStack: StackEvaluation,
-  linked: boolean,
-): string => {
-  const cur = formatBrl(currentStack.yearOneNetValueBrl);
-  const rec = formatBrl(topStack.yearOneNetValueBrl);
-  const lead = linked ? "Somando isso ao resto, seu cartão atual rende" : "Seu cartão atual rende";
-  return `${lead} ${cur}/ano e o recomendado ${rec}/ano — com o mesmo gasto.`;
-};
-
-const variantANarrative = (
-  currentStack: StackEvaluation,
-  topStack: StackEvaluation,
-  domKey: DominantKey | null,
-  rows: ComparisonRow[],
-): string[] => {
-  const s1 = domKey === null ? null : sentence1(domKey, rows, currentStack, topStack);
-  const s2 = sentence2VariantA(currentStack, topStack, s1 !== null);
-  return s1 === null ? [s2] : [s1, s2];
-};
-
-const variantBNarrative = (
-  currentStack: StackEvaluation,
-  topStack: StackEvaluation,
-  domKey: DominantKey | null,
-  rows: ComparisonRow[],
-): string[] => {
-  const s1 = domKey === null ? null : sentence1(domKey, rows, currentStack, topStack);
-  const s2 = sentence2VariantB(currentStack, topStack, s1 !== null);
-  return s1 === null ? [s2] : [s1, s2];
+const buildDiagnosis = (domKey: DominantKey | null): string[] => {
+  if (domKey === null) return ["Comparando os dois cartões com o mesmo gasto:"];
+  return [`Comparando com o mesmo gasto, a maior diferença está ${dominantPhrase(domKey)}:`];
 };
 
 // ─── build rows ───────────────────────────────────────────────────────────────
@@ -423,11 +352,7 @@ export const buildComparisonNarrative = (
 
   const rows = buildRows(currentStack, topStack);
   const domKey = computeDominant(rows);
-
-  const diagnosis =
-    variant === "current-negative"
-      ? variantANarrative(currentStack, topStack, domKey, rows)
-      : variantBNarrative(currentStack, topStack, domKey, rows);
+  const diagnosis = buildDiagnosis(domKey);
 
   const currentVerdictRaw = currentStack.scoreLab?.verdict;
   const recommendedVerdictRaw = topStack.scoreLab?.verdict;

@@ -299,15 +299,13 @@ describe("ResultsView", () => {
     expect(screen.queryByText(/Você está deixando na mesa/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
 
-    expect(
-      screen.getByText(
-        /Seu cartão atual rende R\$\s?500,00\/ano e o recomendado R\$\s?756,00\/ano/i,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Comparando os dois cartões com o mesmo gasto/i)).toBeInTheDocument();
     expect(screen.getByText("SEU CARTÃO")).toBeInTheDocument();
     expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
     expect(screen.getByText("Diferença anual")).toBeInTheDocument();
     expect(screen.getByText(/R\$\s?256,00/)).toBeInTheDocument();
+    // current and recommended net live in the "Líquido anual" row
+    expect(screen.getByText(/R\$\s?500,00/)).toBeInTheDocument();
 
     expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();
   });
@@ -344,13 +342,10 @@ describe("ResultsView", () => {
     await screen.findByRole("heading", { level: 1 });
 
     expect(
-      screen.getByText(
-        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual contra R\$\s?0,00 no recomendado/,
-      ),
+      screen.getByText(/Comparando com o mesmo gasto, a maior diferença está na anuidade/i),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/seu cartão atual fica negativo em R\$\s?318,00\/ano/i),
-    ).toBeInTheDocument();
+    // the current card's negative net shows in the "Líquido anual" row
+    expect(screen.getByText(/-R\$\s?318,00/)).toBeInTheDocument();
 
     expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();

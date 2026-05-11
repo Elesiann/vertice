@@ -290,77 +290,35 @@ describe("buildComparisonNarrative", () => {
     });
   });
 
-  describe("diagnosis variant A (current-negative)", () => {
-    it("names dominant delta then states negative balance and recommended without annual fee", () => {
-      const current = makeStack({
-        netReturnBrl: -318,
-        annualFeeBrl: 1068,
-        grossValueBrl: 750,
-      });
+  describe("diagnosis lead-in", () => {
+    it("names the dominant component as the headline above the table", () => {
+      const current = makeStack({ netReturnBrl: -318, annualFeeBrl: 1068, grossValueBrl: 750 });
       const top = makeStack({ netReturnBrl: 720, annualFeeBrl: 0, grossValueBrl: 720 });
       const out = buildComparisonNarrative(current, top);
-      // dominant delta sentence (annual-fee dominates here: |0 - (-1068)| = 1068 > |720 - 750| = 30)
-      expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual contra R\$\s?0,00 no recomendado\./,
-      );
-      // summary sentence, linked to the component sentence above it
-      expect(out.diagnosis[1]).toMatch(
-        /Somando isso ao resto, seu cartão atual fica negativo em R\$\s?318,00\/ano, enquanto o recomendado renderia R\$\s?720,00 líquido\/ano sem anuidade\./,
-      );
+      // annual-fee dominates: |0 - (-1068)| = 1068 > |720 - 750| = 30
+      expect(out.diagnosis).toEqual([
+        "Comparando com o mesmo gasto, a maior diferença está na anuidade:",
+      ]);
     });
 
-    it("mentions recommended annual fee when topStack has one", () => {
-      const current = makeStack({ netReturnBrl: -200, annualFeeBrl: 800 });
-      const top = makeStack({ netReturnBrl: 600, annualFeeBrl: 300 });
-      const out = buildComparisonNarrative(current, top);
-      expect(out.diagnosis[out.diagnosis.length - 1]).toMatch(
-        /enquanto o recomendado renderia R\$\s?600,00 líquido\/ano com R\$\s?300,00 de anuidade\./,
-      );
-    });
-
-    it("omits dominant-delta sentence when dominantRowKey is null", () => {
-      // only a net row, no other rows → dominantRowKey = null
-      const current = makeStack({ netReturnBrl: -100 });
-      const top = makeStack({ netReturnBrl: 200 });
-      const out = buildComparisonNarrative(current, top);
-      expect(out.diagnosis).toHaveLength(1);
-      expect(out.diagnosis[0]).toMatch(
-        /Seu cartão atual fica negativo em R\$\s?100,00\/ano, enquanto o recomendado renderia R\$\s?200,00 líquido\/ano sem anuidade\./,
-      );
-    });
-  });
-
-  describe("diagnosis variant B (current-positive)", () => {
-    it("names dominant delta then states both nets", () => {
+    it("uses 'no cashback' when the cashback row is the biggest swing", () => {
       const current = makeStack({
         netReturnBrl: 500,
         grossValueBrl: 500,
         pointsProgram: "cashback",
       });
-      const top = makeStack({
-        netReturnBrl: 720,
-        grossValueBrl: 720,
-        pointsProgram: "cashback",
-      });
+      const top = makeStack({ netReturnBrl: 720, grossValueBrl: 720, pointsProgram: "cashback" });
       const out = buildComparisonNarrative(current, top);
-      // cashback row dominates (|720 - 500| = 220)
-      expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está no cashback: R\$\s?500,00 no atual contra R\$\s?720,00 no recomendado\./,
+      expect(out.diagnosis[0]).toBe(
+        "Comparando com o mesmo gasto, a maior diferença está no cashback:",
       );
-      expect(out.diagnosis[1]).toMatch(
-        /Somando isso ao resto, seu cartão atual rende R\$\s?500,00\/ano e o recomendado R\$\s?720,00\/ano/,
-      );
-      expect(out.diagnosis[1]).toMatch(/com o mesmo gasto\.$/);
     });
 
-    it("omits dominant-delta sentence when dominantRowKey is null", () => {
-      const current = makeStack({ netReturnBrl: 500 });
-      const top = makeStack({ netReturnBrl: 720 });
+    it("falls back to a neutral headline when no single row dominates", () => {
+      const current = makeStack({ netReturnBrl: -100 });
+      const top = makeStack({ netReturnBrl: 200 });
       const out = buildComparisonNarrative(current, top);
-      expect(out.diagnosis).toHaveLength(1);
-      expect(out.diagnosis[0]).toMatch(
-        /Seu cartão atual rende R\$\s?500,00\/ano e o recomendado R\$\s?720,00\/ano/,
-      );
+      expect(out.diagnosis).toEqual(["Comparando os dois cartões com o mesmo gasto:"]);
     });
   });
 
@@ -604,8 +562,8 @@ describe("buildComparisonNarrative", () => {
       const top = makeStack({ pointsProgram: "smiles", grossValueBrl: 720, netReturnBrl: 720 });
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("rewards");
-      expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está nas recompensas: R\$\s?500,00 de cashback no atual contra R\$\s?720,00 em pontos no recomendado\./,
+      expect(out.diagnosis[0]).toBe(
+        "Comparando com o mesmo gasto, a maior diferença está nas recompensas:",
       );
     });
 
@@ -625,8 +583,8 @@ describe("buildComparisonNarrative", () => {
       });
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("annual-fee");
-      expect(out.diagnosis[0]).toMatch(
-        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual contra R\$\s?0,00 no recomendado\./,
+      expect(out.diagnosis[0]).toBe(
+        "Comparando com o mesmo gasto, a maior diferença está na anuidade:",
       );
     });
   });
