@@ -16,6 +16,12 @@ interface Props {
   narrative: ComparisonNarrative;
   currentLabel: string;
   recommendedLabel: string;
+  // Short eligibility line for the recommended card ("exige R$ X investidos no emissor" /
+  // "sem exigência financeira"). Shown in the comparison footer.
+  accessSummary?: string;
+  // The "you picked X, the recommendation is Y" caveat, when the chosen redemption diverges
+  // from the recommended card's. Rendered as a third diagnosis paragraph.
+  preferenceNotice?: string;
 }
 
 type Side = "current" | "recommended";
@@ -39,8 +45,8 @@ const breakdownCellText = (part: BenefitBreakdownPart | undefined): string => {
 
 // ─── copy helpers ─────────────────────────────────────────────────────────────
 
-const spendCaption = (n: ComparisonNarrative): string => {
-  const base = `Gasto base: ${formatBrl(n.monthlySpendBrl)}/mês`;
+const spendBaseValue = (n: ComparisonNarrative): string => {
+  const base = `${formatBrl(n.monthlySpendBrl)}/mês`;
   return n.monthlyInternationalUsd > 0
     ? `${base} + ${formatUsd(n.monthlyInternationalUsd)}/mês internacional`
     : base;
@@ -225,14 +231,12 @@ export const CurrentVsRecommended = ({
   narrative,
   currentLabel,
   recommendedLabel,
+  accessSummary = "Sem exigência financeira de acesso.",
+  preferenceNotice,
 }: Props): JSX.Element => {
   const annualFeeRow = narrative.rows.find((r) => r.key === "annual-fee");
   const roiClause =
     annualFeeRow?.currentFeeDetail?.status === "charged" ? annualFeeRoiClause(narrative) : null;
-  const tableNote =
-    roiClause !== null
-      ? `${spendCaption(narrative)} — A anuidade do ${currentLabel} ${roiClause}.`
-      : spendCaption(narrative);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string): void => {
     setExpandedRows((prev) => {
@@ -254,6 +258,7 @@ export const CurrentVsRecommended = ({
             {paragraph}
           </p>
         ))}
+        {preferenceNotice !== undefined ? <p>{preferenceNotice}</p> : null}
       </div>
 
       <div className="overflow-x-auto">
@@ -341,7 +346,18 @@ export const CurrentVsRecommended = ({
         </table>
       </div>
 
-      <p className="text-ink-subtle text-xs">{tableNote}</p>
+      <dl className="border-line/60 grid grid-cols-[max-content_1fr] items-baseline gap-x-8 gap-y-3 border-t pt-5 text-sm">
+        <dt className="text-caption text-ink-subtle">Gasto base</dt>
+        <dd className="text-ink-muted tabular">{spendBaseValue(narrative)}</dd>
+        {roiClause !== null ? (
+          <>
+            <dt className="text-caption text-ink-subtle">Anuidade</dt>
+            <dd className="text-ink-muted tabular">{`${currentLabel} ${roiClause}.`}</dd>
+          </>
+        ) : null}
+        <dt className="text-caption text-ink-subtle">Acesso</dt>
+        <dd className="text-ink-muted tabular">{accessSummary}</dd>
+      </dl>
     </section>
   );
 };

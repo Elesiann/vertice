@@ -703,15 +703,6 @@ export const ResultsView = (): JSX.Element => {
             : null,
         ].filter((part): part is string => part !== null)
       : [];
-  const heroNotes = [
-    noRecommendationNotice,
-    // conditionalUpsideNotice,
-    divergenceNotice,
-    alternativeTabs.length < 2 ? alternativesHeroSentence(alternativeTabs, threshold) : null,
-  ].filter((note): note is string => note !== null);
-  const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
-  const showTravelTranslation =
-    travelTranslationMatchesTopStack && recommendation.travelTranslation.program !== "cashback";
   const displayMoneyOnTheTableBrl =
     recommendation.currentStack !== undefined
       ? Math.max(0, topStack.yearOneNetValueBrl - recommendation.currentStack.yearOneNetValueBrl)
@@ -722,6 +713,18 @@ export const ResultsView = (): JSX.Element => {
     recommendation.currentStack !== undefined &&
     displayMoneyOnTheTableBrl !== undefined &&
     displayMoneyOnTheTableBrl > 0;
+
+  // The preference-divergence caveat lives inside the comparison table (as a diagnosis line) when
+  // there is one; only in solo mode does it surface as a hero note.
+  const heroNotes = [
+    noRecommendationNotice,
+    // conditionalUpsideNotice,
+    hasCurrentComparison ? null : divergenceNotice,
+    alternativeTabs.length < 2 ? alternativesHeroSentence(alternativeTabs, threshold) : null,
+  ].filter((note): note is string => note !== null);
+  const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
+  const showTravelTranslation =
+    travelTranslationMatchesTopStack && recommendation.travelTranslation.program !== "cashback";
 
   const comparisonNarrative =
     hasCurrentComparison && recommendation.currentStack !== undefined
@@ -744,6 +747,8 @@ export const ResultsView = (): JSX.Element => {
             narrative={comparisonNarrative}
             currentLabel={currentLabel}
             recommendedLabel={recommendedLabel}
+            accessSummary={accessibilitySummary}
+            {...(divergenceNotice !== null ? { preferenceNotice: divergenceNotice } : {})}
           />
         ) : (
           <section
@@ -843,12 +848,14 @@ export const ResultsView = (): JSX.Element => {
           </section>
         ) : null}
 
-        <section className="border-line border-b py-8" aria-label="Acesso">
-          <p className="text-ink-muted text-sm leading-relaxed">
-            <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
-            {accessibilitySummary}
-          </p>
-        </section>
+        {!hasCurrentComparison ? (
+          <section className="border-line border-b py-8" aria-label="Acesso">
+            <p className="text-ink-muted text-sm leading-relaxed">
+              <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
+              {accessibilitySummary}
+            </p>
+          </section>
+        ) : null}
 
         {alternativeTabs.length > 0 && activeTab !== undefined ? (
           <section className="border-line border-b py-8" aria-label="Outras escolhas">
