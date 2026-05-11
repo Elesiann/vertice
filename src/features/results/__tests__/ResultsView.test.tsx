@@ -299,12 +299,13 @@ describe("ResultsView", () => {
     expect(screen.queryByText(/Você está deixando na mesa/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Por que venceu/i)).not.toBeInTheDocument();
 
-    expect(screen.getByText(/Comparando os dois cartões com o mesmo gasto/i)).toBeInTheDocument();
+    // the annual difference moved to the hero
+    expect(screen.getByText(/\+R\$\s?256,00/)).toBeInTheDocument();
+    expect(screen.getByText(/vs\. seu Domestic Rewards Card.*atual/i)).toBeInTheDocument();
     expect(screen.getByText("SEU CARTÃO")).toBeInTheDocument();
     expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
-    expect(screen.getByText("Diferença anual")).toBeInTheDocument();
-    expect(screen.getByText(/R\$\s?256,00/)).toBeInTheDocument();
-    // current and recommended net live in the "Líquido anual" row
+    expect(screen.getByText("Líquido anual")).toBeInTheDocument();
+    // the current card's net lives in the "Líquido anual" row
     expect(screen.getByText(/R\$\s?500,00/)).toBeInTheDocument();
 
     expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();
@@ -341,9 +342,8 @@ describe("ResultsView", () => {
 
     await screen.findByRole("heading", { level: 1 });
 
-    expect(
-      screen.getByText(/Comparando com o mesmo gasto, a maior diferença está na anuidade/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText("A maior diferença está em anuidade.")).toBeInTheDocument();
+    expect(screen.getByText(/\+R\$\s?1\.074,00/)).toBeInTheDocument(); // hero difference
     // the current card's negative net shows in the "Líquido anual" row
     expect(screen.getByText(/-R\$\s?318,00/)).toBeInTheDocument();
 

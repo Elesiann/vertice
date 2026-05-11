@@ -2,15 +2,11 @@ import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
-import { formatBrl } from "@/lib/format";
 import type { ComparisonNarrative } from "@/lib/comparison-narrative";
 
 const variantANarrative: ComparisonNarrative = {
   variant: "current-negative",
-  diagnosis: [
-    `A maior diferença está na anuidade: ${formatBrl(1068)} no atual, ${formatBrl(0)} no recomendado.`,
-    `Seu cartão atual fica negativo em ${formatBrl(318)}/ano. O recomendado renderia ${formatBrl(720)} líquido/ano sem anuidade.`,
-  ],
+  diagnosis: ["A maior diferença está em anuidade."],
   rows: [
     {
       key: "cashback",
@@ -103,7 +99,7 @@ const rowEl = (rowLabel: string): HTMLElement =>
   screen.getByText(rowLabel).closest("tr") as HTMLElement;
 
 describe("CurrentVsRecommended", () => {
-  it("renders both diagnosis paragraphs", () => {
+  it("renders the dominant-delta note in the table header", () => {
     render(
       <CurrentVsRecommended
         narrative={variantANarrative}
@@ -111,12 +107,8 @@ describe("CurrentVsRecommended", () => {
         recommendedLabel="PicPay Card Black"
       />,
     );
-    expect(
-      screen.getByText(/A maior diferença está na anuidade: R\$\s?1\.068,00 no atual/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/O recomendado renderia R\$\s?720,00 líquido\/ano sem anuidade/),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Comparação anual")).toBeInTheDocument();
+    expect(screen.getByText("A maior diferença está em anuidade.")).toBeInTheDocument();
   });
 
   it("renders the column headers with both card names", () => {
@@ -153,22 +145,21 @@ describe("CurrentVsRecommended", () => {
     expect(screen.getByRole("button", { name: "Anuidade" })).toBeInTheDocument();
     expect(screen.getByText("Líquido anual")).toBeInTheDocument();
     expect(screen.getByText(/750,00/)).toBeInTheDocument();
-    // 720 appears in three places: diagnosis sentence + cashback rec cell + net rec cell.
-    expect(screen.getAllByText(/720,00/).length).toBe(3);
+    // 720 appears in the cashback recommended cell and the net recommended cell.
+    expect(screen.getAllByText(/720,00/).length).toBe(2);
     expect(screen.getByText(/-R\$\s?1\.068,00/)).toBeInTheDocument();
-    // R$ 0,00 shows in the annual-fee recommended cell and once in the diagnosis sentence.
-    expect(screen.getAllByText(/R\$\s?0,00/).length).toBe(2);
+    // R$ 0,00 shows once — the annual-fee recommended cell.
+    expect(screen.getByText(/R\$\s?0,00/)).toBeInTheDocument();
     expect(screen.getByText(/-R\$\s?318,00/)).toBeInTheDocument();
   });
 
-  it("renders the difference verdict in accent, never in danger", () => {
+  it("shows the recommended net in accent on the bottom-line row", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    expect(screen.getByText("Diferença anual")).toBeInTheDocument();
-    const verdict = screen.getByText(/1\.038,00/);
-    expect(verdict).toHaveClass("text-accent");
-    expect(verdict).not.toHaveClass("text-danger");
+    const recommendedNet = within(rowEl("Líquido anual")).getByText(/720,00/);
+    expect(recommendedNet).toHaveClass("text-accent");
+    expect(recommendedNet).not.toHaveClass("text-danger");
   });
 
   it("shows the spend assumption and the default access label in the meta line", () => {
@@ -291,7 +282,7 @@ describe("CurrentVsRecommended", () => {
       expect(currentNet).toHaveClass("font-semibold", "text-warning");
       expect(currentNet).not.toHaveClass("text-danger");
       const recommendedNet = within(net).getByText(/720,00/);
-      expect(recommendedNet).toHaveClass("font-semibold", "text-ink");
+      expect(recommendedNet).toHaveClass("font-semibold", "text-accent");
       expect(within(recommendedNet).getByText(/melhor neste item/)).toBeInTheDocument();
     });
 

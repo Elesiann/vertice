@@ -290,18 +290,16 @@ describe("buildComparisonNarrative", () => {
     });
   });
 
-  describe("diagnosis lead-in", () => {
-    it("names the dominant component as the headline above the table", () => {
+  describe("dominant-delta note", () => {
+    it("names the dominant component", () => {
       const current = makeStack({ netReturnBrl: -318, annualFeeBrl: 1068, grossValueBrl: 750 });
       const top = makeStack({ netReturnBrl: 720, annualFeeBrl: 0, grossValueBrl: 720 });
       const out = buildComparisonNarrative(current, top);
       // annual-fee dominates: |0 - (-1068)| = 1068 > |720 - 750| = 30
-      expect(out.diagnosis).toEqual([
-        "Comparando com o mesmo gasto, a maior diferença está na anuidade:",
-      ]);
+      expect(out.diagnosis).toEqual(["A maior diferença está em anuidade."]);
     });
 
-    it("uses 'no cashback' when the cashback row is the biggest swing", () => {
+    it("uses 'em cashback' when the cashback row is the biggest swing", () => {
       const current = makeStack({
         netReturnBrl: 500,
         grossValueBrl: 500,
@@ -309,16 +307,14 @@ describe("buildComparisonNarrative", () => {
       });
       const top = makeStack({ netReturnBrl: 720, grossValueBrl: 720, pointsProgram: "cashback" });
       const out = buildComparisonNarrative(current, top);
-      expect(out.diagnosis[0]).toBe(
-        "Comparando com o mesmo gasto, a maior diferença está no cashback:",
-      );
+      expect(out.diagnosis[0]).toBe("A maior diferença está em cashback.");
     });
 
-    it("falls back to a neutral headline when no single row dominates", () => {
+    it("is empty when no single row dominates", () => {
       const current = makeStack({ netReturnBrl: -100 });
       const top = makeStack({ netReturnBrl: 200 });
       const out = buildComparisonNarrative(current, top);
-      expect(out.diagnosis).toEqual(["Comparando os dois cartões com o mesmo gasto:"]);
+      expect(out.diagnosis).toEqual([]);
     });
   });
 
@@ -562,9 +558,7 @@ describe("buildComparisonNarrative", () => {
       const top = makeStack({ pointsProgram: "smiles", grossValueBrl: 720, netReturnBrl: 720 });
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("rewards");
-      expect(out.diagnosis[0]).toBe(
-        "Comparando com o mesmo gasto, a maior diferença está nas recompensas:",
-      );
+      expect(out.diagnosis[0]).toBe("A maior diferença está em recompensas.");
     });
 
     it("a row still wins over 'rewards' when its delta exceeds the real reward-value gap", () => {
@@ -583,9 +577,7 @@ describe("buildComparisonNarrative", () => {
       });
       const out = buildComparisonNarrative(current, top);
       expect(out.dominantRowKey).toBe("annual-fee");
-      expect(out.diagnosis[0]).toBe(
-        "Comparando com o mesmo gasto, a maior diferença está na anuidade:",
-      );
+      expect(out.diagnosis[0]).toBe("A maior diferença está em anuidade.");
     });
   });
 

@@ -161,12 +161,21 @@ const ValueCell = ({
   const winner = isWinningSide(row, side);
   const loser = !winner && row.tone !== "tie";
 
-  const color = negativeNet ? "text-warning" : loser ? "text-ink-muted" : "text-ink";
+  // The net row is the table's bottom line; its winning side carries the accent.
+  const color = negativeNet
+    ? "text-warning"
+    : isNet && winner
+      ? "text-accent"
+      : loser
+        ? "text-ink-muted"
+        : "text-ink";
   const weight = isNet ? "font-semibold" : winner ? "font-medium" : "font-normal";
   const marked = winner && !negativeNet;
 
   return (
-    <td className={cn("tabular py-3.5 pl-6 text-right", color, weight)}>
+    <td
+      className={cn("tabular pl-6 text-right", isNet ? "py-5 text-base" : "py-3.5", color, weight)}
+    >
       <span aria-hidden className="mr-1.5 inline-block w-3 align-middle">
         {marked ? <Check size={12} className="text-accent" /> : null}
       </span>
@@ -241,19 +250,21 @@ export const CurrentVsRecommended = ({
       aria-label="Comparação com seu cartão atual"
       className="border-line mt-8 space-y-6 border-t border-b py-8 md:py-10"
     >
-      <div className="text-ink-muted max-w-2xl space-y-2 text-sm leading-relaxed">
-        {narrative.diagnosis.map((paragraph, index) => (
-          <p key={index} className={index === 0 ? "text-ink" : undefined}>
-            {paragraph}
-          </p>
-        ))}
-      </div>
-
       <div className="overflow-x-auto">
         <table className="w-full min-w-[28rem] table-fixed text-sm">
           <thead>
             <tr>
-              <th aria-hidden className="w-[34%]" />
+              <th scope="col" className="w-[34%] pb-3 text-left align-bottom font-normal">
+                <span className="text-caption text-ink-subtle block">Comparação anual</span>
+                {narrative.diagnosis.map((note) => (
+                  <span
+                    key={note}
+                    className="text-ink-subtle mt-1 block text-xs leading-snug italic"
+                  >
+                    {note}
+                  </span>
+                ))}
+              </th>
               <th scope="col" className="pb-3 pl-6 text-right align-bottom font-normal">
                 <span className="text-caption text-ink-subtle block">SEU CARTÃO</span>
                 <span className="text-ink mt-0.5 block font-semibold">{currentLabel}</span>
@@ -278,34 +289,43 @@ export const CurrentVsRecommended = ({
           <tbody className="divide-line border-line divide-y border-t">
             {narrative.rows.map((row) => {
               const isNet = row.key === "net";
+              const isCostRow = row.key === "annual-fee" || row.key === "fx-iof";
               const expandable = isExpandableRow(row);
               const isExpanded = expandable && expandedRows.has(row.key);
+              const label = expandable ? (
+                <button
+                  type="button"
+                  aria-expanded={isExpanded}
+                  onClick={() => {
+                    toggleRow(row.key);
+                  }}
+                  className="focus-visible:outline-accent hover:[&_span]:text-accent inline-flex cursor-pointer items-center font-normal transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+                >
+                  {row.label}
+                  <ToggleDisc open={isExpanded} />
+                </button>
+              ) : (
+                row.label
+              );
 
               return (
                 <Fragment key={row.key}>
-                  <tr>
+                  <tr className={isNet ? "border-line-strong border-t-2" : undefined}>
                     <th
                       scope="row"
                       className={cn(
-                        "py-3.5 pr-6 text-left font-normal",
-                        isNet ? "text-ink font-semibold" : "text-ink-muted",
+                        "pr-6 text-left",
+                        isNet
+                          ? "text-ink py-5 align-bottom text-base font-semibold"
+                          : "text-ink-muted py-3.5 font-normal",
                       )}
                     >
-                      {expandable ? (
-                        <button
-                          type="button"
-                          aria-expanded={isExpanded}
-                          onClick={() => {
-                            toggleRow(row.key);
-                          }}
-                          className="focus-visible:outline-accent hover:[&_span]:text-accent inline-flex cursor-pointer items-center font-normal transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
-                        >
-                          {row.label}
-                          <ToggleDisc open={isExpanded} />
-                        </button>
-                      ) : (
-                        row.label
-                      )}
+                      {label}
+                      {isCostRow ? (
+                        <span className="text-ink-subtle mt-0.5 block text-[0.7rem] italic">
+                          custo · menor é melhor
+                        </span>
+                      ) : null}
                     </th>
                     <ValueCell row={row} side="current" value={row.currentValueBrl} />
                     <ValueCell row={row} side="recommended" value={row.recommendedValueBrl} />
@@ -319,18 +339,6 @@ export const CurrentVsRecommended = ({
               );
             })}
           </tbody>
-          <tfoot>
-            <tr className="border-line-strong border-t-2">
-              <th scope="row" className="text-ink py-5 pr-6 text-left text-base font-semibold">
-                Diferença anual
-              </th>
-              <td colSpan={2} className="py-5 pl-6 text-right">
-                <span className="text-display-3 text-accent tabular font-semibold">
-                  {formatBrl(narrative.verdictBrl)}
-                </span>
-              </td>
-            </tr>
-          </tfoot>
         </table>
       </div>
 

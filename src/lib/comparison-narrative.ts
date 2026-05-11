@@ -220,24 +220,24 @@ const computeDominant = (rows: ComparisonRow[]): DominantKey | null => {
   return best;
 };
 
-// ─── diagnosis lead-in ────────────────────────────────────────────────────────
-// One short line above the table that frames it ("the headline is X — see:"). The numbers
-// (per-row values, net totals, the annual difference) live in the table itself, so this stays
-// qualitative — direction-neutral too, since a row can favour either side.
+// ─── dominant-delta note ──────────────────────────────────────────────────────
+// One short, direction-neutral line shown in the comparison table's first column header,
+// naming where the biggest swing is ("A maior diferença está em viagem."). The numbers — per-row
+// values, net totals, the annual difference — live in the table itself, so this stays qualitative.
+// Empty when no single row dominates.
 
-// "em"+article contraction ("na"/"no"/"nos") that slots into "a maior diferença está ___:".
 const dominantFrase = (key: ComparisonRowKey): string => {
   switch (key) {
     case "cashback":
-      return "no cashback";
+      return "em cashback";
     case "points":
-      return "nos pontos";
+      return "em pontos";
     case "travel-benefit":
-      return "nos benefícios de viagem";
+      return "em viagem";
     case "annual-fee":
-      return "na anuidade";
+      return "em anuidade";
     case "fx-iof":
-      return "no custo de câmbio";
+      return "em câmbio";
     // "net" is filtered out before this is called; case exists for exhaustiveness.
     case "net":
       return "no líquido";
@@ -245,12 +245,10 @@ const dominantFrase = (key: ComparisonRowKey): string => {
 };
 
 const dominantPhrase = (domKey: DominantKey): string =>
-  domKey === "rewards" ? "nas recompensas" : dominantFrase(domKey);
+  domKey === "rewards" ? "em recompensas" : dominantFrase(domKey);
 
-const buildDiagnosis = (domKey: DominantKey | null): string[] => {
-  if (domKey === null) return ["Comparando os dois cartões com o mesmo gasto:"];
-  return [`Comparando com o mesmo gasto, a maior diferença está ${dominantPhrase(domKey)}:`];
-};
+const buildDiagnosis = (domKey: DominantKey | null): string[] =>
+  domKey === null ? [] : [`A maior diferença está ${dominantPhrase(domKey)}.`];
 
 // ─── build rows ───────────────────────────────────────────────────────────────
 

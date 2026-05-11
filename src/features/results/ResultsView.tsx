@@ -786,6 +786,15 @@ export const ResultsView = (): JSX.Element => {
         <header className="max-w-4xl">
           <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
           <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
+          {comparisonNarrative !== null ? (
+            <p className="mt-4">
+              <span className="text-display-3 text-accent tabular">
+                +{formatBrl(comparisonNarrative.verdictBrl)}
+              </span>
+              <span className="text-ink-muted ml-1.5 text-base">/ano</span>
+              <span className="text-ink-subtle ml-3 text-sm">vs. seu {currentLabel} atual</span>
+            </p>
+          ) : null}
           <HeroDetailLinks stack={topStack} />
         </header>
 
