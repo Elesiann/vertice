@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
 import { formatBrl } from "@/lib/format";
 import type { ComparisonNarrative } from "@/lib/comparison-narrative";
@@ -41,6 +42,32 @@ const variantANarrative: ComparisonNarrative = {
 
 const narrativeWithoutBreakEven: ComparisonNarrative = {
   ...variantANarrative,
+  currentBreakEvenMonthlySpendBrl: null,
+  currentRoiMultiple: null,
+};
+
+const travelNarrative: ComparisonNarrative = {
+  variant: "current-positive",
+  diagnosis: ["Seu cartão atual rende R$ 1.000,00/ano.", "O recomendado renderia mais."],
+  rows: [
+    {
+      key: "travel-benefit",
+      label: "Benefício de viagem",
+      currentValueBrl: 4150,
+      recommendedValueBrl: 2400,
+      currentBreakdown: [
+        { label: "Sala VIP", valueBrl: 2400 },
+        { label: "Seguro", valueBrl: 1750 },
+      ],
+      recommendedBreakdown: [{ label: "Sala VIP", valueBrl: 2400 }],
+      tone: "current-better",
+    },
+    { key: "net", label: "Líquido anual", currentValueBrl: 4150, recommendedValueBrl: 2400 },
+  ],
+  verdictBrl: -1750,
+  dominantRowKey: "travel-benefit",
+  monthlySpendBrl: 5000,
+  monthlyInternationalUsd: 0,
   currentBreakEvenMonthlySpendBrl: null,
   currentRoiMultiple: null,
 };
@@ -191,5 +218,83 @@ describe("CurrentVsRecommended", () => {
       screen.getByText(/a anuidade se paga a partir de R\$\s?7\.120,00\/mês em gastos/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/cada R\$ 1/)).not.toBeInTheDocument();
+  });
+
+  describe("travel-benefit row expandable breakdown", () => {
+    it("has a toggle button collapsed by default, breakdown labels not visible", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={travelNarrative}
+          currentLabel="Card A"
+          recommendedLabel="Card B"
+        />,
+      );
+      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      expect(btn).toBeInTheDocument();
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
+      expect(screen.queryByText("Seguro")).not.toBeInTheDocument();
+    });
+
+    it("expanding the travel-benefit row reveals the breakdown with correct values", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={travelNarrative}
+          currentLabel="Card A"
+          recommendedLabel="Card B"
+        />,
+      );
+      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      await user.click(btn);
+
+      expect(btn).toHaveAttribute("aria-expanded", "true");
+
+      expect(screen.getByText("Sala VIP")).toBeInTheDocument();
+      expect(screen.getByText("Seguro")).toBeInTheDocument();
+
+      // Sala VIP: both sides show R$ 2.400,00
+      const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
+      expect(salaVipRow).not.toBeNull();
+      expect(within(salaVipRow).getAllByText(/R\$\s?2\.400,00/).length).toBe(2);
+
+      // Seguro: current side shows R$ 1.750,00; recommended side shows em-dash
+      const seguroRow = screen.getByText("Seguro").closest("tr") as HTMLElement;
+      expect(seguroRow).not.toBeNull();
+      expect(within(seguroRow).getByText(/R\$\s?1\.750,00/)).toBeInTheDocument();
+      expect(within(seguroRow).getByText("—")).toBeInTheDocument();
+    });
+
+    it("collapsing again hides the breakdown and resets aria-expanded", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={travelNarrative}
+          currentLabel="Card A"
+          recommendedLabel="Card B"
+        />,
+      );
+      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      await user.click(btn);
+      await user.click(btn);
+
+      expect(btn).toHaveAttribute("aria-expanded", "false");
+      expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
+      expect(screen.queryByText("Seguro")).not.toBeInTheDocument();
+    });
+
+    it("a narrative without a travel-benefit breakdown shows no toggle", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      expect(
+        screen.queryByRole("button", { name: /Benefício de viagem/i }),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
+    });
   });
 });
