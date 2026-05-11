@@ -92,7 +92,7 @@ describe("CurrentVsRecommended", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders the column headers HOJE and RECOMENDADO with both card names", () => {
+  it("renders the column headers with both card names", () => {
     render(
       <CurrentVsRecommended
         narrative={variantANarrative}
@@ -100,22 +100,21 @@ describe("CurrentVsRecommended", () => {
         recommendedLabel="PicPay Card Black"
       />,
     );
-    expect(screen.getByText("HOJE")).toBeInTheDocument();
+    expect(screen.getByText("SEU CARTÃO")).toBeInTheDocument();
     expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
     expect(screen.getByText("Nubank Ultravioleta")).toBeInTheDocument();
     expect(screen.getByText("PicPay Card Black")).toBeInTheDocument();
   });
 
-  it("the recommended column header shows a gold 'recomendado' pill, none on HOJE", () => {
+  it("marks the recommended column with a gold pill, none on the current column", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    const pill = screen.getByText(/^recomendado$/);
-    expect(pill).toHaveClass("text-gold", "bg-gold-soft");
-    const recommendedTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
-    expect(within(recommendedTh).getByText(/^recomendado$/)).toBeInTheDocument();
-    const hojeTh = screen.getByText("HOJE").closest("th") as HTMLElement;
-    expect(within(hojeTh).queryByText(/^recomendado$/)).toBeNull();
+    // the "RECOMENDADO" eyebrow lives inside a gold pill
+    expect(screen.getByText("RECOMENDADO").closest(".bg-gold-soft")).toHaveClass("text-gold");
+    // the current ("SEU CARTÃO") column carries no gold pill
+    const seuCartaoTh = screen.getByText("SEU CARTÃO").closest("th") as HTMLElement;
+    expect(seuCartaoTh.querySelector(".bg-gold-soft")).toBeNull();
   });
 
   it("renders each row label and the formatted values per side", () => {
@@ -376,6 +375,29 @@ describe("CurrentVsRecommended", () => {
       expect(within(seguroRow).getByText("—")).toBeInTheDocument();
     });
 
+    it("breaks each component into 'N × per-trip = total' when a trip count is given", async () => {
+      const user = userEvent.setup();
+      render(
+        <CurrentVsRecommended
+          narrative={travelNarrative}
+          currentLabel="Card A"
+          recommendedLabel="Card B"
+          tripsPerYear={2}
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: /Benefício de viagem/i }));
+
+      // Sala VIP: R$ 2.400,00 over 2 trips → 2 × R$ 1.200,00 = R$ 2.400,00 on both sides.
+      const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
+      expect(within(salaVipRow).getAllByText(/2 × R\$\s?1\.200,00 = R\$\s?2\.400,00/).length).toBe(
+        2,
+      );
+      // Seguro: R$ 1.750,00 / 2 = R$ 875,00 on the current side; absent → em-dash on the other.
+      const seguroRow = screen.getByText("Seguro").closest("tr") as HTMLElement;
+      expect(within(seguroRow).getByText(/2 × R\$\s?875,00 = R\$\s?1\.750,00/)).toBeInTheDocument();
+      expect(within(seguroRow).getByText("—")).toBeInTheDocument();
+    });
+
     it("collapsing again hides the breakdown and resets aria-expanded", async () => {
       const user = userEvent.setup();
       render(
@@ -423,9 +445,9 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="PicPay Card Black"
         />,
       );
-      const hojeTh = screen.getByText("HOJE").closest("th") as HTMLElement;
+      const currentTh = screen.getByText("SEU CARTÃO").closest("th") as HTMLElement;
       expect(
-        within(hojeTh).getByText(/Atenção: tende a custar mais que retorna/),
+        within(currentTh).getByText(/Atenção: tende a custar mais que retorna/),
       ).toBeInTheDocument();
       const recomendadoTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
       expect(

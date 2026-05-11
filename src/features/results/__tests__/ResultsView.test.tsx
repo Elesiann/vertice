@@ -303,7 +303,7 @@ describe("ResultsView", () => {
     expect(
       screen.getByText(/O recomendado renderia R\$\s?756,00\/ano com o mesmo gasto/),
     ).toBeInTheDocument();
-    expect(screen.getByText("HOJE")).toBeInTheDocument();
+    expect(screen.getByText("SEU CARTÃO")).toBeInTheDocument();
     expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
     expect(screen.getByText("Diferença anual")).toBeInTheDocument();
     expect(screen.getByText(/R\$\s?256,00/)).toBeInTheDocument();

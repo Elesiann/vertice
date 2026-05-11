@@ -730,6 +730,10 @@ export const ResultsView = (): JSX.Element => {
   const currentLabel =
     recommendation.currentStack !== undefined ? stackLabel(recommendation.currentStack) : "";
   const recommendedLabel = stackLabel(topStack);
+  // Travel-benefit values are modeled per-trip; mirrors the backend's
+  // travelFrequency → trips/year mapping (see stackr-api domain/types).
+  const tripsPerYear =
+    profile.travelFrequency === "frequent" ? 5 : profile.travelFrequency === "occasional" ? 2 : 0;
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
@@ -745,6 +749,7 @@ export const ResultsView = (): JSX.Element => {
             narrative={comparisonNarrative}
             currentLabel={currentLabel}
             recommendedLabel={recommendedLabel}
+            tripsPerYear={tripsPerYear}
           />
         ) : (
           <section

@@ -10,9 +10,22 @@ interface Props {
   narrative: ComparisonNarrative;
   currentLabel: string;
   recommendedLabel: string;
+  // Trips/year derived from the spending profile's travel frequency (0 when no travel declared);
+  // used to break each travel-benefit component into "N × per-trip value = total".
+  tripsPerYear?: number;
 }
 
 type Side = "current" | "recommended";
+
+// "N × R$ x = R$ total" when a trip count is known, else just the total; em-dash when the
+// component is absent on that side.
+const breakdownCellText = (value: number | null, tripsPerYear: number): string => {
+  if (value === null) return "—";
+  if (tripsPerYear > 0) {
+    return `${String(tripsPerYear)} × ${formatBrl(value / tripsPerYear)} = ${formatBrl(value)}`;
+  }
+  return formatBrl(value);
+};
 
 // ─── copy helpers ─────────────────────────────────────────────────────────────
 
@@ -133,7 +146,32 @@ const ValueCell = ({
 
 // ─── detail sub-rows ──────────────────────────────────────────────────────────
 
-const AnnualFeeDetailRow = ({
+// One indented sub-row per card: card name in the label column, its fee conditions (and, for the
+// current card, the break-even/ROI line) left-aligned across the value columns.
+const DetailLine = ({
+  label,
+  body,
+  extra,
+}: {
+  label: string;
+  body: string;
+  extra?: string;
+}): JSX.Element => (
+  <tr className="border-t-0">
+    <th
+      scope="row"
+      className="text-ink-subtle py-2 pr-6 pl-4 text-left align-top text-xs font-normal"
+    >
+      {label}
+    </th>
+    <td colSpan={2} className="text-ink-subtle py-2 pl-6 text-left align-top text-xs leading-snug">
+      <p>{body}</p>
+      {extra !== undefined ? <p className="mt-1">{extra}</p> : null}
+    </td>
+  </tr>
+);
+
+const AnnualFeeDetailRows = ({
   row,
   currentLabel,
   recommendedLabel,
@@ -144,28 +182,26 @@ const AnnualFeeDetailRow = ({
   recommendedLabel: string;
   roiLine: string | null;
 }): JSX.Element => (
-  <tr className="border-t-0">
-    <th scope="row" className="text-ink-subtle py-2 pr-6 pl-4 text-left text-xs font-normal">
-      Condições
-    </th>
-    <td colSpan={2} className="text-ink-subtle py-2 pl-6 text-left align-top text-xs leading-snug">
-      <p>
-        <span className="text-ink-muted font-medium">{currentLabel}</span> —{" "}
-        {row.currentSubLabel ?? "—"}
-      </p>
-      {roiLine !== null ? <p className="mt-1">{roiLine}</p> : null}
-      <p className="mt-2">
-        <span className="text-ink-muted font-medium">{recommendedLabel}</span> —{" "}
-        {row.recommendedSubLabel ?? "—"}
-      </p>
-    </td>
-  </tr>
+  <>
+    <DetailLine
+      label={currentLabel}
+      body={row.currentSubLabel ?? "—"}
+      {...(roiLine !== null ? { extra: roiLine } : {})}
+    />
+    <DetailLine label={recommendedLabel} body={row.recommendedSubLabel ?? "—"} />
+  </>
 );
 
-const BreakdownDetailRows = ({ row }: { row: ComparisonRow }): JSX.Element => (
+const BreakdownDetailRows = ({
+  row,
+  tripsPerYear,
+}: {
+  row: ComparisonRow;
+  tripsPerYear: number;
+}): JSX.Element => (
   <>
     {mergeBreakdownLabels(row).map((label) => {
-      // null = component absent on that side → em-dash; any number (incl. 0) prints.
+      // null = component absent on that side → em-dash.
       const current = row.currentBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
       const recommended =
         row.recommendedBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
@@ -175,10 +211,10 @@ const BreakdownDetailRows = ({ row }: { row: ComparisonRow }): JSX.Element => (
             {label}
           </th>
           <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
-            {current !== null ? formatBrl(current) : "—"}
+            {breakdownCellText(current, tripsPerYear)}
           </td>
           <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
-            {recommended !== null ? formatBrl(recommended) : "—"}
+            {breakdownCellText(recommended, tripsPerYear)}
           </td>
         </tr>
       );
@@ -192,6 +228,7 @@ export const CurrentVsRecommended = ({
   narrative,
   currentLabel,
   recommendedLabel,
+  tripsPerYear = 0,
 }: Props): JSX.Element => {
   const roiLine = annualFeeRoiLine(narrative);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
@@ -225,19 +262,20 @@ export const CurrentVsRecommended = ({
             <tr>
               <th aria-hidden className="w-[44%]" />
               <th scope="col" className="pb-3 pl-6 text-right align-bottom font-normal">
-                <span className="text-caption text-ink-subtle block">HOJE</span>
+                <span className="text-caption text-ink-subtle block">SEU CARTÃO</span>
                 <span className="text-ink mt-0.5 block font-semibold">{currentLabel}</span>
                 {narrative.currentVerdict !== undefined ? (
                   <VerdictTag verdict={narrative.currentVerdict} />
                 ) : null}
               </th>
               <th scope="col" className="pb-3 pl-6 text-right align-bottom font-normal">
-                <span className="text-caption text-ink-subtle block">RECOMENDADO</span>
-                <span className="text-ink mt-0.5 block font-semibold">{recommendedLabel}</span>
                 <Badge tone="gold" className="mt-1">
                   <Star size={11} aria-hidden />
-                  recomendado
+                  <span className="text-caption block">RECOMENDADO</span>
                 </Badge>
+                <span className="text-ink mt-0.5 block text-[1rem] font-semibold">
+                  {recommendedLabel}
+                </span>
                 {narrative.recommendedVerdict !== undefined ? (
                   <VerdictTag verdict={narrative.recommendedVerdict} />
                 ) : null}
@@ -281,7 +319,7 @@ export const CurrentVsRecommended = ({
                   </tr>
 
                   {isExpanded && row.key === "annual-fee" ? (
-                    <AnnualFeeDetailRow
+                    <AnnualFeeDetailRows
                       row={row}
                       currentLabel={currentLabel}
                       recommendedLabel={recommendedLabel}
@@ -289,7 +327,7 @@ export const CurrentVsRecommended = ({
                     />
                   ) : null}
                   {isExpanded && row.key === "travel-benefit" ? (
-                    <BreakdownDetailRows row={row} />
+                    <BreakdownDetailRows row={row} tripsPerYear={tripsPerYear} />
                   ) : null}
                 </Fragment>
               );
