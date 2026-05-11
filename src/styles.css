@@ -16,6 +16,7 @@
 
 @theme {
   /* --- Tier 1: primitives (do not consume in components) --- */
+  --_color-green-25: #f1f7f3;
   --_color-green-50: #e5efe9;
   --_color-green-700: #166f4f;
   --_color-green-800: #10583f;
@@ -30,6 +31,7 @@
   --_color-slate-500: #5f6f65;
   --_color-slate-900: #1f2a24;
 
+  --_color-rose-50: #fdf2f3;
   --_color-rose-100: #ffe4e6;
   --_color-rose-700: #be123c;
 
@@ -57,6 +59,12 @@
 
   --color-warning: var(--_color-amber-800);
   --color-warning-soft: var(--_color-amber-100);
+
+  /* --- Cell tints (comparison table heatmap, whisper-quiet) --- */
+  --color-cell-positive: var(--_color-green-25);
+  --color-cell-negative: var(--_color-rose-50);
+  /* deliberately the same pale sand as --color-surface-sunken */
+  --color-cell-neutral: var(--_color-sand-200);
 
   /* --- Typography families --- */
   --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -103,6 +111,11 @@
 
   --color-warning: #fbbf24;
   --color-warning-soft: #3a2a10;
+
+  /* --- Cell tints (dark) --- */
+  --color-cell-positive: #131f1a;
+  --color-cell-negative: #221619;
+  --color-cell-neutral: #1a1f1c;
 }
 
 /* =============================================================================

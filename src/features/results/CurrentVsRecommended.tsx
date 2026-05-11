@@ -9,16 +9,29 @@ interface Props {
   recommendedLabel: string;
 }
 
-// Returns the text-color classes for a value cell. `side` is unused today; it is a seam
-// so a later task can add per-side `bg-cell-*` tint classes off `row.tone`.
+// Returns the bg-cell-* tint class for a value cell, or null when no tint applies.
+const cellTint = (row: ComparisonRow, side: "current" | "recommended"): string | null => {
+  if (row.key === "net" || row.tone === undefined) return null;
+  if (row.tone === "tie") return "bg-cell-neutral";
+  if (row.tone === "current-better")
+    return side === "current" ? "bg-cell-positive" : "bg-cell-negative";
+  // tone is "recommended-better" here — the only remaining ComparisonRow["tone"] value.
+  return side === "recommended" ? "bg-cell-positive" : "bg-cell-negative";
+};
+
+// Returns the text-color + bg-tint classes for a value cell.
 const cellClasses = (
   row: ComparisonRow,
-  _side: "current" | "recommended",
+  side: "current" | "recommended",
   value: number,
 ): string => {
-  if (row.key === "net" && value < 0) return "text-warning tabular";
-  if (row.key === "annual-fee" || row.key === "fx-iof") return "text-ink-muted tabular";
-  return "text-ink tabular";
+  const textClass =
+    row.key === "net" && value < 0
+      ? "text-warning tabular"
+      : row.key === "annual-fee" || row.key === "fx-iof"
+        ? "text-ink-muted tabular"
+        : "text-ink tabular";
+  return cn(textClass, cellTint(row, side));
 };
 
 const spendCaption = (narrative: ComparisonNarrative): string => {

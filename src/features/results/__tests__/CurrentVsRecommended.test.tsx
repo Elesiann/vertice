@@ -297,4 +297,93 @@ describe("CurrentVsRecommended", () => {
       expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
     });
   });
+
+  describe("cell tints by tone", () => {
+    // variantANarrative rows:
+    //   cashback  tone:"current-better"   → current(750) positive, recommended(720) negative
+    //   annual-fee tone:"recommended-better" → current(-1068) negative, recommended(0) positive
+    //   net       (no tone)               → no bg-cell-* class
+
+    it("current-better row: current cell gets bg-cell-positive, recommended gets bg-cell-negative", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      // cashback current = R$ 750,00
+      const currentCashback = screen.getByText(/750,00/);
+      expect(currentCashback).toHaveClass("bg-cell-positive");
+      expect(currentCashback).not.toHaveClass("bg-cell-negative");
+
+      // cashback recommended = R$ 720,00 appears multiple times; find the table cell (td)
+      const allSevenTwenty = screen.getAllByText(/720,00/);
+      const cashbackRecommendedTd = allSevenTwenty.find((el) => el.tagName === "TD");
+      expect(cashbackRecommendedTd).toBeDefined();
+      expect(cashbackRecommendedTd).toHaveClass("bg-cell-negative");
+      expect(cashbackRecommendedTd).not.toHaveClass("bg-cell-positive");
+    });
+
+    it("recommended-better row: current cell gets bg-cell-negative, recommended gets bg-cell-positive", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      // annual-fee current = -R$ 1.068,00 (unambiguous)
+      const currentFee = screen.getByText(/-R\$\s?1\.068,00/);
+      expect(currentFee).toHaveClass("bg-cell-negative");
+      expect(currentFee).not.toHaveClass("bg-cell-positive");
+
+      // annual-fee recommended = R$ 0,00 (unambiguous)
+      const recommendedFee = screen.getByText(/R\$\s?0,00/);
+      expect(recommendedFee).toHaveClass("bg-cell-positive");
+      expect(recommendedFee).not.toHaveClass("bg-cell-negative");
+    });
+
+    it("net row has no bg-cell-* class on either side", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={variantANarrative}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      const netRow = screen.getByText("Líquido anual").closest("tr") as HTMLElement;
+      expect(netRow).not.toBeNull();
+      const [netCurrentTd, netRecommendedTd] = within(netRow).getAllByRole("cell");
+      expect(netCurrentTd?.className).not.toMatch(/bg-cell-/);
+      expect(netRecommendedTd?.className).not.toMatch(/bg-cell-/);
+    });
+
+    it("tied row: both cells get bg-cell-neutral", () => {
+      const tiedNarrative: ComparisonNarrative = {
+        ...variantANarrative,
+        rows: [
+          {
+            key: "fx-iof",
+            label: "FX/IOF",
+            currentValueBrl: -444,
+            recommendedValueBrl: -444,
+            tone: "tie",
+          },
+          { key: "net", label: "Líquido anual", currentValueBrl: -444, recommendedValueBrl: -444 },
+        ],
+      };
+      render(
+        <CurrentVsRecommended narrative={tiedNarrative} currentLabel="A" recommendedLabel="B" />,
+      );
+      // Both fx-iof cells show -R$ 444,00; they are the two TDs in the fx-iof row
+      const fxRow = screen.getByText("FX/IOF").closest("tr") as HTMLElement;
+      expect(fxRow).not.toBeNull();
+      const cells = within(fxRow).getAllByText(/-R\$\s?444,00/);
+      expect(cells).toHaveLength(2);
+      for (const cell of cells) {
+        expect(cell).toHaveClass("bg-cell-neutral");
+      }
+    });
+  });
 });
