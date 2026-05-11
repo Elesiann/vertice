@@ -339,12 +339,9 @@ export const CurrentVsRecommended = ({
         {recommendedBenefits.length > 0 ? (
           <>
             <p className="text-caption text-ink-subtle">Mais no {recommendedLabel}</p>
-            <ul className="text-ink-muted mt-3 space-y-1.5 text-sm leading-relaxed">
+            <ul className="text-ink-muted marker:text-accent/50 mt-3 list-disc space-y-1.5 pl-5 text-sm leading-snug">
               {recommendedBenefits.map((benefit) => (
-                <li key={benefit} className="flex gap-2.5">
-                  <span aria-hidden className="bg-line-strong mt-[0.55em] h-px w-2.5 shrink-0" />
-                  <span>{benefit}</span>
-                </li>
+                <li key={benefit}>{benefit}</li>
               ))}
             </ul>
           </>
