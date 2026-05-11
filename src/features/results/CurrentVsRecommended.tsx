@@ -1,4 +1,4 @@
-import { Fragment, useState, type JSX } from "react";
+import { Fragment, useState, type JSX, type ReactNode } from "react";
 import { Check, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
@@ -65,13 +65,25 @@ const routeLabel = (route: FeeWaiverRoute): string =>
     ? `${formatBrl(route.amountBrl)}/mês`
     : `${formatBrl(route.amountBrl)} investidos`;
 
-// The "Condições" cell — kept short so it fits the same column width as the travel-benefit
-// breakdown cells. The fee amount itself is already in the value cell above; this answers only
-// "how to get it waived". For a charged card "isenta com …" reads as the hypothetical.
-const feeConditionCellText = (detail: FeeDetail): string => {
+// The "Condições" cell content — kept short so it fits the same column width as the travel-benefit
+// breakdown cells. The fee amount itself is already in the value cell above; this answers only "how
+// to get it waived". For a charged card "isenta com …" reads as the hypothetical. Each route label
+// stays on one line so "R$ 8.000,00/mês" never wraps after the slash.
+const feeConditionCell = (detail: FeeDetail | undefined): ReactNode => {
+  if (detail === undefined) return "—";
   if (detail.status === "no-fee") return "sem anuidade";
   if (detail.routes.length === 0) return detail.status === "charged" ? "sem isenção" : "isenta";
-  return `isenta com ${detail.routes.map(routeLabel).join(" ou ")}`;
+  return (
+    <>
+      isenta com{" "}
+      {detail.routes.map((route, i) => (
+        <Fragment key={route.kind}>
+          {i > 0 ? " ou " : null}
+          <span className="whitespace-nowrap">{routeLabel(route)}</span>
+        </Fragment>
+      ))}
+    </>
+  );
 };
 
 // ─── verdict tag (amber only when there's something to warn about) ────────────
@@ -177,12 +189,10 @@ const AnnualFeeDetailRow = ({ row }: { row: ComparisonRow }): JSX.Element => (
       Condições
     </th>
     <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs leading-snug">
-      {row.currentFeeDetail !== undefined ? feeConditionCellText(row.currentFeeDetail) : "—"}
+      {feeConditionCell(row.currentFeeDetail)}
     </td>
     <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs leading-snug">
-      {row.recommendedFeeDetail !== undefined
-        ? feeConditionCellText(row.recommendedFeeDetail)
-        : "—"}
+      {feeConditionCell(row.recommendedFeeDetail)}
     </td>
   </tr>
 );
@@ -245,10 +255,10 @@ export const CurrentVsRecommended = ({
       <p className="text-ink-subtle text-xs">{spendCaption(narrative)}</p>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[28rem] text-sm">
+        <table className="w-full min-w-[28rem] table-fixed text-sm">
           <thead>
             <tr>
-              <th aria-hidden className="w-[44%]" />
+              <th aria-hidden className="w-[34%]" />
               <th scope="col" className="pb-3 pl-6 text-right align-bottom font-normal">
                 <span className="text-caption text-ink-subtle block">SEU CARTÃO</span>
                 <span className="text-ink mt-0.5 block font-semibold">{currentLabel}</span>
