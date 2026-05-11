@@ -77,8 +77,12 @@ const annualFeeRoiLine = (narrative: ComparisonNarrative): string | null => {
   return null;
 };
 
+// Left-aligned so the longer waiver/break-even sentences stay readable even though the
+// value above them is right-aligned in the cell.
 const SubLine = ({ text }: { text: string }): JSX.Element => (
-  <span className="text-ink-subtle mt-1 block text-xs leading-snug font-normal">{text}</span>
+  <span className="text-ink-subtle mt-1 block text-left text-xs leading-snug font-normal">
+    {text}
+  </span>
 );
 
 // Marker shown inside the toggle button: "+" collapsed, "−" expanded.
@@ -141,137 +145,141 @@ export const CurrentVsRecommended = ({
 
       <p className="text-ink-subtle text-xs leading-relaxed">{spendCaption(narrative)}</p>
 
-      <table className="w-full text-sm">
-        <thead>
-          <tr>
-            <th aria-hidden className="w-[42%]" />
-            <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
-              <span className="text-caption text-ink-subtle block">HOJE</span>
-              <span className="text-ink mt-1 block text-sm font-semibold">{currentLabel}</span>
-              {narrative.currentVerdict !== undefined ? (
-                <VerdictTag verdict={narrative.currentVerdict} />
-              ) : null}
-            </th>
-            <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
-              <span className="text-caption text-ink-subtle block">RECOMENDADO</span>
-              <span className="text-ink mt-1 block text-sm font-semibold">{recommendedLabel}</span>
-              <Badge tone="gold" className="mt-1.5">
-                <Star size={12} aria-hidden />
-                recomendado
-              </Badge>
-              {narrative.recommendedVerdict !== undefined ? (
-                <VerdictTag verdict={narrative.recommendedVerdict} />
-              ) : null}
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-line border-line divide-y border-t">
-          {narrative.rows.map((row) => {
-            const isNet = row.key === "net";
-            const isAnnualFee = row.key === "annual-fee";
-            const expandable = hasBreakdown(row);
-            const isExpanded = expandable && expandedRows.has(row.key);
-            const labels = expandable ? mergeBreakdownLabels(row) : [];
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[30rem] text-sm">
+          <thead>
+            <tr>
+              <th aria-hidden className="w-[42%]" />
+              <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
+                <span className="text-caption text-ink-subtle block">HOJE</span>
+                <span className="text-ink mt-1 block text-sm font-semibold">{currentLabel}</span>
+                {narrative.currentVerdict !== undefined ? (
+                  <VerdictTag verdict={narrative.currentVerdict} />
+                ) : null}
+              </th>
+              <th scope="col" className="pb-4 pl-6 text-right align-bottom font-normal">
+                <span className="text-caption text-ink-subtle block">RECOMENDADO</span>
+                <span className="text-ink mt-1 block text-sm font-semibold">
+                  {recommendedLabel}
+                </span>
+                <Badge tone="gold" className="mt-1.5">
+                  <Star size={12} aria-hidden />
+                  recomendado
+                </Badge>
+                {narrative.recommendedVerdict !== undefined ? (
+                  <VerdictTag verdict={narrative.recommendedVerdict} />
+                ) : null}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-line border-line divide-y border-t">
+            {narrative.rows.map((row) => {
+              const isNet = row.key === "net";
+              const isAnnualFee = row.key === "annual-fee";
+              const expandable = hasBreakdown(row);
+              const isExpanded = expandable && expandedRows.has(row.key);
+              const labels = expandable ? mergeBreakdownLabels(row) : [];
 
-            return (
-              <Fragment key={row.key}>
-                <tr>
-                  <th
-                    scope="row"
-                    className={cn(
-                      "py-3 pr-6 text-left font-normal",
-                      isNet ? "text-ink font-semibold" : "text-ink-muted",
-                    )}
-                  >
-                    {expandable ? (
-                      <button
-                        type="button"
-                        aria-expanded={isExpanded}
-                        onClick={() => {
-                          toggleRow(row.key);
-                        }}
-                        className={cn(
-                          "inline-flex cursor-pointer items-center",
-                          "text-ink-muted font-normal",
-                          "focus-visible:outline-accent focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1",
-                          "hover:[&_span]:text-accent",
-                        )}
-                      >
-                        {row.label}
-                        <ToggleMarker expanded={isExpanded} />
-                      </button>
-                    ) : (
-                      row.label
-                    )}
-                  </th>
-                  <td
-                    className={cn(
-                      "py-3 pl-6 text-right",
-                      cellClasses(row, "current", row.currentValueBrl),
-                      isNet ? "font-semibold" : null,
-                    )}
-                  >
-                    {formatBrl(row.currentValueBrl)}
-                    {row.currentSubLabel !== undefined ? (
-                      <SubLine text={row.currentSubLabel} />
-                    ) : null}
-                    {isAnnualFee && roiLine !== null ? <SubLine text={roiLine} /> : null}
-                  </td>
-                  <td
-                    className={cn(
-                      "py-3 pl-6 text-right",
-                      cellClasses(row, "recommended", row.recommendedValueBrl),
-                      isNet ? "font-semibold" : null,
-                    )}
-                  >
-                    {formatBrl(row.recommendedValueBrl)}
-                    {row.recommendedSubLabel !== undefined ? (
-                      <SubLine text={row.recommendedSubLabel} />
-                    ) : null}
-                  </td>
-                </tr>
-                {isExpanded &&
-                  labels.map((label) => {
-                    // null = component absent on that side → em-dash; any number (incl. 0) prints.
-                    const currentVal =
-                      row.currentBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
-                    const recommendedVal =
-                      row.recommendedBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
-                    return (
-                      // border-t-0 suppresses the divide-y hairline inherited from <tbody>.
-                      <tr key={label} className="border-t-0">
-                        <th
-                          scope="row"
-                          className="text-ink-subtle py-2 pr-6 pl-4 text-left text-xs font-normal"
+              return (
+                <Fragment key={row.key}>
+                  <tr>
+                    <th
+                      scope="row"
+                      className={cn(
+                        "py-3 pr-6 text-left font-normal",
+                        isNet ? "text-ink font-semibold" : "text-ink-muted",
+                      )}
+                    >
+                      {expandable ? (
+                        <button
+                          type="button"
+                          aria-expanded={isExpanded}
+                          onClick={() => {
+                            toggleRow(row.key);
+                          }}
+                          className={cn(
+                            "inline-flex cursor-pointer items-center",
+                            "text-ink-muted font-normal",
+                            "focus-visible:outline-accent focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1",
+                            "hover:[&_span]:text-accent",
+                          )}
                         >
-                          {label}
-                        </th>
-                        <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
-                          {currentVal !== null ? formatBrl(currentVal) : "—"}
-                        </td>
-                        <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
-                          {recommendedVal !== null ? formatBrl(recommendedVal) : "—"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-              </Fragment>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr className="border-line-strong border-t-2">
-            <th scope="row" className="text-ink py-5 pr-6 text-left text-base font-semibold">
-              Diferença anual
-            </th>
-            <td colSpan={2} className="py-5 pl-6 text-right">
-              <span className="text-display-3 text-accent tabular font-semibold">
-                {formatBrl(narrative.verdictBrl)}
-              </span>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+                          {row.label}
+                          <ToggleMarker expanded={isExpanded} />
+                        </button>
+                      ) : (
+                        row.label
+                      )}
+                    </th>
+                    <td
+                      className={cn(
+                        "py-3 pl-6 text-right",
+                        cellClasses(row, "current", row.currentValueBrl),
+                        isNet ? "font-semibold" : null,
+                      )}
+                    >
+                      {formatBrl(row.currentValueBrl)}
+                      {row.currentSubLabel !== undefined ? (
+                        <SubLine text={row.currentSubLabel} />
+                      ) : null}
+                      {isAnnualFee && roiLine !== null ? <SubLine text={roiLine} /> : null}
+                    </td>
+                    <td
+                      className={cn(
+                        "py-3 pl-6 text-right",
+                        cellClasses(row, "recommended", row.recommendedValueBrl),
+                        isNet ? "font-semibold" : null,
+                      )}
+                    >
+                      {formatBrl(row.recommendedValueBrl)}
+                      {row.recommendedSubLabel !== undefined ? (
+                        <SubLine text={row.recommendedSubLabel} />
+                      ) : null}
+                    </td>
+                  </tr>
+                  {isExpanded &&
+                    labels.map((label) => {
+                      // null = component absent on that side → em-dash; any number (incl. 0) prints.
+                      const currentVal =
+                        row.currentBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
+                      const recommendedVal =
+                        row.recommendedBreakdown?.find((p) => p.label === label)?.valueBrl ?? null;
+                      return (
+                        // border-t-0 suppresses the divide-y hairline inherited from <tbody>.
+                        <tr key={label} className="border-t-0">
+                          <th
+                            scope="row"
+                            className="text-ink-subtle py-2 pr-6 pl-4 text-left text-xs font-normal"
+                          >
+                            {label}
+                          </th>
+                          <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
+                            {currentVal !== null ? formatBrl(currentVal) : "—"}
+                          </td>
+                          <td className="text-ink-subtle tabular py-2 pl-6 text-right text-xs">
+                            {recommendedVal !== null ? formatBrl(recommendedVal) : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </Fragment>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-line-strong border-t-2">
+              <th scope="row" className="text-ink py-5 pr-6 text-left text-base font-semibold">
+                Diferença anual
+              </th>
+              <td colSpan={2} className="py-5 pl-6 text-right">
+                <span className="text-display-3 text-accent tabular font-semibold">
+                  {formatBrl(narrative.verdictBrl)}
+                </span>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </section>
   );
 };

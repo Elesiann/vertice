@@ -344,7 +344,7 @@ describe("ResultsView", () => {
 
     expect(
       screen.getByText(
-        /A diferença maior está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado/,
+        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado/,
       ),
     ).toBeInTheDocument();
     expect(

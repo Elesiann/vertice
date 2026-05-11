@@ -124,7 +124,7 @@
   /* --- Cell tints (dark) --- */
   --color-cell-positive: #131f1a;
   --color-cell-negative: #221619;
-  --color-cell-neutral: #1a1f1c;
+  --color-cell-neutral: #0a0f0c; /* matches --color-surface-sunken, like the light token */
 }
 
 /* =============================================================================

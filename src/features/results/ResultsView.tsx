@@ -387,6 +387,8 @@ const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluation): s
   return `${formatAnnualBrl(Math.abs(delta))} abaixo do recomendado.`;
 };
 
+// Closest-by-score card = 100%; roughly one extra score-point of distance costs one
+// percentage point; clamped to [0, 100]. The raw score itself is never displayed.
 const mostSimilarCompat = (
   stacks: StackEvaluation[],
   topStack: StackEvaluation,
@@ -427,6 +429,7 @@ const buildAlternativeTabs = (recommendation: Recommendation): AlternativeTab[] 
 
   // "Mais semelhantes" ranks the full pool by score proximity — deliberately NOT threshold-gated
   // like the other tabs (it's a usage-fit lens, not a return lens). Cards without a score drop out.
+  // Not hoisting decisionTracks.closestActionableSubstitute: it would break the "#1 = closest = 100%" framing.
   const topScore = topStack.scoreLab?.score;
   const mostSimilarStacks =
     topScore === undefined

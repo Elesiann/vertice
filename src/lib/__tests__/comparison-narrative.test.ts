@@ -301,7 +301,7 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       // dominant delta sentence (annual-fee dominates here: |0 - (-1068)| = 1068 > |720 - 750| = 30)
       expect(out.diagnosis[0]).toMatch(
-        /A diferença maior está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado\./,
+        /A maior diferença está na anuidade: R\$\s?1\.068,00 no atual, R\$\s?0,00 no recomendado\./,
       );
       // summary sentence
       expect(out.diagnosis[1]).toMatch(
@@ -345,7 +345,7 @@ describe("buildComparisonNarrative", () => {
       const out = buildComparisonNarrative(current, top);
       // cashback row dominates (|720 - 500| = 220)
       expect(out.diagnosis[0]).toMatch(
-        /A diferença maior está no cashback: R\$\s?500,00 no atual, R\$\s?720,00 no recomendado\./,
+        /A maior diferença está no cashback: R\$\s?500,00 no atual, R\$\s?720,00 no recomendado\./,
       );
       expect(out.diagnosis[1]).toMatch(
         /Seu cartão atual rende R\$\s?500,00\/ano\. O recomendado renderia R\$\s?720,00\/ano com o mesmo gasto\./,

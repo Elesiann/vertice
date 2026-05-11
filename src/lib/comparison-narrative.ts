@@ -189,7 +189,7 @@ const computeDominantRowKey = (rows: ComparisonRow[]): ComparisonRowKey | null =
 
 // ─── diagnosis sentences ──────────────────────────────────────────────────────
 
-// Returns the "em + artigo" contracted form so it slots into "A diferença maior está ___:".
+// Returns the "em"+article contraction ("na"/"no"/"nos") so it slots into "A maior diferença está ___:".
 const dominantFrase = (key: ComparisonRowKey): string => {
   switch (key) {
     case "cashback":
@@ -217,7 +217,7 @@ const rawForProse = (key: ComparisonRowKey, valueBrl: number): number => {
 const sentence1 = (key: ComparisonRowKey, currentRow: ComparisonRow): string => {
   const currentRaw = rawForProse(key, currentRow.currentValueBrl);
   const recommendedRaw = rawForProse(key, currentRow.recommendedValueBrl);
-  return `A diferença maior está ${dominantFrase(key)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
+  return `A maior diferença está ${dominantFrase(key)}: ${formatBrl(currentRaw)} no atual, ${formatBrl(recommendedRaw)} no recomendado.`;
 };
 
 const sentence2VariantA = (currentStack: StackEvaluation, topStack: StackEvaluation): string => {
