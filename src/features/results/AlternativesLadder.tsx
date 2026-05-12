@@ -17,17 +17,20 @@ const CURRENT_ROW_BG = "bg-line/20";
 const CardRow = ({
   stack,
   deltaBrl,
+  anchoredOnCurrentCard,
 }: {
   stack: StackEvaluation;
   deltaBrl: number;
+  anchoredOnCurrentCard: boolean;
 }): JSX.Element => {
   const above = deltaBrl > 0.01;
   const even = Math.abs(deltaBrl) <= 0.01;
+  const anchorWord = anchoredOnCurrentCard ? "seu cartão atual" : "recomendado";
   const deltaText = even
-    ? "mesmo retorno do recomendado"
+    ? `mesmo retorno do ${anchorWord}`
     : above
-      ? `+${formatBrl(deltaBrl)} vs recomendado`
-      : `−${formatBrl(Math.abs(deltaBrl))} vs recomendado`;
+      ? `+${formatBrl(deltaBrl)} vs ${anchorWord}`
+      : `−${formatBrl(Math.abs(deltaBrl))} vs ${anchorWord}`;
   const deltaTone = above ? "text-warning" : "text-ink-subtle";
   const valueTone = above ? "text-warning" : "text-ink";
   const barrier = stackAccessBarrierLabel(stack);
@@ -61,12 +64,14 @@ const CardRow = ({
 export const AlternativesLadder = ({
   rows,
   currentLabel,
+  anchoredOnCurrentCard = false,
   fullListHref,
   panelId,
   labelledById,
 }: {
   rows: LadderRow[];
   currentLabel: string | null; // user's current card label, for the gap line; null when no current card
+  anchoredOnCurrentCard?: boolean; // the ★ anchor row IS the user's current card (Estado B)
   fullListHref: string;
   panelId: string;
   labelledById: string;
@@ -107,7 +112,9 @@ export const AlternativesLadder = ({
                 {formatAnnualBrl(row.stack.yearOneNetValueBrl)}
               </span>
               <p className="text-ink-subtle col-span-2 text-xs leading-relaxed">
-                recomendado · maior líquido sem barreira
+                {anchoredOnCurrentCard
+                  ? "seu cartão hoje · maior líquido sem investir mais"
+                  : "recomendado · maior líquido sem barreira"}
               </p>
             </li>
           );
@@ -150,7 +157,14 @@ export const AlternativesLadder = ({
             </li>
           );
         case "card":
-          return <CardRow key={stackId(row.stack)} stack={row.stack} deltaBrl={row.deltaBrl} />;
+          return (
+            <CardRow
+              key={stackId(row.stack)}
+              stack={row.stack}
+              deltaBrl={row.deltaBrl}
+              anchoredOnCurrentCard={anchoredOnCurrentCard}
+            />
+          );
       }
     })}
     <li className="px-3 pt-3.5">

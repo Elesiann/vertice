@@ -16,11 +16,13 @@ export const AlternativesSection = ({
   tabs,
   topStack,
   currentStack,
+  anchoredOnCurrentCard = false,
   fullListHref,
 }: {
   tabs: AlternativeTab[];
   topStack: StackEvaluation;
   currentStack?: StackEvaluation | undefined;
+  anchoredOnCurrentCard?: boolean; // the anchor row IS the user's current card (Estado B)
   fullListHref: string;
 }): JSX.Element | null => {
   const [activeId, setActiveId] = useState<AlternativeTabId | null>(null);
@@ -77,6 +79,7 @@ export const AlternativesSection = ({
           belowRecommendedCount: LADDER_BELOW_RECOMMENDED,
         })}
         currentLabel={currentLabel}
+        anchoredOnCurrentCard={anchoredOnCurrentCard}
         fullListHref={fullListHref}
         panelId={panelId}
         labelledById={tabId}

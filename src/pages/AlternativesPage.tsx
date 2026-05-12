@@ -12,6 +12,7 @@ import { StackLabelLink } from "@/features/results/StackLabelLink";
 import {
   TAB_DESCRIPTIONS,
   buildAlternativesFullList,
+  currentCardIsBest,
   formatAnnualBrl,
   isAccessibleForProfile,
   stackAccessBarrierLabel,
@@ -84,8 +85,17 @@ const AlternativesPageInner = (): JSX.Element => {
     );
   }
 
-  const rows = buildAlternativesFullList(result.value);
+  const anchoredOnCurrentCard = currentCardIsBest(result.value, profile);
+  const anchorStack =
+    anchoredOnCurrentCard && result.value.currentStack !== undefined
+      ? result.value.currentStack
+      : undefined;
+  const rows = buildAlternativesFullList(
+    result.value,
+    anchorStack !== undefined ? { anchorStack } : {},
+  );
   const total = rows.length;
+  const anchorWord = anchoredOnCurrentCard ? "seu cartão atual" : "recomendado";
   const test = filterTest(filterId, profile);
   const visible = rows.filter((r) => r.isRecommended || r.isCurrent || test(r));
 
@@ -136,12 +146,14 @@ const AlternativesPageInner = (): JSX.Element => {
                 : "";
             const above = row.deltaBrl > 0.01;
             const deltaText = row.isRecommended
-              ? "recomendado · maior líquido sem barreira"
+              ? anchoredOnCurrentCard
+                ? "seu cartão hoje · maior líquido sem investir mais"
+                : "recomendado · maior líquido sem barreira"
               : above
-                ? `+${formatBrl(row.deltaBrl)} vs recomendado`
+                ? `+${formatBrl(row.deltaBrl)} vs ${anchorWord}`
                 : row.deltaBrl < -0.01
-                  ? `−${formatBrl(Math.abs(row.deltaBrl))} vs recomendado`
-                  : "mesmo retorno do recomendado";
+                  ? `−${formatBrl(Math.abs(row.deltaBrl))} vs ${anchorWord}`
+                  : `mesmo retorno do ${anchorWord}`;
             return (
               <li
                 key={stackId(row.stack)}
@@ -168,7 +180,9 @@ const AlternativesPageInner = (): JSX.Element => {
                   {formatAnnualBrl(row.stack.yearOneNetValueBrl)}
                 </span>
                 <p className="text-ink-subtle col-span-3 pl-12 text-xs leading-relaxed">
-                  {row.isCurrent ? "seu cartão hoje · " : null}
+                  {row.isCurrent && !(anchoredOnCurrentCard && row.isRecommended)
+                    ? "seu cartão hoje · "
+                    : null}
                   <span className={cn("tabular", above ? "text-warning" : "text-ink-subtle")}>
                     {deltaText}
                   </span>

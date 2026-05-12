@@ -523,6 +523,63 @@ export const buildAlternativeLadder = ({
   return rows;
 };
 
+// ---------------------------------------------------------------------------
+// "Your current card is already the best" reframing.
+// ---------------------------------------------------------------------------
+
+const engineTopStack = (recommendation: Recommendation): StackEvaluation =>
+  recommendation.scoreLab?.decisionTracks?.recommendedNow ?? recommendation.topStack;
+
+// True when the user already holds a stack whose net value ties or beats the highest-net stack the
+// engine surfaced — so the page should reframe around their current card instead of pitching a
+// lower-net "recommendation" (which would read as a downgrade).
+export const currentCardIsBest = (
+  recommendation: Recommendation,
+  profile: SpendingProfile,
+): boolean => {
+  const current = recommendation.currentStack;
+  if (current === undefined) return false;
+  if ((profile.currentCardIds?.length ?? 0) === 0) return false;
+  return current.yearOneNetValueBrl >= engineTopStack(recommendation).yearOneNetValueBrl - 0.01;
+};
+
+export interface CurrentCardUpside {
+  stack: StackEvaluation;
+  deltaBrl: number; // net gain over the current card
+  gainPct: number; // rounded % gain over the current card's net (0 when net <= 0)
+  requirementPhrase: string; // e.g. "R$ 30.000,00 investidos no emissor"
+}
+
+// Absurd barriers (e.g. R$ 1.000.000 private-banking thresholds) make a misleading "you'd gain X"
+// pitch — cap what we'll dangle as a realistic upside.
+const UPSIDE_BARRIER_CEILING_BRL = 1_000_000;
+
+// The highest-net stack that out-earns the current card but sits behind a financial barrier this
+// profile doesn't meet — the one card worth naming as "invest X and you'd do better". null when
+// there's nothing decent (or nothing reachable-but-better) to surface.
+export const bestUpsideForCurrentCard = (
+  recommendation: Recommendation,
+  profile: SpendingProfile,
+): CurrentCardUpside | null => {
+  const current = recommendation.currentStack;
+  if (current === undefined) return null;
+  const candidate = uniqueCandidatePool(recommendation)
+    .filter((stack) => stack.yearOneNetValueBrl > current.yearOneNetValueBrl + 0.01)
+    .filter((stack) => !isAccessibleForProfile(profile, stack))
+    .filter((stack) => {
+      const barrier = stackAccessBarrierBrl(stack);
+      return barrier > 0 && barrier <= UPSIDE_BARRIER_CEILING_BRL;
+    })
+    .sort(compareCandidate)[0];
+  if (candidate === undefined) return null;
+  const phrase = stackAccessBarrierPhrase(candidate);
+  if (phrase === null) return null;
+  const deltaBrl = candidate.yearOneNetValueBrl - current.yearOneNetValueBrl;
+  const gainPct =
+    current.yearOneNetValueBrl > 0 ? Math.round((deltaBrl / current.yearOneNetValueBrl) * 100) : 0;
+  return { stack: candidate, deltaBrl, gainPct, requirementPhrase: phrase };
+};
+
 export interface FullListRow {
   stack: StackEvaluation;
   rank: number; // 1-based position in the full ranked pool (global, never per-filter)
@@ -532,9 +589,14 @@ export interface FullListRow {
 }
 
 // Full ranked universe = uniqueCandidatePool + the recommended + (if any) the current card, deduped,
-// sorted by compareCandidate. `rank` is over this universe; filtering happens in the UI, ranks stay global.
-export const buildAlternativesFullList = (recommendation: Recommendation): FullListRow[] => {
-  const top = recommendation.topStack;
+// sorted by compareCandidate. `rank` is over this universe; filtering happens in the UI, ranks stay
+// global. `anchorStack` overrides which row counts as "recommended" and what deltas are measured
+// against (used when the current card is the best — see currentCardIsBest).
+export const buildAlternativesFullList = (
+  recommendation: Recommendation,
+  options?: { anchorStack?: StackEvaluation },
+): FullListRow[] => {
+  const top = options?.anchorStack ?? recommendation.topStack;
   const current = recommendation.currentStack;
   const ranked: StackEvaluation[] = [];
   const seen = new Set<string>();

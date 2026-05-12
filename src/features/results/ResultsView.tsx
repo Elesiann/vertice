@@ -24,9 +24,11 @@ import { ROUTES } from "@/routes";
 import {
   MILES_PROGRAMS,
   alternativesHeroSentence,
+  bestUpsideForCurrentCard,
   buildAlternativeTabs,
   comparisonThreshold,
   compareCandidate,
+  currentCardIsBest,
   formatAnnualBrl,
   isAccessibleForProfile,
   preferenceLabel,
@@ -43,6 +45,7 @@ import {
 } from "@/features/results/alternatives";
 import { AlternativesSection } from "@/features/results/AlternativesSection";
 import { HeroDetailLinks } from "@/features/results/HeroDetailLinks";
+import { StackLabelLink } from "@/features/results/StackLabelLink";
 import type { Recommendation, SpendingProfile, StackEvaluation } from "@/types";
 
 const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
@@ -246,7 +249,16 @@ export const ResultsView = (): JSX.Element => {
   const recommendation = result.value;
   const scoreLabMeta = recommendation.scoreLab;
   const decisionTracks = scoreLabMeta?.decisionTracks;
-  const topStack = displayStackFor(recommendation);
+  // When the user already holds the highest-net stack on offer, reframe the whole page around their
+  // current card (it becomes "the subject") instead of pitching the engine's lower-net pick.
+  const isCurrentCardBest = currentCardIsBest(recommendation, profile);
+  const topStack =
+    isCurrentCardBest && recommendation.currentStack !== undefined
+      ? recommendation.currentStack
+      : displayStackFor(recommendation);
+  const currentCardUpside = isCurrentCardBest
+    ? bestUpsideForCurrentCard(recommendation, profile)
+    : null;
   const displayRecommendation = recommendationWithTopStack(recommendation, topStack);
   const scoreLab = topStack.scoreLab;
   const whyWonNarrative = whyWonSentences(topStack, recommendation.alternatives);
@@ -264,15 +276,16 @@ export const ResultsView = (): JSX.Element => {
   const recommendedAccessLabel = stackAccessBarrierLabel(topStack) ?? "sem exigência financeira";
   const threshold = comparisonThreshold(topStack);
   const alternativeTabs = buildAlternativeTabs(displayRecommendation, profile);
-  const divergenceComparison = preferenceDivergenceComparison(
-    profile,
-    displayRecommendation,
-    threshold,
-  );
+  const divergenceComparison = isCurrentCardBest
+    ? null
+    : preferenceDivergenceComparison(profile, displayRecommendation, threshold);
   const noRecommendationReason =
     decisionTracks?.recommendedNow === null ? decisionTracks.noRecommendationReason : undefined;
-  const recommendationEyebrow =
-    noRecommendationReason !== undefined ? "Melhor acionável encontrado" : "Stack recomendado";
+  const recommendationEyebrow = isCurrentCardBest
+    ? "Você já está no ótimo"
+    : noRecommendationReason !== undefined
+      ? "Melhor acionável encontrado"
+      : "Stack recomendado";
   const noRecommendationNotice =
     noRecommendationReason === "no-positive-actionable-return"
       ? "Não encontramos uma recomendação acionável com retorno positivo relevante; exibindo o melhor cartão acionável para comparação."
@@ -300,6 +313,7 @@ export const ResultsView = (): JSX.Element => {
       : recommendation.moneyOnTheTableBrl;
 
   const hasCurrentComparison =
+    !isCurrentCardBest &&
     (profile.currentCardIds?.length ?? 0) > 0 &&
     recommendation.currentStack !== undefined &&
     displayMoneyOnTheTableBrl !== undefined &&
@@ -333,7 +347,36 @@ export const ResultsView = (): JSX.Element => {
         <header className="max-w-4xl">
           <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
           <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
-          {comparisonNarrative !== null ? (
+          {isCurrentCardBest ? (
+            <>
+              <p className="text-ink-muted mt-4 text-base leading-relaxed">
+                {profile.monthlyDomesticBrl > 0
+                  ? `Já é o melhor cartão pro seu gasto de ${formatBrl(profile.monthlyDomesticBrl)}/mês.`
+                  : "Já é o melhor cartão pro seu gasto."}
+              </p>
+              {currentCardUpside !== null ? (
+                <p className="bg-line/35 mt-5 max-w-2xl rounded-sm px-4 py-3.5 text-sm leading-relaxed">
+                  Você ganharia{" "}
+                  <span className="text-accent tabular font-semibold">
+                    +{formatAnnualBrl(currentCardUpside.deltaBrl)}
+                  </span>
+                  {currentCardUpside.gainPct > 0 ? (
+                    <span className="text-ink-subtle"> (+{currentCardUpside.gainPct}%)</span>
+                  ) : null}{" "}
+                  com{" "}
+                  <span className="text-ink font-semibold">
+                    {currentCardUpside.requirementPhrase}
+                  </span>{" "}
+                  <span aria-hidden>→</span>{" "}
+                  <StackLabelLink
+                    stack={currentCardUpside.stack}
+                    cardClassName="text-ink font-semibold"
+                    separatorClassName="text-ink-subtle"
+                  />
+                </p>
+              ) : null}
+            </>
+          ) : comparisonNarrative !== null ? (
             <p className="mt-4">
               <span className="text-display-3 text-accent tabular">
                 +{formatBrl(comparisonNarrative.verdictBrl)}
@@ -498,6 +541,7 @@ export const ResultsView = (): JSX.Element => {
           tabs={alternativeTabs}
           topStack={topStack}
           currentStack={ladderCurrentStack}
+          anchoredOnCurrentCard={isCurrentCardBest}
           fullListHref={ROUTES.ALTERNATIVES}
         />
 
