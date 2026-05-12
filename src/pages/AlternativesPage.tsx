@@ -145,6 +145,9 @@ const AlternativesPageInner = (): JSX.Element => {
                 ? CURRENT_ROW_BG
                 : "";
             const above = row.deltaBrl > 0.01;
+            // Anchored on the current card: out-earning it is an upside (green); only the barrier
+            // stays amber. Anchored on the recommended: a card above it is the catch itself (amber).
+            const aboveTone = anchoredOnCurrentCard ? "text-accent" : "text-warning";
             const deltaText = row.isRecommended
               ? anchoredOnCurrentCard
                 ? "seu cartão hoje · maior líquido sem investir mais"
@@ -172,10 +175,7 @@ const AlternativesPageInner = (): JSX.Element => {
                   />
                 </span>
                 <span
-                  className={cn(
-                    "text-num tabular font-semibold",
-                    above ? "text-warning" : "text-ink",
-                  )}
+                  className={cn("text-num tabular font-semibold", above ? aboveTone : "text-ink")}
                 >
                   {formatAnnualBrl(row.stack.yearOneNetValueBrl)}
                 </span>
@@ -183,7 +183,7 @@ const AlternativesPageInner = (): JSX.Element => {
                   {row.isCurrent && !(anchoredOnCurrentCard && row.isRecommended)
                     ? "seu cartão hoje · "
                     : null}
-                  <span className={cn("tabular", above ? "text-warning" : "text-ink-subtle")}>
+                  <span className={cn("tabular", above ? aboveTone : "text-ink-subtle")}>
                     {deltaText}
                   </span>
                   {barrier !== null ? (
