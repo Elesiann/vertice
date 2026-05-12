@@ -1,14 +1,24 @@
-import type { JSX, ReactNode } from "react";
+import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import {
+  Armchair,
+  Check,
+  Globe,
+  Lock,
+  type LucideIcon,
+  PiggyBank,
+  Plane,
+  Plus,
+  Percent,
+  Umbrella,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import { CardArt } from "@/components/domain/CardArt";
 import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { useSession } from "@/context/SessionContext";
-import { formatBrl, formatCashbackRate } from "@/lib/format";
-import { formatBankLabel } from "@/lib/labels";
-import type { CardVerifiedTier, PublicCatalogCard, RelationshipLevel } from "@/types";
+import { formatCashbackRate } from "@/lib/format";
+import { formatBankLabel, formatPointsProgram } from "@/lib/labels";
+import type { CardVerifiedTier, PublicCatalogCard } from "@/types";
 
 type CatalogCardWithVerification = PublicCatalogCard & {
   lastVerified?: string;
@@ -22,68 +32,78 @@ interface CatalogCardProps {
   className?: string;
 }
 
-const RELATIONSHIP_SOURCE: Partial<Record<RelationshipLevel, string>> = {
-  private: " (private banking)",
-  investment: " na corretora do emissor",
-  checking: " na conta do emissor",
+// Valores grandes ficam mais escaneáveis abreviados: "R$ 50 mil" em vez de
+// "R$ 50.000,00". Centavos fora; só usa "mil" para múltiplos exatos de mil.
+const formatBrlShort = (value: number): string => {
+  if (value >= 1000 && value % 1000 === 0) return `R$ ${String(value / 1000)} mil`;
+  return `R$ ${Math.round(value).toLocaleString("pt-BR")}`;
 };
 
-// Linha "Isenção": condições que zeram a anuidade real. Texto corrido, sem
-// badge — pode ser longo ("Gasto de R$ 5.000,00/mês ou R$ 50.000,00 investidos").
-const waiverText = (card: PublicCatalogCard): string | null => {
-  const parts: string[] = [];
+interface AnnualFee {
+  headline: string;
+  caption: string | null;
+}
+
+const annualFee = (card: PublicCatalogCard): AnnualFee => {
+  if (card.annualFeeBrl === 0) return { headline: "Sem anuidade", caption: null };
+
+  const conditions: string[] = [];
   if (card.annualFeeWaiverThresholdBrl !== undefined) {
-    parts.push(`gasto de ${formatBrl(card.annualFeeWaiverThresholdBrl)}/mês`);
+    conditions.push(`gasto de ${formatBrlShort(card.annualFeeWaiverThresholdBrl)}/mês`);
   }
   if (card.investmentFeeWaiverBrl !== undefined) {
-    parts.push(`${formatBrl(card.investmentFeeWaiverBrl)} investidos`);
+    conditions.push(`${formatBrlShort(card.investmentFeeWaiverBrl)} investidos`);
   }
-  if (parts.length === 0) return null;
-  const joined = parts.join(" ou ");
-  return joined.charAt(0).toUpperCase() + joined.slice(1);
+  return {
+    headline: `${formatBrlShort(card.annualFeeBrl)}/ano`,
+    caption: conditions.length > 0 ? `isenta com ${conditions.join(" ou ")}` : null,
+  };
 };
 
-// Linha "Acesso": barreira para *contratar* o cartão. `isBarrier` pinta o
-// valor em âmbar (exigência de investimento/private); conta corrente é fato
-// neutro. Espelha a lógica de `AccessRequirementBadge`.
-const accessLine = (card: PublicCatalogCard): { text: string; isBarrier: boolean } | null => {
+interface AccessBarrier {
+  text: string;
+  tone: "warning" | "muted";
+}
+
+// Barreira para *contratar* o cartão (≠ isenção de anuidade). Exigência de
+// investimento ou private banking conta como obstáculo (âmbar); conta corrente
+// é só um pré-requisito leve (neutro). Espelha AccessRequirementBadge.
+const accessBarrier = (card: PublicCatalogCard): AccessBarrier | null => {
   const invested = card.requiredInvestmentBrl ?? card.minInvestmentBrl;
   const rel = card.requiresRelationship;
-  const isInvestmentBarrier = rel === "investment" || rel === "private";
 
-  if (isInvestmentBarrier && invested !== undefined && invested > 0) {
-    return {
-      text: `${formatBrl(invested)} investidos${RELATIONSHIP_SOURCE[rel] ?? ""}`,
-      isBarrier: true,
-    };
+  if ((rel === "investment" || rel === "private") && invested !== undefined && invested > 0) {
+    const where = rel === "private" ? "em private banking" : "investidos na corretora do emissor";
+    return { text: `Exige ${formatBrlShort(invested)} ${where}`, tone: "warning" };
   }
-  if (rel === "private") return { text: "private banking", isBarrier: true };
-  if (rel === "checking") return { text: "conta corrente no emissor", isBarrier: false };
+  if (rel === "private") return { text: "Exige private banking", tone: "warning" };
+  if (rel === "checking") return { text: "Precisa de conta corrente no emissor", tone: "muted" };
   return null;
 };
 
-interface CardRowProps {
+interface Perk {
+  Icon: LucideIcon;
   label: string;
-  children: ReactNode;
-  inline?: boolean;
-  valueClassName?: string;
 }
 
-// Inline: label e valor na mesma linha (anuidade — valor curto).
-// Empilhado: label como caption em cima, valor corrido embaixo (isenção,
-// acesso — valor pode quebrar).
-const CardRow = ({ label, children, inline = false, valueClassName }: CardRowProps): JSX.Element =>
-  inline ? (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-ink-muted text-body-sm">{label}</dt>
-      <dd className={cn("text-body-sm", valueClassName)}>{children}</dd>
-    </div>
-  ) : (
-    <div className="flex flex-col gap-0.5">
-      <dt className="text-caption text-ink-subtle">{label}</dt>
-      <dd className={cn("text-body-sm leading-snug", valueClassName)}>{children}</dd>
-    </div>
-  );
+const perks = (card: PublicCatalogCard): Perk[] => {
+  const list: Perk[] = [];
+  if (card.hasLoungeAccess) list.push({ Icon: Armchair, label: "Sala VIP" });
+  if (card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0) {
+    const rate = formatCashbackRate(card.cashbackRatePercent);
+    list.push(
+      card.hasInvestback === true
+        ? { Icon: PiggyBank, label: `Investback ${rate}` }
+        : { Icon: Percent, label: `Cashback ${rate}` },
+    );
+  }
+  if (card.pointsProgram !== "cashback") {
+    list.push({ Icon: Plane, label: formatPointsProgram(card.pointsProgram) });
+  }
+  if (card.hasTravelInsurance) list.push({ Icon: Umbrella, label: "Seguro viagem" });
+  if (card.hasZeroIof) list.push({ Icon: Globe, label: "Sem IOF" });
+  return list;
+};
 
 export const CatalogCard = ({
   card,
@@ -105,98 +125,97 @@ export const CatalogCard = ({
     onCompare?.(card.id);
   };
 
-  const waiver = waiverText(card);
-  const access = accessLine(card);
-  const hasCashback = card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0;
-  const hasChips = isCurrentCard || card.hasLoungeAccess || hasCashback;
+  const fee = annualFee(card);
+  const barrier = accessBarrier(card);
+  const perkList = perks(card);
 
   return (
     <article
       className={cn(
-        "border-line bg-surface-raised group flex flex-col gap-3 rounded-xl border p-4 transition-shadow hover:shadow-md",
+        "border-line bg-surface-raised hover:border-line-strong relative flex flex-col gap-4 rounded-xl border p-5 transition-colors",
         className,
       )}
     >
-      <Link
-        to={`/cards/${card.id}`}
-        className="focus-visible:ring-accent block rounded-lg focus:outline-none focus-visible:ring-2"
-      >
-        <CardArt
-          brand={card.brand}
-          tier={card.tier}
-          bank={card.bank}
-          size="sm"
-          className="w-full"
-        />
-      </Link>
-
-      <div className="flex flex-col gap-1">
-        <Link
-          to={`/cards/${card.id}`}
-          className="text-heading text-ink hover:text-accent focus-visible:ring-accent rounded focus:outline-none focus-visible:ring-2"
-        >
-          {card.name}
-        </Link>
-        <p className="text-caption text-ink-subtle">
-          {formatBankLabel(card.bank, card.id)} · {card.tier}
-        </p>
-        <VerifiedMark
-          {...(card.lastVerified !== undefined ? { lastVerified: card.lastVerified } : {})}
-          {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
-        />
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            to={`/cards/${card.id}`}
+            className="text-heading text-ink hover:text-accent focus-visible:ring-accent min-w-0 rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
+          >
+            {card.name}
+          </Link>
+          <button
+            type="button"
+            aria-pressed={inCompare}
+            aria-label={inCompare ? "Tirar da comparação" : "Comparar"}
+            onClick={handleCompare}
+            className={cn(
+              "relative z-10 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
+              inCompare
+                ? "border-accent bg-accent text-white"
+                : "border-line text-ink-muted hover:border-line-strong hover:text-ink",
+            )}
+          >
+            {inCompare ? <Check size={16} /> : <Plus size={16} />}
+          </button>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <CardArt
+            brand={card.brand}
+            tier={card.tier}
+            bank={card.bank}
+            size="xs"
+            className="shrink-0"
+          />
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <p className="text-caption text-ink-subtle">
+              {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
+            </p>
+            {isCurrentCard && <span className="text-caption text-accent">Seu cartão hoje</span>}
+          </div>
+        </div>
       </div>
 
-      <dl className="flex flex-col gap-2">
-        <CardRow label="Anuidade" inline valueClassName="text-ink tabular font-semibold">
-          {formatBrl(card.annualFeeBrl)}
-        </CardRow>
-        {waiver !== null && (
-          <CardRow label="Isenção" valueClassName="text-ink-subtle">
-            {waiver}
-          </CardRow>
-        )}
-        {access !== null && (
-          <CardRow
-            label="Acesso"
-            valueClassName={access.isBarrier ? "text-warning" : "text-ink-subtle"}
-          >
-            {access.text}
-          </CardRow>
-        )}
-      </dl>
-
-      {hasChips && (
-        <div className="flex flex-wrap gap-1">
-          {isCurrentCard && <Badge tone="neutral">Você já tem</Badge>}
-          {card.hasLoungeAccess && <Badge tone="neutral">Lounge</Badge>}
-          {hasCashback && card.cashbackRatePercent !== undefined && (
-            <Badge tone="neutral">
-              {card.hasInvestback === true ? "Investback" : "Cashback"}{" "}
-              {formatCashbackRate(card.cashbackRatePercent)}
-            </Badge>
+      <div className="border-line flex flex-col gap-3 border-t pt-4">
+        <div>
+          <p className="text-num text-ink text-xl font-semibold">{fee.headline}</p>
+          {fee.caption !== null && (
+            <p className="text-ink-subtle mt-0.5 text-xs leading-snug">{fee.caption}</p>
           )}
         </div>
-      )}
 
-      {/* Comparar: ação discreta. No desktop aparece no hover/foco do card;
-          no mobile (sem hover) fica sempre visível; se já está na comparação,
-          sempre visível para permitir remover. opacity (não hidden) mantém o
-          botão na ordem de tabulação. */}
-      <div
-        className={cn(
-          "mt-auto transition-opacity",
-          !inCompare && "sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100",
+        {barrier !== null && (
+          <p
+            className={cn(
+              "flex items-start gap-1.5 text-xs leading-snug",
+              barrier.tone === "warning" ? "text-warning" : "text-ink-subtle",
+            )}
+          >
+            <Lock size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+            {barrier.text}
+          </p>
         )}
-      >
-        <Button
-          className="w-full"
-          size="sm"
-          variant={inCompare ? "secondary" : "ghost"}
-          onClick={handleCompare}
-        >
-          {inCompare ? "Na comparação" : "Comparar"}
-        </Button>
+
+        {perkList.length > 0 && (
+          <ul className="flex flex-wrap gap-x-3 gap-y-1.5">
+            {perkList.map(({ Icon, label }) => (
+              <li key={label} className="text-ink-muted flex items-center gap-1.5 text-xs">
+                <Icon size={14} className="text-ink-subtle shrink-0" aria-hidden="true" />
+                {label}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      {card.lastVerified !== undefined && (
+        <div className="mt-auto">
+          <VerifiedMark
+            lastVerified={card.lastVerified}
+            {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
+          />
+        </div>
+      )}
     </article>
   );
 };

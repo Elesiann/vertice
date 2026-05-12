@@ -75,42 +75,45 @@ describe("CatalogCard", () => {
     expect(screen.getByText("Cartão Teste")).toBeInTheDocument();
   });
 
-  it("shows lounge badge when hasLoungeAccess", () => {
+  it("shows the Sala VIP perk when hasLoungeAccess", () => {
     renderCard();
-    expect(screen.getByText(/lounge/i)).toBeInTheDocument();
+    expect(screen.getByText("Sala VIP")).toBeInTheDocument();
   });
 
-  it("renders the annual fee as a structured row", () => {
+  it("shows the points-program perk", () => {
     renderCard();
-    expect(screen.getByText("Anuidade")).toBeInTheDocument();
-    expect(screen.getByText("R$ 1.200,00")).toBeInTheDocument();
+    expect(screen.getByText("Smiles")).toBeInTheDocument();
   });
 
-  it("does not show a fee-tier badge for fee-free cards (the row already says R$ 0,00)", () => {
+  it("renders the annual fee headline (short format, no cents)", () => {
+    renderCard();
+    expect(screen.getByText("R$ 1.200/ano")).toBeInTheDocument();
+  });
+
+  it("shows 'Sem anuidade' for fee-free cards", () => {
     renderCard(null, { ...card, annualFeeBrl: 0 });
-    expect(screen.queryByText(/sem anuidade/i)).not.toBeInTheDocument();
-    expect(screen.getByText("R$ 0,00")).toBeInTheDocument();
+    expect(screen.getByText("Sem anuidade")).toBeInTheDocument();
   });
 
-  it("shows an investment-access row for cards gated by investing in the issuer's brokerage", () => {
+  it("shows an access-barrier line for cards gated by investing in the issuer's brokerage", () => {
     renderCard(null, {
       ...card,
       requiresRelationship: "investment",
       requiredInvestmentBrl: 20000,
     });
-    expect(screen.getByText("Acesso")).toBeInTheDocument();
-    expect(screen.getByText("R$ 20.000,00 investidos na corretora do emissor")).toBeInTheDocument();
+    expect(
+      screen.getByText("Exige R$ 20 mil investidos na corretora do emissor"),
+    ).toBeInTheDocument();
   });
 
-  it("shows a checking-account access row for cards gated by a checking relationship", () => {
+  it("shows a checking-account requirement line for cards gated by a checking relationship", () => {
     renderCard(null, { ...card, requiresRelationship: "checking" });
-    expect(screen.getByText("conta corrente no emissor")).toBeInTheDocument();
+    expect(screen.getByText("Precisa de conta corrente no emissor")).toBeInTheDocument();
   });
 
-  it("shows a waiver row when the annual fee is waived by monthly spend", () => {
+  it("shows the waiver caption when the annual fee is waived by monthly spend", () => {
     renderCard(null, { ...card, annualFeeWaiverThresholdBrl: 5000 });
-    expect(screen.getByText("Isenção")).toBeInTheDocument();
-    expect(screen.getByText(/Gasto de R\$ 5\.000,00\/mês/)).toBeInTheDocument();
+    expect(screen.getByText("isenta com gasto de R$ 5 mil/mês")).toBeInTheDocument();
   });
 
   it("shows verification date when lastVerified is present", () => {
@@ -123,14 +126,14 @@ describe("CatalogCard", () => {
     expect(screen.queryByText(/verificado em/i)).not.toBeInTheDocument();
   });
 
-  it("shows current-card badge when card is in the session profile", () => {
+  it("marks the card as the user's current card when it is in the session profile", () => {
     renderCard(ownedProfile);
-    expect(screen.getByText("Você já tem")).toBeInTheDocument();
+    expect(screen.getByText("Seu cartão hoje")).toBeInTheDocument();
   });
 
-  it("omits current-card badge when card is not in the session profile", () => {
+  it("does not mark the card when it is not in the session profile", () => {
     renderCard(otherCardProfile);
-    expect(screen.queryByText("Você já tem")).not.toBeInTheDocument();
+    expect(screen.queryByText("Seu cartão hoje")).not.toBeInTheDocument();
   });
 
   it("calls onCompare when compare button clicked without a current card", async () => {

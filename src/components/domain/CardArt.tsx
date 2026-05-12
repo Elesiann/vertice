@@ -5,7 +5,7 @@ interface CardArtProps {
   brand: string;
   tier: string;
   bank?: string;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -17,7 +17,8 @@ const BRAND_GRADIENT: Record<string, string> = {
   hipercard: "from-red-800/40 to-red-950/45",
 };
 
-const SIZE: Record<"sm" | "md" | "lg", string> = {
+const SIZE: Record<"xs" | "sm" | "md" | "lg", string> = {
+  xs: "w-[84px]",
   sm: "w-[120px]",
   md: "w-[240px]",
   lg: "w-[320px]",
@@ -53,19 +54,25 @@ export const CardArt = ({
       style={{ aspectRatio: "1.586 / 1" }}
       aria-hidden="true"
     >
-      <div className="absolute top-1/3 left-4 h-5 w-7 rounded-sm border border-white/20 bg-white/10" />
-      <div className="absolute top-1/4 right-4 h-8 w-8 rounded-full border border-white/15" />
-      <div className="absolute top-[30%] right-5 h-6 w-6 rounded-full border border-white/10" />
-      <span
-        className="absolute bottom-3 left-4 text-xs font-semibold tracking-widest text-white/50 uppercase"
-        style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}
-      >
-        {tierLabel}
-      </span>
-      {bank !== undefined && (
-        <span className="absolute top-3 right-3 text-[10px] font-medium tracking-wide text-white/30 uppercase">
-          {bank}
-        </span>
+      {size === "xs" ? (
+        <div className="absolute bottom-2 left-2 h-3 w-4 rounded-[2px] border border-white/20 bg-white/10" />
+      ) : (
+        <>
+          <div className="absolute top-1/3 left-4 h-5 w-7 rounded-sm border border-white/20 bg-white/10" />
+          <div className="absolute top-1/4 right-4 h-8 w-8 rounded-full border border-white/15" />
+          <div className="absolute top-[30%] right-5 h-6 w-6 rounded-full border border-white/10" />
+          <span
+            className="absolute bottom-3 left-4 text-xs font-semibold tracking-widest text-white/50 uppercase"
+            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}
+          >
+            {tierLabel}
+          </span>
+          {bank !== undefined && (
+            <span className="absolute top-3 right-3 text-[10px] font-medium tracking-wide text-white/30 uppercase">
+              {bank}
+            </span>
+          )}
+        </>
       )}
     </div>
   );
