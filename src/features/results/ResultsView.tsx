@@ -263,7 +263,7 @@ export const ResultsView = (): JSX.Element => {
   const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
   const recommendedAccessLabel = stackAccessBarrierLabel(topStack) ?? "sem exigência financeira";
   const threshold = comparisonThreshold(topStack);
-  const alternativeTabs = buildAlternativeTabs(displayRecommendation);
+  const alternativeTabs = buildAlternativeTabs(displayRecommendation, profile);
   const divergenceComparison = preferenceDivergenceComparison(
     profile,
     displayRecommendation,

@@ -62,12 +62,7 @@ export const MILES_PROGRAMS = new Set<ProgramId>([
   "etihad-guest",
 ]);
 
-export type AlternativeTabId =
-  | "lowest-barrier"
-  | "traditional"
-  | "fintech"
-  | "highest-return"
-  | "most-similar";
+export type AlternativeTabId = "highest-return" | "lowest-barrier";
 
 export interface AlternativeTab {
   id: AlternativeTabId;
@@ -347,12 +342,9 @@ export const isAccessibleForProfile = (
 };
 
 export const TAB_DESCRIPTIONS: Record<AlternativeTabId, string> = {
-  "lowest-barrier": "Cartões com a mesma exigência de acesso do recomendado, ou menor.",
-  traditional:
-    "Cartões emitidos por Itaú, Bradesco, Santander ou Banco do Brasil sob a marca do banco.",
-  fintech: "Bancos digitais, fintechs e produtos cobranded.",
   "highest-return": "Maior retorno líquido modelado — mesmo com barreiras adicionais.",
-  "most-similar": "Cartões com o perfil de uso mais parecido com o recomendado.",
+  "lowest-barrier":
+    "Cartões ao seu alcance — sem exigência de acesso, ou dentro do que você informou que tem para investir.",
 };
 
 export const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluation): string => {
@@ -362,22 +354,10 @@ export const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluat
   return `${formatAnnualBrl(Math.abs(delta))} abaixo do recomendado.`;
 };
 
-// Closest-by-score card = 100%; roughly one extra score-point of distance costs one
-// percentage point; clamped to [0, 100]. The raw score itself is never displayed.
-export const mostSimilarCompat = (
-  stacks: StackEvaluation[],
-  topStack: StackEvaluation,
-): Map<string, number> => {
-  const topScore = topStack.scoreLab?.score ?? 0;
-  const dist = (s: StackEvaluation): number => Math.abs((s.scoreLab?.score ?? 0) - topScore);
-  const minDist = stacks.length > 0 ? Math.min(...stacks.map(dist)) : 0;
-  return new Map(
-    stacks.map((s) => [stackId(s), Math.max(0, Math.round(100 - (dist(s) - minDist)))]),
-  );
-};
-
-export const buildAlternativeTabs = (recommendation: Recommendation): AlternativeTab[] => {
-  const topStack = recommendation.topStack;
+export const buildAlternativeTabs = (
+  recommendation: Recommendation,
+  profile: SpendingProfile,
+): AlternativeTab[] => {
   const pool = uniqueCandidatePool(recommendation);
 
   const dedupe = (stacks: StackEvaluation[]): StackEvaluation[] => {
@@ -392,48 +372,23 @@ export const buildAlternativeTabs = (recommendation: Recommendation): Alternativ
     return result;
   };
 
-  // The ladder tabs feed `buildAlternativeLadder`, which does its own windowing — so they carry the
-  // *full* (deduped, ranked) candidate set, not a pre-sliced top-N. Slicing here is what made
-  // "Maior retorno" collapse to just the anchors when the top-N happened to be all gated-above cards.
+  // Both tabs feed `buildAlternativeLadder`, which does its own windowing — so they carry the
+  // *full* (deduped, ranked) candidate set, not a pre-sliced top-N. "Menor barreira" keeps only the
+  // cards this profile can actually obtain today (no access barrier, or within the declared
+  // investable amount — undefined investable ⇒ treated as nothing, so only barrier-free cards).
   const ranked = (stacks: StackEvaluation[]): StackEvaluation[] =>
     dedupe(stacks).sort(compareCandidate);
 
-  const recBarrier = stackAccessBarrierBrl(topStack);
-  const lowerBarrier = (stack: StackEvaluation): boolean =>
-    recBarrier === 0 ? hasNoInvestmentBarrier(stack) : stackAccessBarrierBrl(stack) <= recBarrier;
-
-  // "Mais semelhantes" ranks the full pool by score proximity — it's a usage-fit lens, not a return
-  // lens — and stays a flat top-N list. Cards without a score drop out.
-  // Not hoisting decisionTracks.closestActionableSubstitute: it would break the "#1 = closest = 100%" framing.
-  const topScore = topStack.scoreLab?.score;
-  const mostSimilarStacks =
-    topScore === undefined
-      ? []
-      : pool
-          .filter((s) => s.scoreLab !== undefined)
-          .sort((a, b) => {
-            const da = Math.abs((a.scoreLab?.score ?? 0) - topScore);
-            const db = Math.abs((b.scoreLab?.score ?? 0) - topScore);
-            if (da !== db) return da - db;
-            return stackId(a).localeCompare(stackId(b));
-          })
-          .slice(0, ALTERNATIVES_PER_TAB);
-
   const tabs: AlternativeTab[] = [
-    {
-      id: "lowest-barrier",
-      label: "Menor barreira",
-      stacks: ranked(pool.filter(lowerBarrier)),
-    },
-    {
-      id: "most-similar",
-      label: "Mais semelhantes",
-      stacks: mostSimilarStacks,
-    },
     {
       id: "highest-return",
       label: "Maior retorno",
       stacks: ranked(pool),
+    },
+    {
+      id: "lowest-barrier",
+      label: "Menor barreira",
+      stacks: ranked(pool.filter((stack) => isAccessibleForProfile(profile, stack))),
     },
   ];
 

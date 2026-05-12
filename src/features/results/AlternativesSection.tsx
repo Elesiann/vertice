@@ -1,16 +1,11 @@
 import { useState, type JSX } from "react";
-import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
 import { AlternativesLadder } from "@/features/results/AlternativesLadder";
-import { StackLabelLink } from "@/features/results/StackLabelLink";
 import {
   GAP_COLLAPSE_MIN,
   LADDER_BELOW_RECOMMENDED,
   TAB_DESCRIPTIONS,
   buildAlternativeLadder,
-  formatAnnualBrl,
-  mostSimilarCompat,
-  stackId,
   stackLabel,
   type AlternativeTab,
   type AlternativeTabId,
@@ -35,8 +30,6 @@ export const AlternativesSection = ({
   const currentLabel = currentStack !== undefined ? stackLabel(currentStack) : null;
   const panelId = `alternatives-panel-${activeTab.id}`;
   const tabId = `alternatives-tab-${activeTab.id}`;
-  const compatById =
-    activeTab.id === "most-similar" ? mostSimilarCompat(activeTab.stacks, topStack) : null;
 
   return (
     <section className="border-line border-b py-8" aria-label="Outras escolhas">
@@ -75,54 +68,19 @@ export const AlternativesSection = ({
         {TAB_DESCRIPTIONS[activeTab.id]}
       </p>
 
-      {activeTab.id === "most-similar" ? (
-        <ol
-          role="tabpanel"
-          id={panelId}
-          aria-labelledby={tabId}
-          className="divide-line mt-3 divide-y text-sm"
-        >
-          {activeTab.stacks.map((s) => (
-            <li
-              key={stackId(s)}
-              className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 px-3 py-3.5"
-            >
-              <span className="font-semibold">
-                <StackLabelLink
-                  stack={s}
-                  cardClassName="text-ink"
-                  separatorClassName="text-ink-subtle"
-                />
-              </span>
-              <span className="text-num tabular text-ink font-semibold">
-                {formatAnnualBrl(s.yearOneNetValueBrl)}
-              </span>
-              <p className="text-ink-subtle col-span-2 text-xs leading-relaxed">
-                {compatById?.get(stackId(s)) ?? 0}% compatível
-              </p>
-            </li>
-          ))}
-          <li className="px-3 pt-3.5">
-            <Link to={fullListHref} className="plain-link">
-              ver lista completa →
-            </Link>
-          </li>
-        </ol>
-      ) : (
-        <AlternativesLadder
-          rows={buildAlternativeLadder({
-            pool: activeTab.stacks,
-            topStack,
-            currentStack,
-            gapCollapseMin: GAP_COLLAPSE_MIN,
-            belowRecommendedCount: LADDER_BELOW_RECOMMENDED,
-          })}
-          currentLabel={currentLabel}
-          fullListHref={fullListHref}
-          panelId={panelId}
-          labelledById={tabId}
-        />
-      )}
+      <AlternativesLadder
+        rows={buildAlternativeLadder({
+          pool: activeTab.stacks,
+          topStack,
+          currentStack,
+          gapCollapseMin: GAP_COLLAPSE_MIN,
+          belowRecommendedCount: LADDER_BELOW_RECOMMENDED,
+        })}
+        currentLabel={currentLabel}
+        fullListHref={fullListHref}
+        panelId={panelId}
+        labelledById={tabId}
+      />
     </section>
   );
 };

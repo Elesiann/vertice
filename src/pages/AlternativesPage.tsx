@@ -1,4 +1,4 @@
-import { type JSX } from "react";
+import { useState, type JSX } from "react";
 import { Link } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Panel } from "@/components/ui/Panel";
@@ -10,18 +10,35 @@ import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { StackLabelLink } from "@/features/results/StackLabelLink";
 import {
+  TAB_DESCRIPTIONS,
   buildAlternativesFullList,
   formatAnnualBrl,
+  isAccessibleForProfile,
   stackAccessBarrierLabel,
   stackId,
+  type AlternativeTabId,
+  type FullListRow,
 } from "@/features/results/alternatives";
+import type { SpendingProfile } from "@/types";
 
 const RECOMMENDED_ROW_BG = "bg-line/35";
 const CURRENT_ROW_BG = "bg-line/20";
 
+const FILTERS: { id: AlternativeTabId; label: string }[] = [
+  { id: "highest-return", label: "Maior retorno" },
+  { id: "lowest-barrier", label: "Menor barreira" },
+];
+
+const filterTest = (
+  id: AlternativeTabId,
+  profile: SpendingProfile,
+): ((row: FullListRow) => boolean) =>
+  id === "lowest-barrier" ? (row) => isAccessibleForProfile(profile, row.stack) : () => true;
+
 const AlternativesPageInner = (): JSX.Element => {
   const { profile } = useSession();
   const result = useRecommendation();
+  const [filterId, setFilterId] = useState<AlternativeTabId>("highest-return");
 
   if (profile === null) {
     return (
@@ -69,6 +86,8 @@ const AlternativesPageInner = (): JSX.Element => {
 
   const rows = buildAlternativesFullList(result.value);
   const total = rows.length;
+  const test = filterTest(filterId, profile);
+  const visible = rows.filter((r) => r.isRecommended || r.isCurrent || test(r));
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
@@ -80,8 +99,35 @@ const AlternativesPageInner = (): JSX.Element => {
           anual.
         </p>
 
-        <ol className="divide-line mt-6 divide-y text-sm">
-          {rows.map((row) => {
+        <div
+          role="tablist"
+          aria-label="Filtrar cartões"
+          className="border-line mt-6 flex flex-wrap gap-x-7 border-b"
+        >
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              role="tab"
+              aria-selected={f.id === filterId}
+              onClick={() => {
+                setFilterId(f.id);
+              }}
+              className={cn(
+                "text-caption focus-visible:ring-accent -mb-px cursor-pointer border-b-2 pb-3 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                f.id === filterId
+                  ? "border-ink text-ink"
+                  : "hover:text-ink text-ink-subtle border-transparent",
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-ink-subtle mt-3 text-xs leading-relaxed">{TAB_DESCRIPTIONS[filterId]}</p>
+
+        <ol className="divide-line mt-3 divide-y text-sm">
+          {visible.map((row) => {
             const barrier = stackAccessBarrierLabel(row.stack);
             const rowBg = row.isRecommended
               ? RECOMMENDED_ROW_BG

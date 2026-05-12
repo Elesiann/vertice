@@ -654,25 +654,28 @@ describe("ResultsView", () => {
 
     const menorBarreiraTab = screen.getByRole("tab", { name: /Menor barreira/i });
     const maiorRetornoTab = screen.getByRole("tab", { name: /Maior retorno/i });
-    // "Fintech" and "Tradicional" were folded away — they nearly always duplicated "Maior retorno".
+    // "Fintech", "Tradicional" and "Mais semelhantes" were folded away.
     expect(screen.queryByRole("tab", { name: /Fintech/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: /Tradicional/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Mais semelhantes/i })).not.toBeInTheDocument();
 
-    expect(menorBarreiraTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("link", { name: "Open Cashback Card" })).toBeInTheDocument();
+    // "Maior retorno" is the default tab.
+    expect(maiorRetornoTab).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText(/Institucional/i)).not.toBeInTheDocument();
     // The recommended card is pinned as the ladder's anchor row.
     expect(screen.getByText(/recomendado · maior líquido sem barreira/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /lista completa/i })).toBeInTheDocument();
-
-    await userEvent.click(maiorRetornoTab);
-    expect(maiorRetornoTab).toHaveAttribute("aria-selected", "true");
-    // Net Leader outranks the recommended (higher net value, gated): it sits above the anchor.
+    // Net Leader outranks the recommended (higher net value): it sits above the anchor.
     expect(screen.getByRole("link", { name: "Net Leader Card" })).toBeInTheDocument();
     // Cobranded falls into the unfiltered ladder.
     expect(
       screen.getByRole("link", { name: "Amazon.com.br Mastercard Platinum" }),
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Cashback Card" })).toBeInTheDocument();
+
+    await userEvent.click(menorBarreiraTab);
+    expect(menorBarreiraTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("link", { name: "Open Cashback Card" })).toBeInTheDocument();
   });
 
   // Gated cashback stack — an investment minimum the test profile can't meet.
@@ -939,71 +942,5 @@ describe("ResultsView", () => {
     expect(
       await screen.findByRole("heading", { name: /Não conseguimos recomendar/i }),
     ).toBeInTheDocument();
-  });
-
-  it("shows the 'Mais semelhantes' tab ordered by score proximity", async () => {
-    // topStack has scoreLab.score = 87.39
-    // near: distance 1.39, mid: distance 7.39, far: distance 27.39
-    // Low netReturnBrl ensures they'd be filtered out of threshold-gated tabs (756 - 100 > 1500 threshold floor).
-    const near = makeStack({ id: "near", name: "Near Card", netReturnBrl: 100, score: 86 });
-    const mid = makeStack({ id: "mid", name: "Mid Card", netReturnBrl: 100, score: 80 });
-    const far = makeStack({ id: "far", name: "Far Card", netReturnBrl: 100, score: 60 });
-
-    mockRecommendation({
-      ...recommendationFixture,
-      alternatives: [near, mid, far],
-    });
-
-    renderResults({
-      monthlyDomesticBrl: 5000,
-      monthlyInternationalUsd: 200,
-      redemption: { kind: "any" },
-    });
-
-    await screen.findByRole("heading", { level: 1 });
-
-    await userEvent.click(screen.getByRole("tab", { name: /Mais semelhantes/i }));
-
-    const nearLink = screen.getByRole("link", { name: /Near Card/ });
-    const farLink = screen.getByRole("link", { name: /Far Card/ });
-
-    // Near Card appears before Far Card in DOM order
-    expect(
-      nearLink.compareDocumentPosition(farLink) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-
-    // Near Card (closest, rank #1) shows 100% compatível
-    expect(screen.getByText(/100% compatível/)).toBeInTheDocument();
-
-    // Raw scores are never rendered
-    expect(screen.queryByText(/87[,.]39/)).toBeNull();
-    expect(screen.queryByText(/86(?:[,.]0+)?(?!\s*%)/)).toBeNull();
-    expect(screen.queryByText(/60(?:[,.]0+)?(?!\s*%)/)).toBeNull();
-  });
-
-  it("excludes alternatives without a scoreLab from the 'Mais semelhantes' tab", async () => {
-    const scored = makeStack({ id: "scored", name: "Scored Card", netReturnBrl: 100, score: 86 });
-    const { scoreLab: _omit, ...unscored } = makeStack({
-      id: "unscored",
-      name: "Unscored Card",
-      netReturnBrl: 700,
-    });
-
-    mockRecommendation({
-      ...recommendationFixture,
-      alternatives: [scored, unscored],
-    });
-
-    renderResults({
-      monthlyDomesticBrl: 5000,
-      monthlyInternationalUsd: 200,
-      redemption: { kind: "any" },
-    });
-
-    await screen.findByRole("heading", { level: 1 });
-    await userEvent.click(screen.getByRole("tab", { name: /Mais semelhantes/i }));
-
-    expect(screen.getByRole("link", { name: /Scored Card/ })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Unscored Card/ })).toBeNull();
   });
 });
