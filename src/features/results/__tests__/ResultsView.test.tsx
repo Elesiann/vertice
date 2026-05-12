@@ -273,7 +273,7 @@ describe("ResultsView", () => {
       screen.getByText(/Vence porque rende R\$ 1\.200,00\/ano em pontos/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/Ver cálculo completo/i)).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: /Tradução em viagens/i })).toBeInTheDocument();
+    expect(screen.getByTestId("travel-hero-teaser")).toBeInTheDocument();
     expect(screen.queryByText(/Trade-offs por eixo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Outras opções no eixo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Você está deixando na mesa/i)).not.toBeInTheDocument();
@@ -456,7 +456,6 @@ describe("ResultsView", () => {
     // expect(
     //   screen.getByText(/Maior retorno modelado: RecargaPay Titan Mastercard Black/i),
     // ).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: /Tradução em viagens/i })).not.toBeInTheDocument();
   });
 
   it("labels the actionable fallback explicitly when recommendedNow is null", async () => {
@@ -839,7 +838,7 @@ describe("ResultsView", () => {
     expect(within(panel).getByText(/R\$\s?4\.000,00\/ano/)).toBeInTheDocument();
   });
 
-  it("hides the travel translation section for cashback recommendations", async () => {
+  it("shows no hero teaser for cashback recommendations", async () => {
     mockRecommendation({
       ...recommendationFixture,
       travelTranslation: { kind: "cashback", valueBrl: 756 },
@@ -852,12 +851,10 @@ describe("ResultsView", () => {
     });
 
     await screen.findByRole("heading", { level: 1 });
-    expect(screen.queryByRole("region", { name: /Tradução em viagens/i })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Isso vira/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId("travel-hero-teaser")).not.toBeInTheDocument();
   });
 
-  it("shows a hero teaser for a redemption travel translation", async () => {
+  it("shows a hero teaser with route, trip type and leftover points for a redemption", async () => {
     renderResults({
       monthlyDomesticBrl: 5000,
       monthlyInternationalUsd: 200,
@@ -866,8 +863,42 @@ describe("ResultsView", () => {
 
     await screen.findByRole("heading", { level: 1 });
     const teaser = screen.getByTestId("travel-hero-teaser");
-    expect(teaser).toHaveTextContent(/2 passagens/i);
-    expect(teaser).toHaveTextContent(/Fortaleza/);
+    expect(teaser).toHaveTextContent(/2 passagens ida e volta São Paulo → Fortaleza/i);
+    expect(teaser).toHaveTextContent(/Pontos compatíveis: 37\.200/);
+    expect(teaser).toHaveTextContent(/sobra 9\.200 pontos/);
+  });
+
+  it("shows the transfer line in the hero teaser when the redemption is reached via transfer", async () => {
+    mockRecommendation({
+      ...recommendationFixture,
+      travelTranslation: {
+        kind: "redemption",
+        from: "GRU",
+        fromLabel: "São Paulo",
+        to: "FOR",
+        toLabel: "Fortaleza",
+        region: "domestic",
+        cabin: "economy",
+        roundTrip: true,
+        programId: "tudoazul",
+        viaProgram: "smiles",
+        pointsCost: 14000,
+        compatiblePoints: 37200,
+        trips: 2,
+        remainingPoints: 9200,
+      },
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "miles", program: "smiles" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.getByTestId("travel-hero-teaser")).toHaveTextContent(
+      /Transferindo 1:1 para Smiles/i,
+    );
   });
 
   it("shows no hero teaser for a value travel translation", async () => {

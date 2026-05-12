@@ -1,7 +1,6 @@
 import { type JSX } from "react";
 import { Link } from "react-router-dom";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
-import { TravelTranslation } from "@/components/domain/TravelTranslation";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Disclosure } from "@/components/ui/Disclosure";
@@ -11,7 +10,8 @@ import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { useStackBenefits } from "@/hooks/useStackBenefits";
 import { buildErrorReportUrl } from "@/lib/feedback";
-import { formatBrl, formatRoiMultiple } from "@/lib/format";
+import { formatBrl, formatPoints, formatRoiMultiple } from "@/lib/format";
+import { formatPointsProgram } from "@/lib/labels";
 import { whyWonSentences } from "@/lib/why-won";
 import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
 import {
@@ -309,11 +309,9 @@ export const ResultsView = (): JSX.Element => {
     noRecommendationNotice,
     alternativeTabs.length < 2 ? alternativesHeroSentence(alternativeTabs, threshold) : null,
   ].filter((note): note is string => note !== null);
-  const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
-  const showTravelTranslation =
-    travelTranslationMatchesTopStack && recommendation.travelTranslation.kind !== "cashback";
   const heroRedemption =
-    travelTranslationMatchesTopStack && recommendation.travelTranslation.kind === "redemption"
+    stackId(topStack) === stackId(recommendation.topStack) &&
+    recommendation.travelTranslation.kind === "redemption"
       ? recommendation.travelTranslation
       : null;
 
@@ -346,11 +344,29 @@ export const ResultsView = (): JSX.Element => {
           ) : null}
           <HeroDetailLinks stack={topStack} />
           {heroRedemption !== null ? (
-            <p className="text-ink-muted mt-3 text-sm" data-testid="travel-hero-teaser">
-              Os pontos de um ano equivalem a{" "}
-              {heroRedemption.trips === 1 ? "uma passagem" : <>{heroRedemption.trips} passagens</>}{" "}
-              {heroRedemption.fromLabel} → {heroRedemption.toLabel}.
-            </p>
+            <div className="mt-3 space-y-1" data-testid="travel-hero-teaser">
+              <p className="text-ink-muted text-sm">
+                Os pontos de um ano equivalem a{" "}
+                {heroRedemption.trips === 1 ? (
+                  "uma passagem"
+                ) : (
+                  <>{heroRedemption.trips} passagens</>
+                )}{" "}
+                {heroRedemption.roundTrip ? "ida e volta " : "só ida "}
+                {heroRedemption.fromLabel} → {heroRedemption.toLabel}.
+              </p>
+              {heroRedemption.viaProgram !== undefined ? (
+                <p className="text-ink-subtle text-xs">
+                  Transferindo 1:1 para {formatPointsProgram(heroRedemption.viaProgram)}.
+                </p>
+              ) : null}
+              <p className="text-ink-subtle text-xs">
+                Pontos compatíveis: {formatPoints(heroRedemption.compatiblePoints)}
+                {heroRedemption.remainingPoints > 0 ? (
+                  <> · sobra {formatPoints(heroRedemption.remainingPoints)} pontos</>
+                ) : null}
+              </p>
+            </div>
           ) : null}
         </header>
 
@@ -562,12 +578,6 @@ export const ResultsView = (): JSX.Element => {
             </div>
           </Disclosure>
         </section>
-
-        {showTravelTranslation ? (
-          <div className="mt-8">
-            <TravelTranslation translation={recommendation.travelTranslation} />
-          </div>
-        ) : null}
 
         <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
           <Link to={ROUTES.INPUT} className="plain-link">

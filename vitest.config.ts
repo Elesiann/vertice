@@ -8,6 +8,9 @@ export default mergeConfig(
       environment: "jsdom",
       globals: true,
       setupFiles: ["./src/test/setup.ts"],
+      // Don't crawl into sibling git worktrees (each has its own node_modules and a
+      // duplicate `src/` tree) — vitest's default glob would otherwise pick them up.
+      exclude: ["**/node_modules/**", "**/dist/**", ".claude/worktrees/**"],
       coverage: {
         provider: "v8",
         reporter: ["text", "html"],
