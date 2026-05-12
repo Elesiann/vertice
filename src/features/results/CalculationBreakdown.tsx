@@ -136,9 +136,8 @@ export const CalculationBreakdown = ({
   const netTone = net > 0.01 ? "text-accent" : net < -0.01 ? "text-warning" : "text-ink";
 
   return (
-    <section className="border-line border-b py-8" aria-label="Como chegamos ao líquido">
-      <h2 className="text-heading text-ink">Como chegamos ao líquido</h2>
-      <dl className="divide-line mt-6 divide-y">
+    <div className="border-line/50 border-t px-4 py-5 sm:px-6">
+      <dl className="divide-line divide-y">
         {lines.map((line) => {
           const add = line.valueBrl >= 0;
           return (
@@ -178,6 +177,6 @@ export const CalculationBreakdown = ({
           </li>
         ))}
       </ul>
-    </section>
+    </div>
   );
 };

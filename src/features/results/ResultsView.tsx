@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { Disclosure } from "@/components/ui/Disclosure";
 import { Panel } from "@/components/ui/Panel";
 import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
@@ -526,12 +527,16 @@ export const ResultsView = (): JSX.Element => {
           fullListHref={ROUTES.ALTERNATIVES}
         />
 
-        <CalculationBreakdown
-          stack={topStack}
-          profile={profile}
-          ptaxRate={scoreLabMeta?.ptaxRate}
-          ptaxAsOf={scoreLabMeta?.ptaxFetchedAt}
-        />
+        <section className="mt-8" aria-label="Como chegamos ao líquido">
+          <Disclosure summary="Como chegamos ao líquido">
+            <CalculationBreakdown
+              stack={topStack}
+              profile={profile}
+              ptaxRate={scoreLabMeta?.ptaxRate}
+              ptaxAsOf={scoreLabMeta?.ptaxFetchedAt}
+            />
+          </Disclosure>
+        </section>
 
         <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
           <Link to={ROUTES.INPUT} className="plain-link">
