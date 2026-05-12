@@ -7,7 +7,7 @@ import {
   stackAccessibilitySummary,
   transferBonusOptimisticNetBrl,
 } from "@/features/results/alternatives";
-import type { SpendingProfile, StackEvaluation } from "@/types";
+import type { ScoreLabRequirement, SpendingProfile, StackEvaluation } from "@/types";
 
 // One row of the líquido waterfall. `valueBrl` is signed — positive lines add, negative ones
 // subtract — and the lines sum to `modeledAnnual.netReturnBrl`.
@@ -95,19 +95,27 @@ export const CalculationBreakdown = ({
     });
   }
 
-  // Annual fee — always shown, even at zero (the caption explains why it's waived).
+  // Annual fee — always shown, even at zero (the caption explains why it's waived). Build the
+  // waiver phrase from the requirement kind + amount rather than the raw API label (which is
+  // unformatted, e.g. "r$ 35000/mês").
+  const waiverPhrase = (req: ScoreLabRequirement | undefined): string | null => {
+    if (req === undefined) return null;
+    if (req.kind === "spend-fee-waiver") return `gasto a partir de ${formatBrl(req.required)}/mês`;
+    if (req.kind === "investment-fee-waiver")
+      return `${formatBrl(req.required)} investidos no emissor`;
+    return null;
+  };
   const waiverApplied = lab.benefitsApplied.find(
     (x) => x.kind === "annual-fee-waiver" && x.valueBrl > 0,
   );
   const waiverMissed = lab.benefitsNotApplied.find((x) => x.kind === "annual-fee-waiver");
   let feeCaption: string | null = null;
   if (m.recurringAnnualFeeBrl <= 0.01) {
-    feeCaption =
-      waiverApplied?.requirement?.label !== undefined
-        ? `isenta — ${waiverApplied.requirement.label.toLowerCase()}`
-        : "sem anuidade";
-  } else if (waiverMissed?.requirement?.label !== undefined) {
-    feeCaption = `isenta com ${waiverMissed.requirement.label.toLowerCase()} — não atingido no seu cenário`;
+    const applied = waiverPhrase(waiverApplied?.requirement);
+    feeCaption = applied !== null ? `isenta com ${applied}` : "sem anuidade";
+  } else {
+    const missed = waiverPhrase(waiverMissed?.requirement);
+    feeCaption = missed !== null ? `isenta com ${missed} — não atingido no seu cenário` : null;
   }
   lines.push({ label: "Anuidade", caption: feeCaption, valueBrl: -m.recurringAnnualFeeBrl });
 
