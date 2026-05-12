@@ -226,7 +226,7 @@ export const CatalogList = ({
 
       {state.status === "ok" && state.cards.length > 0 && (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {visibleCards.map((card) => (
               <CatalogCard
                 key={card.id}

@@ -2,14 +2,15 @@ import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Armchair,
+  BadgeCheck,
   Check,
   Globe,
   Lock,
   type LucideIcon,
+  Percent,
   PiggyBank,
   Plane,
   Plus,
-  Percent,
   Umbrella,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -32,20 +33,30 @@ interface CatalogCardProps {
   className?: string;
 }
 
-// Valores grandes ficam mais escaneáveis abreviados: "R$ 50 mil" em vez de
-// "R$ 50.000,00". Centavos fora; só usa "mil" para múltiplos exatos de mil.
+// Valores grandes ficam mais escaneáveis abreviados: "R$ 50 mil", "R$ 30
+// milhões". Centavos fora; "mil" só para múltiplos exatos de mil abaixo de 1mi.
 const formatBrlShort = (value: number): string => {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    const label = millions === 1 ? "milhão" : "milhões";
+    const num = Number.isInteger(millions)
+      ? String(millions)
+      : millions.toFixed(1).replace(".", ",");
+    return `R$ ${num} ${label}`;
+  }
   if (value >= 1000 && value % 1000 === 0) return `R$ ${String(value / 1000)} mil`;
   return `R$ ${Math.round(value).toLocaleString("pt-BR")}`;
 };
 
 interface AnnualFee {
-  headline: string;
-  caption: string | null;
+  amount: string;
+  waiver: string | null;
 }
 
-const annualFee = (card: PublicCatalogCard): AnnualFee => {
-  if (card.annualFeeBrl === 0) return { headline: "Sem anuidade", caption: null };
+// Cartões sem anuidade não recebem o bloco de anuidade — "Sem anuidade" entra
+// como o primeiro item da fileira de benefícios. Aqui só os com cobrança.
+const annualFee = (card: PublicCatalogCard): AnnualFee | null => {
+  if (card.annualFeeBrl === 0) return null;
 
   const conditions: string[] = [];
   if (card.annualFeeWaiverThresholdBrl !== undefined) {
@@ -55,8 +66,8 @@ const annualFee = (card: PublicCatalogCard): AnnualFee => {
     conditions.push(`${formatBrlShort(card.investmentFeeWaiverBrl)} investidos`);
   }
   return {
-    headline: `${formatBrlShort(card.annualFeeBrl)}/ano`,
-    caption: conditions.length > 0 ? `isenta com ${conditions.join(" ou ")}` : null,
+    amount: formatBrlShort(card.annualFeeBrl),
+    waiver: conditions.length > 0 ? `isenta com ${conditions.join(" ou ")}` : null,
   };
 };
 
@@ -88,6 +99,7 @@ interface Perk {
 
 const perks = (card: PublicCatalogCard): Perk[] => {
   const list: Perk[] = [];
+  if (card.annualFeeBrl === 0) list.push({ Icon: BadgeCheck, label: "Sem anuidade" });
   if (card.hasLoungeAccess) list.push({ Icon: Armchair, label: "Sala VIP" });
   if (card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0) {
     const rate = formatCashbackRate(card.cashbackRatePercent);
@@ -132,90 +144,87 @@ export const CatalogCard = ({
   return (
     <article
       className={cn(
-        "border-line bg-surface-raised hover:border-line-strong relative flex flex-col gap-4 rounded-xl border p-5 transition-colors",
+        "border-line bg-surface-raised hover:border-line-strong relative flex flex-col overflow-hidden rounded-xl border transition-colors",
         className,
       )}
     >
-      <div className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
+      <div className="relative">
+        <CardArt brand={card.brand} tier={card.tier} className="!w-full rounded-b-none border-0" />
+        <button
+          type="button"
+          aria-pressed={inCompare}
+          aria-label={inCompare ? "Tirar da comparação" : "Comparar"}
+          onClick={handleCompare}
+          className={cn(
+            "absolute top-3 right-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-lg border backdrop-blur-sm transition-colors",
+            inCompare
+              ? "border-accent bg-accent text-white"
+              : "border-line/60 bg-surface-raised/85 text-ink-muted hover:bg-surface-raised hover:text-ink",
+          )}
+        >
+          {inCompare ? <Check size={16} /> : <Plus size={16} />}
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3 p-5">
+        <div className="flex flex-col gap-1">
           <Link
             to={`/cards/${card.id}`}
-            className="text-heading text-ink hover:text-accent focus-visible:ring-accent min-w-0 rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
+            className="text-heading text-ink hover:text-accent focus-visible:ring-accent rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
           >
             {card.name}
           </Link>
-          <button
-            type="button"
-            aria-pressed={inCompare}
-            aria-label={inCompare ? "Tirar da comparação" : "Comparar"}
-            onClick={handleCompare}
-            className={cn(
-              "relative z-10 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
-              inCompare
-                ? "border-accent bg-accent text-white"
-                : "border-line text-ink-muted hover:border-line-strong hover:text-ink",
-            )}
-          >
-            {inCompare ? <Check size={16} /> : <Plus size={16} />}
-          </button>
+          <p className="text-caption text-ink-subtle">
+            {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
+          </p>
+          {isCurrentCard && <span className="text-caption text-accent">Seu cartão hoje</span>}
         </div>
-        <div className="flex items-center gap-2.5">
-          <CardArt
-            brand={card.brand}
-            tier={card.tier}
-            bank={card.bank}
-            size="xs"
-            className="shrink-0"
-          />
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <p className="text-caption text-ink-subtle">
-              {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
-            </p>
-            {isCurrentCard && <span className="text-caption text-accent">Seu cartão hoje</span>}
-          </div>
-        </div>
-      </div>
 
-      <div className="border-line flex flex-col gap-3 border-t pt-4">
-        <div>
-          <p className="text-num text-ink text-xl font-semibold">{fee.headline}</p>
-          {fee.caption !== null && (
-            <p className="text-ink-subtle mt-0.5 text-xs leading-snug">{fee.caption}</p>
+        <div className="border-line flex flex-col gap-3 border-t pt-3">
+          {fee !== null && (
+            <div>
+              <p className="text-caption text-ink-subtle">Anuidade</p>
+              <p className="text-num text-ink mt-0.5 text-lg font-semibold">
+                {fee.amount}
+                <span className="text-ink-muted text-sm font-normal"> /ano</span>
+              </p>
+              {fee.waiver !== null && (
+                <p className="text-ink-subtle mt-1 text-xs leading-snug">{fee.waiver}</p>
+              )}
+            </div>
+          )}
+
+          {barrier !== null && (
+            <p
+              className={cn(
+                "flex items-start gap-1.5 text-xs leading-snug",
+                barrier.tone === "warning" ? "text-warning" : "text-ink-subtle",
+              )}
+            >
+              <Lock size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
+              {barrier.text}
+            </p>
+          )}
+
+          {perkList.length > 0 && (
+            <ul className="flex flex-wrap gap-x-3 gap-y-1.5">
+              {perkList.map(({ Icon, label }) => (
+                <li key={label} className="text-ink-muted flex items-center gap-1.5 text-xs">
+                  <Icon size={14} className="text-ink-subtle shrink-0" aria-hidden="true" />
+                  {label}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
-        {barrier !== null && (
-          <p
-            className={cn(
-              "flex items-start gap-1.5 text-xs leading-snug",
-              barrier.tone === "warning" ? "text-warning" : "text-ink-subtle",
-            )}
-          >
-            <Lock size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-            {barrier.text}
-          </p>
-        )}
-
-        {perkList.length > 0 && (
-          <ul className="flex flex-wrap gap-x-3 gap-y-1.5">
-            {perkList.map(({ Icon, label }) => (
-              <li key={label} className="text-ink-muted flex items-center gap-1.5 text-xs">
-                <Icon size={14} className="text-ink-subtle shrink-0" aria-hidden="true" />
-                {label}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {card.lastVerified !== undefined && (
-        <div className="mt-auto">
+        {card.lastVerified !== undefined && (
           <VerifiedMark
             lastVerified={card.lastVerified}
             {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
           />
-        </div>
-      )}
+        )}
+      </div>
     </article>
   );
 };

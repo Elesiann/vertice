@@ -85,14 +85,16 @@ describe("CatalogCard", () => {
     expect(screen.getByText("Smiles")).toBeInTheDocument();
   });
 
-  it("renders the annual fee headline (short format, no cents)", () => {
+  it("shows the annual-fee block for cards that charge one (short format, no cents)", () => {
     renderCard();
-    expect(screen.getByText("R$ 1.200/ano")).toBeInTheDocument();
+    expect(screen.getByText("Anuidade")).toBeInTheDocument();
+    expect(screen.getByText(/R\$ 1\.200/)).toBeInTheDocument();
   });
 
-  it("shows 'Sem anuidade' for fee-free cards", () => {
+  it("shows 'Sem anuidade' as a perk and no fee block for fee-free cards", () => {
     renderCard(null, { ...card, annualFeeBrl: 0 });
     expect(screen.getByText("Sem anuidade")).toBeInTheDocument();
+    expect(screen.queryByText("Anuidade")).not.toBeInTheDocument();
   });
 
   it("shows an access-barrier line for cards gated by investing in the issuer's brokerage", () => {
