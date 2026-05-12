@@ -5,6 +5,7 @@ import {
   primaryProgram,
   programRedemptionLabel,
   stackAccessibilitySummary,
+  transferBonusOptimisticNetBrl,
 } from "@/features/results/alternatives";
 import type { SpendingProfile, StackEvaluation } from "@/types";
 
@@ -113,6 +114,12 @@ export const CalculationBreakdown = ({
   const footnotes: string[] = [];
   if (m.netReturnBrl < -0.01) {
     footnotes.push("No seu volume de gasto este cartão custa mais do que devolve.");
+  }
+  const optimisticNetBrl = transferBonusOptimisticNetBrl(stack);
+  if (optimisticNetBrl !== null) {
+    footnotes.push(
+      `Com bônus de transferência de pontos (cenário otimista), o líquido pode chegar a ${formatBrl(optimisticNetBrl)}/ano. O número acima usa o valor sem bônus.`,
+    );
   }
   if (ptaxRate !== undefined) {
     const asOf =

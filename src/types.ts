@@ -20,6 +20,8 @@ export type ProgramId =
   | "uau-caixa"
   | "atomos"
   | "btg-points"
+  | "dux-experience"
+  | "pontos-xp"
   | "aadvantage"
   | "tap-miles-and-go"
   | "pao-de-acucar-mais"

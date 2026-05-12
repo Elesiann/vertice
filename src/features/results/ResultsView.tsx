@@ -39,6 +39,7 @@ import {
   stackId,
   stackLabel,
   stackMatchesPreference,
+  transferBonusOptimisticNetBrl,
 } from "@/features/results/alternatives";
 import { AlternativesSection } from "@/features/results/AlternativesSection";
 import { CalculationBreakdown } from "@/features/results/CalculationBreakdown";
@@ -428,6 +429,15 @@ export const ResultsView = (): JSX.Element => {
               <p className="text-kpi text-accent tabular mt-3">
                 {formatBrl(topStack.yearOneNetValueBrl)}
               </p>
+              {(() => {
+                const optimisticNetBrl = transferBonusOptimisticNetBrl(topStack);
+                return optimisticNetBrl !== null ? (
+                  <p className="text-ink-subtle mt-1.5 text-xs leading-relaxed">
+                    Com bônus de transferência de pontos, pode chegar a{" "}
+                    <span className="tabular">{formatBrl(optimisticNetBrl)}</span>/ano.
+                  </p>
+                ) : null;
+              })()}
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {scoreLab?.verdict !== undefined && scoreLab.verdict.kind !== "viable" ? (
                   <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>

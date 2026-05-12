@@ -630,6 +630,53 @@ export const bestUpsideForCurrentCard = (
   return { stack: candidate, deltaBrl, gainPct, requirementPhrase: phrase };
 };
 
+// ---------------------------------------------------------------------------
+// Conservative "transfer-bonus" upside range.
+// ---------------------------------------------------------------------------
+
+// Programs whose points are bank-points transferable 1:1 to airline programs, so a transfer-bonus
+// promo (+80%, +100% — routine in Brazil) realistically lifts their effective value. The modeled
+// líquido uses the raw, no-bonus floor (`pointValueBrl`) for ranking; this set marks the cards for
+// which we *also* show an optimistic ceiling. Excludes cashback (fixed value, no transfer game),
+// airline-miles programs (bonus lives on the sending side), and tiny regional cooperatives where
+// transfer promos are effectively non-existent.
+export const BONUS_ELIGIBLE_PROGRAMS = new Set<ProgramId>([
+  "livelo",
+  "esfera",
+  "inter-loop",
+  "uau-caixa",
+  "atomos",
+  "btg-points",
+  "pao-de-acucar-mais",
+  "safra-rewards",
+  "porto-plus",
+  "nomad-pass",
+  "revpoints",
+  "pontos-xp",
+  "dux-experience",
+]);
+
+// A flat, deliberately conservative transfer-bonus multiplier — well below the +100% promos that
+// happen, on purpose, so we don't have to audit every program's promo history. Applied to the
+// gross points value only.
+export const BONUS_TRANSFER_FACTOR = 0.8;
+
+// Below this much extra líquido, the range is noise, not signal — show a single number.
+export const MIN_RANGE_DELTA_BRL = 150;
+
+// The optimistic end of the líquido range for `stack` — current modeled net plus a conservative
+// transfer-bonus uplift on its gross points value. null when the stack doesn't earn bonus-eligible
+// points, or the uplift is too small to be worth showing.
+export const transferBonusOptimisticNetBrl = (stack: StackEvaluation): number | null => {
+  const program = primaryProgram(stack);
+  if (program === undefined || !BONUS_ELIGIBLE_PROGRAMS.has(program)) return null;
+  const grossBrl = stack.scoreLab?.modeledAnnual.grossValueBrl ?? 0;
+  if (grossBrl <= 0) return null;
+  const uplift = grossBrl * BONUS_TRANSFER_FACTOR;
+  if (uplift < MIN_RANGE_DELTA_BRL) return null;
+  return stack.yearOneNetValueBrl + uplift;
+};
+
 export interface FullListRow {
   stack: StackEvaluation;
   rank: number; // 1-based position in the full ranked pool (global, never per-filter)

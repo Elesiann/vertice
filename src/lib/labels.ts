@@ -11,6 +11,8 @@ export const POINTS_PROGRAM_LABEL: Record<ProgramId, string> = {
   "uau-caixa": "UAU (Caixa)",
   atomos: "Átomos",
   "btg-points": "BTG+",
+  "dux-experience": "DUX Experience",
+  "pontos-xp": "Pontos XP",
   aadvantage: "AAdvantage",
   "tap-miles-and-go": "Miles&Go (TAP)",
   "pao-de-acucar-mais": "Pão de Açúcar Mais",

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildAlternativeLadder, buildAlternativesFullList } from "@/features/results/alternatives";
+import {
+  buildAlternativeLadder,
+  buildAlternativesFullList,
+  transferBonusOptimisticNetBrl,
+} from "@/features/results/alternatives";
 import type { Recommendation, StackEvaluation } from "@/types";
 
 // Minimal stack with only the fields the pure ladder functions read.
@@ -198,5 +202,45 @@ describe("buildAlternativesFullList", () => {
     expect(rows).toHaveLength(3);
     const cur = rows.find((r) => r.isCurrent);
     expect(cur?.deltaBrl).toBeCloseTo(1000 - 2848);
+  });
+});
+
+describe("transferBonusOptimisticNetBrl", () => {
+  const stackWith = (
+    pointsProgram: string,
+    grossValueBrl: number,
+    netReturnBrl: number,
+  ): StackEvaluation =>
+    ({
+      cards: [
+        {
+          id: "x",
+          name: "X",
+          bank: "other",
+          pointsProgram,
+          requiresRelationship: "open",
+        },
+      ],
+      allocation: [{ cardId: "x", monthlyDomesticBrl: 5000, monthlyInternationalUsd: 0 }],
+      yearOneNetValueBrl: netReturnBrl,
+      yearOneAnnualFeeBrl: 0,
+      scoreLab: { score: netReturnBrl, modeledAnnual: { grossValueBrl } },
+    }) as unknown as StackEvaluation;
+
+  it("adds a conservative bonus uplift on the gross points value for an eligible program", () => {
+    // 800 net + 0.8 * 1000 gross
+    expect(transferBonusOptimisticNetBrl(stackWith("livelo", 1000, 800))).toBeCloseTo(1600);
+  });
+
+  it("is null for a cashback program (fixed value, no transfer game)", () => {
+    expect(transferBonusOptimisticNetBrl(stackWith("cashback", 1000, 800))).toBeNull();
+  });
+
+  it("is null for a direct airline-miles program", () => {
+    expect(transferBonusOptimisticNetBrl(stackWith("smiles", 1000, 800))).toBeNull();
+  });
+
+  it("is null when the uplift is below the noise threshold", () => {
+    expect(transferBonusOptimisticNetBrl(stackWith("livelo", 100, 800))).toBeNull(); // 80 < 150
   });
 });
