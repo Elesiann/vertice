@@ -430,6 +430,33 @@ export const GAP_COLLAPSE_MIN = 2;
 export const LADDER_BELOW_RECOMMENDED = 3;
 // Estado B: how many cards to show on each side of the current-card anchor.
 export const LADDER_WINDOW_AROUND_CURRENT = 2;
+// How many "card" rows the summarised ladder aims for around the anchor (recommended/current), so
+// every tab renders the same height and switching tabs doesn't shift the layout. Reachable only
+// when the candidate pool actually has that many neighbours.
+export const LADDER_TOTAL_CARDS = 2 * LADDER_WINDOW_AROUND_CURRENT;
+
+// Picks which neighbours of the anchor to show: up to `perSide` from each side, then top up from
+// whichever side still has spare so the visible count reaches `target` when the pool allows.
+const pickNeighbours = (
+  above: StackEvaluation[],
+  below: StackEvaluation[],
+  perSide: number,
+  target: number,
+): { shownAbove: StackEvaluation[]; shownBelow: StackEvaluation[] } => {
+  let nAbove = Math.min(perSide, above.length);
+  let nBelow = Math.min(perSide, below.length);
+  let deficit = target - nAbove - nBelow;
+  if (deficit > 0) {
+    const extraBelow = Math.min(deficit, below.length - nBelow);
+    nBelow += extraBelow;
+    deficit -= extraBelow;
+    nAbove += Math.min(deficit, above.length - nAbove);
+  }
+  return {
+    shownAbove: nAbove > 0 ? above.slice(-nAbove) : [],
+    shownBelow: below.slice(0, nBelow),
+  };
+};
 
 export type LadderRow =
   | { kind: "card"; stack: StackEvaluation; deltaBrl: number }
@@ -474,15 +501,19 @@ export const buildAlternativeLadder = ({
   const rows: LadderRow[] = [];
 
   // Estado B: the anchor is the user's current card. Show a tight symmetric window — a couple of
-  // higher-net cards (gated; they'd need more invested), the anchor, a couple of lower-net cards.
-  // Anything further up is left for the full list; the section blurb already frames the trade-off.
+  // higher-net cards (gated; they'd need more invested), the anchor, a couple of lower-net cards —
+  // padded to LADDER_TOTAL_CARDS so it matches the other tab. Anything further out is on the full
+  // list; the section blurb already frames the trade-off.
   if (anchoredOnCurrentCard) {
-    const shownAbove = ranked.slice(0, recIdx).slice(-LADDER_WINDOW_AROUND_CURRENT);
+    const { shownAbove, shownBelow } = pickNeighbours(
+      ranked.slice(0, recIdx),
+      ranked.slice(recIdx + 1),
+      LADDER_WINDOW_AROUND_CURRENT,
+      LADDER_TOTAL_CARDS,
+    );
     for (const s of shownAbove) rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
     rows.push({ kind: "recommended", stack: topStack });
-    for (const s of ranked.slice(recIdx + 1, recIdx + 1 + LADDER_WINDOW_AROUND_CURRENT)) {
-      rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
-    }
+    for (const s of shownBelow) rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
     return rows;
   }
 
@@ -498,9 +529,12 @@ export const buildAlternativeLadder = ({
   rows.push({ kind: "recommended", stack: topStack });
 
   // 4. Everything below.
-  // No current card (or current card not actually below the recommended): just take the best ones.
+  // No current card (or current card not actually below the recommended): take enough to reach
+  // LADDER_TOTAL_CARDS counting the lone above row (if any), so the tab height is stable.
   if (currentStack === undefined || curIdx <= recIdx) {
-    for (const s of ranked.slice(recIdx + 1, recIdx + 1 + Math.max(belowRecommendedCount, 4))) {
+    const aboveShown = rows.filter((r) => r.kind === "card").length; // 0 or 1
+    const belowWanted = Math.max(belowRecommendedCount, LADDER_TOTAL_CARDS - aboveShown);
+    for (const s of ranked.slice(recIdx + 1, recIdx + 1 + belowWanted)) {
       rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
     }
     return rows;

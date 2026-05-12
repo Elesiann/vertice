@@ -51,8 +51,7 @@ describe("buildAlternativeLadder", () => {
       "recommended",
       "card", // a
       "card", // b
-      "card", // c
-      "card", // d (max(belowRecommendedCount, 4) = 4 below)
+      "card", // c — 1 above + 3 below = LADDER_TOTAL_CARDS (4); "d" stays on the full list
     ]);
   });
 
