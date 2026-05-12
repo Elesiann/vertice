@@ -31,8 +31,12 @@ const CardRow = ({
     : above
       ? `+${formatBrl(deltaBrl)} vs ${anchorWord}`
       : `−${formatBrl(Math.abs(deltaBrl))} vs ${anchorWord}`;
-  const deltaTone = above ? "text-warning" : "text-ink-subtle";
-  const valueTone = above ? "text-warning" : "text-ink";
+  // Anchored on the current card, out-earning it is a genuine upside — paint the gain green and let
+  // the investment barrier carry the "but…". Anchored on the recommended (= highest with no
+  // barrier), a card above it is the catch itself, so it stays amber.
+  const aboveTone = anchoredOnCurrentCard ? "text-accent" : "text-warning";
+  const deltaTone = above ? aboveTone : "text-ink-subtle";
+  const valueTone = above ? aboveTone : "text-ink";
   const barrier = stackAccessBarrierLabel(stack);
   return (
     <li className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 px-3 py-3.5">
