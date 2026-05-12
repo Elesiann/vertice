@@ -146,12 +146,15 @@ export const CatalogPage = (): JSX.Element => {
             filters={filters}
             onChange={handleFiltersChange}
             onClear={handleClear}
-            sort={sort}
-            onSortChange={handleSortChange}
           />
         </div>
         <div className="min-w-0 flex-1">
-          <CatalogList filters={filters} onClearFilters={handleClear} sort={sort} />
+          <CatalogList
+            filters={filters}
+            onClearFilters={handleClear}
+            sort={sort}
+            onSortChange={handleSortChange}
+          />
         </div>
       </div>
     </div>

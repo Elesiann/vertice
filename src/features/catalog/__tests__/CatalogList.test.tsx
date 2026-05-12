@@ -153,3 +153,25 @@ describe("CatalogList empty state", () => {
     expect(await screen.findByText("Tente ampliar a busca.")).toBeInTheDocument();
   });
 });
+
+describe("CatalogList incremental rendering", () => {
+  beforeEach(() => {
+    fetchCardCatalog.mockReset();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("mounts only the first page of cards even when the catalog is large", async () => {
+    const many = Array.from({ length: 50 }, (_, i) =>
+      makeCard(`c${String(i)}`, `Cartão ${String(i)}`),
+    );
+    fetchCardCatalog.mockResolvedValue(response(many));
+
+    renderList({});
+
+    await screen.findByText("Mostrando 50 de 50 cartões");
+    expect(screen.getAllByRole("article")).toHaveLength(30);
+  });
+});

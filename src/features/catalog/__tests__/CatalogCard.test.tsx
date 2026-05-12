@@ -80,6 +80,39 @@ describe("CatalogCard", () => {
     expect(screen.getByText(/lounge/i)).toBeInTheDocument();
   });
 
+  it("renders the annual fee as a structured row", () => {
+    renderCard();
+    expect(screen.getByText("Anuidade")).toBeInTheDocument();
+    expect(screen.getByText("R$ 1.200,00")).toBeInTheDocument();
+  });
+
+  it("does not show a fee-tier badge for fee-free cards (the row already says R$ 0,00)", () => {
+    renderCard(null, { ...card, annualFeeBrl: 0 });
+    expect(screen.queryByText(/sem anuidade/i)).not.toBeInTheDocument();
+    expect(screen.getByText("R$ 0,00")).toBeInTheDocument();
+  });
+
+  it("shows an investment-access row for cards gated by investing in the issuer's brokerage", () => {
+    renderCard(null, {
+      ...card,
+      requiresRelationship: "investment",
+      requiredInvestmentBrl: 20000,
+    });
+    expect(screen.getByText("Acesso")).toBeInTheDocument();
+    expect(screen.getByText("R$ 20.000,00 investidos na corretora do emissor")).toBeInTheDocument();
+  });
+
+  it("shows a checking-account access row for cards gated by a checking relationship", () => {
+    renderCard(null, { ...card, requiresRelationship: "checking" });
+    expect(screen.getByText("conta corrente no emissor")).toBeInTheDocument();
+  });
+
+  it("shows a waiver row when the annual fee is waived by monthly spend", () => {
+    renderCard(null, { ...card, annualFeeWaiverThresholdBrl: 5000 });
+    expect(screen.getByText("Isenção")).toBeInTheDocument();
+    expect(screen.getByText(/Gasto de R\$ 5\.000,00\/mês/)).toBeInTheDocument();
+  });
+
   it("shows verification date when lastVerified is present", () => {
     renderCard(null, { ...card, lastVerified: "2026-05-08T00:00:00.000Z" });
     expect(screen.getByText("Verificado em 08/05/2026")).toBeInTheDocument();

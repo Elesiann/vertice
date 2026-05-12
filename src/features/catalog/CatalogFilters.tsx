@@ -13,8 +13,6 @@ interface CatalogFiltersProps {
   filters: CatalogFilters;
   onChange: (filters: CatalogFilters) => void;
   onClear: () => void;
-  sort: CatalogSort;
-  onSortChange: (sort: CatalogSort) => void;
 }
 
 // Merge filters, omitting any keys whose value is explicitly undefined.
@@ -44,8 +42,6 @@ export const CatalogFiltersPanel = ({
   filters,
   onChange,
   onClear,
-  sort,
-  onSortChange,
 }: CatalogFiltersProps): JSX.Element => {
   const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
   const set = (update: FilterUpdate) => {
@@ -90,10 +86,6 @@ export const CatalogFiltersPanel = ({
     set({ hasCashback: e.target.checked ? true : undefined });
   };
 
-  const handleSort = (e: ChangeEvent<HTMLSelectElement>) => {
-    onSortChange(e.target.value as CatalogSort);
-  };
-
   const handleInvestback = (e: ChangeEvent<HTMLInputElement>) => {
     set({ hasInvestback: e.target.checked ? true : undefined });
   };
@@ -116,22 +108,17 @@ export const CatalogFiltersPanel = ({
 
   return (
     <aside className="border-line bg-surface-raised flex flex-col gap-4 rounded-xl border p-4">
-      <Field label="Ordenar por">
-        <Select value={sort} onChange={handleSort}>
-          <option value="fee_asc">Menor anuidade</option>
-          <option value="fee_desc">Maior anuidade</option>
-          <option value="name_asc">Nome (A–Z)</option>
-        </Select>
-      </Field>
-
-      <button
-        type="button"
-        aria-pressed={premiumFreeActive}
-        className="self-start"
-        onClick={handlePremiumFree}
-      >
-        <Badge tone={premiumFreeActive ? "accent" : "neutral"}>Premium grátis</Badge>
-      </button>
+      <div className="flex flex-col gap-1.5">
+        <span className="text-caption text-ink-subtle">Atalhos</span>
+        <button
+          type="button"
+          aria-pressed={premiumFreeActive}
+          className="self-start"
+          onClick={handlePremiumFree}
+        >
+          <Badge tone={premiumFreeActive ? "accent" : "neutral"}>Premium grátis</Badge>
+        </button>
+      </div>
 
       <Field label="Buscar">
         <Input
