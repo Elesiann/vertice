@@ -148,9 +148,9 @@ const AlternativesPageInner = (): JSX.Element => {
                 ? CURRENT_ROW_BG
                 : "";
             const above = row.deltaBrl > 0.01;
-            // Anchored on the current card: out-earning it is an upside (green); only the barrier
-            // stays amber. Anchored on the recommended: a card above it is the catch itself (amber).
-            const aboveTone = anchoredOnCurrentCard ? "text-accent" : "text-warning";
+            // A higher-net card is a genuine upside — gain (and value) in green; the investment
+            // barrier on its own line carries the "but…".
+            const aboveTone = "text-accent";
             const deltaText = row.isRecommended
               ? anchoredOnCurrentCard
                 ? "seu cartão hoje · maior líquido sem investir mais"
