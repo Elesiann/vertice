@@ -103,19 +103,17 @@ describe("CatalogCard", () => {
       requiresRelationship: "investment",
       requiredInvestmentBrl: 20000,
     });
-    expect(
-      screen.getByText("Exige R$ 20 mil investidos na corretora do emissor"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Exige R$ 20 mil investidos")).toBeInTheDocument();
   });
 
   it("shows a checking-account requirement line for cards gated by a checking relationship", () => {
     renderCard(null, { ...card, requiresRelationship: "checking" });
-    expect(screen.getByText("Precisa de conta corrente no emissor")).toBeInTheDocument();
+    expect(screen.getByText("Precisa de conta corrente")).toBeInTheDocument();
   });
 
-  it("shows the waiver caption when the annual fee is waived by monthly spend", () => {
+  it("does not surface annual-fee-waiver conditions on the card", () => {
     renderCard(null, { ...card, annualFeeWaiverThresholdBrl: 5000 });
-    expect(screen.getByText("isenta com gasto de R$ 5 mil/mês")).toBeInTheDocument();
+    expect(screen.queryByText(/isenta com/i)).not.toBeInTheDocument();
   });
 
   it("shows verification date when lastVerified is present", () => {

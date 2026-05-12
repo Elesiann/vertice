@@ -33,6 +33,10 @@ interface CatalogCardProps {
   className?: string;
 }
 
+// No máximo este número de benefícios na fileira (≈ 2 linhas). O resto fica
+// na página de detalhe — o card é uma vitrine, não a ficha completa.
+const MAX_PERKS = 5;
+
 // Valores grandes ficam mais escaneáveis abreviados: "R$ 50 mil", "R$ 30
 // milhões". Centavos fora; "mil" só para múltiplos exatos de mil abaixo de 1mi.
 const formatBrlShort = (value: number): string => {
@@ -48,28 +52,11 @@ const formatBrlShort = (value: number): string => {
   return `R$ ${Math.round(value).toLocaleString("pt-BR")}`;
 };
 
-interface AnnualFee {
-  amount: string;
-  waiver: string | null;
-}
-
 // Cartões sem anuidade não recebem o bloco de anuidade — "Sem anuidade" entra
 // como o primeiro item da fileira de benefícios. Aqui só os com cobrança.
-const annualFee = (card: PublicCatalogCard): AnnualFee | null => {
-  if (card.annualFeeBrl === 0) return null;
-
-  const conditions: string[] = [];
-  if (card.annualFeeWaiverThresholdBrl !== undefined) {
-    conditions.push(`gasto de ${formatBrlShort(card.annualFeeWaiverThresholdBrl)}/mês`);
-  }
-  if (card.investmentFeeWaiverBrl !== undefined) {
-    conditions.push(`${formatBrlShort(card.investmentFeeWaiverBrl)} investidos`);
-  }
-  return {
-    amount: formatBrlShort(card.annualFeeBrl),
-    waiver: conditions.length > 0 ? `isenta com ${conditions.join(" ou ")}` : null,
-  };
-};
+// A condição de isenção fica na página de detalhe, não no card.
+const annualFeeAmount = (card: PublicCatalogCard): string | null =>
+  card.annualFeeBrl === 0 ? null : formatBrlShort(card.annualFeeBrl);
 
 interface AccessBarrier {
   text: string;
@@ -78,17 +65,17 @@ interface AccessBarrier {
 
 // Barreira para *contratar* o cartão (≠ isenção de anuidade). Exigência de
 // investimento ou private banking conta como obstáculo (âmbar); conta corrente
-// é só um pré-requisito leve (neutro). Espelha AccessRequirementBadge.
+// é só um pré-requisito leve (neutro). O detalhamento mora na página do cartão.
 const accessBarrier = (card: PublicCatalogCard): AccessBarrier | null => {
   const invested = card.requiredInvestmentBrl ?? card.minInvestmentBrl;
   const rel = card.requiresRelationship;
 
   if ((rel === "investment" || rel === "private") && invested !== undefined && invested > 0) {
-    const where = rel === "private" ? "em private banking" : "investidos na corretora do emissor";
+    const where = rel === "private" ? "em private banking" : "investidos";
     return { text: `Exige ${formatBrlShort(invested)} ${where}`, tone: "warning" };
   }
   if (rel === "private") return { text: "Exige private banking", tone: "warning" };
-  if (rel === "checking") return { text: "Precisa de conta corrente no emissor", tone: "muted" };
+  if (rel === "checking") return { text: "Precisa de conta corrente", tone: "muted" };
   return null;
 };
 
@@ -114,7 +101,7 @@ const perks = (card: PublicCatalogCard): Perk[] => {
   }
   if (card.hasTravelInsurance) list.push({ Icon: Umbrella, label: "Seguro viagem" });
   if (card.hasZeroIof) list.push({ Icon: Globe, label: "Sem IOF" });
-  return list;
+  return list.slice(0, MAX_PERKS);
 };
 
 export const CatalogCard = ({
@@ -137,20 +124,20 @@ export const CatalogCard = ({
     onCompare?.(card.id);
   };
 
-  const fee = annualFee(card);
+  const feeAmount = annualFeeAmount(card);
   const barrier = accessBarrier(card);
   const perkList = perks(card);
 
   return (
     <article
       className={cn(
-        "border-line bg-surface-raised hover:border-line-strong relative flex flex-col overflow-hidden rounded-xl border transition-colors",
+        "border-line bg-surface-raised hover:border-line-strong relative flex h-[30rem] flex-col overflow-hidden rounded-xl border transition-colors",
         className,
       )}
     >
-      <div className="relative">
+      <div className="relative shrink-0">
         <CardImage
-          imagePath={card.imagePath}
+          {...(card.imagePath !== undefined ? { imagePath: card.imagePath } : {})}
           name={card.name}
           brand={card.brand}
           tier={card.tier}
@@ -172,11 +159,11 @@ export const CatalogCard = ({
         </button>
       </div>
 
-      <div className="flex flex-col gap-3 p-5">
-        <div className="flex flex-col gap-1">
+      <div className="flex flex-1 flex-col gap-2.5 overflow-hidden p-5">
+        <div className="flex flex-col gap-0.5">
           <Link
             to={`/cards/${card.id}`}
-            className="text-heading text-ink hover:text-accent focus-visible:ring-accent rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
+            className="text-heading text-ink hover:text-accent focus-visible:ring-accent line-clamp-2 rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
           >
             {card.name}
           </Link>
@@ -186,17 +173,14 @@ export const CatalogCard = ({
           {isCurrentCard && <span className="text-caption text-accent">Seu cartão hoje</span>}
         </div>
 
-        <div className="border-line flex flex-col gap-3 border-t pt-3">
-          {fee !== null && (
+        <div className="border-line flex flex-col gap-2.5 border-t pt-2.5">
+          {feeAmount !== null && (
             <div>
               <p className="text-caption text-ink-subtle">Anuidade</p>
               <p className="text-num text-ink mt-0.5 text-lg font-semibold">
-                {fee.amount}
+                {feeAmount}
                 <span className="text-ink-muted text-sm font-normal"> /ano</span>
               </p>
-              {fee.waiver !== null && (
-                <p className="text-ink-subtle mt-1 text-xs leading-snug">{fee.waiver}</p>
-              )}
             </div>
           )}
 
@@ -208,7 +192,7 @@ export const CatalogCard = ({
               )}
             >
               <Lock size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-              {barrier.text}
+              <span className="line-clamp-2">{barrier.text}</span>
             </p>
           )}
 
@@ -225,10 +209,12 @@ export const CatalogCard = ({
         </div>
 
         {card.lastVerified !== undefined && (
-          <VerifiedMark
-            lastVerified={card.lastVerified}
-            {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
-          />
+          <div className="mt-auto pt-1">
+            <VerifiedMark
+              lastVerified={card.lastVerified}
+              {...(card.verifiedTier !== undefined ? { verifiedTier: card.verifiedTier } : {})}
+            />
+          </div>
         )}
       </div>
     </article>

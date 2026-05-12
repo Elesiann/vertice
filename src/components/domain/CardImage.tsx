@@ -31,7 +31,15 @@ export const CardImage = ({
   const [failed, setFailed] = useState(false);
 
   if (imagePath === undefined || failed) {
-    return <CardArt brand={brand} tier={tier} bank={bank} size={size} className={className} />;
+    return (
+      <CardArt
+        brand={brand}
+        tier={tier}
+        size={size}
+        {...(bank !== undefined ? { bank } : {})}
+        {...(className !== undefined ? { className } : {})}
+      />
+    );
   }
 
   return (
