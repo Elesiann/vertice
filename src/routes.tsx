@@ -7,6 +7,7 @@ import { AlternativesPage } from "@/pages/AlternativesPage";
 import { CatalogPage } from "@/pages/CatalogPage";
 import { CardDetailPage } from "@/pages/CardDetailPage";
 import { ComparePage } from "@/pages/ComparePage";
+import { CalculoMockPage } from "@/pages/CalculoMockPage";
 import { ROUTES } from "@/lib/routes-constants";
 
 export { ROUTES };
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       { path: ROUTES.CATALOG, element: <CatalogPage /> },
       { path: ROUTES.CARD_DETAIL, element: <CardDetailPage /> },
       { path: ROUTES.COMPARE, element: <ComparePage /> },
+      { path: "/mock/calculo", element: <CalculoMockPage /> },
     ],
   },
 ]);
