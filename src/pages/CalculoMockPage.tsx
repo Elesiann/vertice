@@ -45,9 +45,15 @@ const Waterfall = ({
           </div>
         );
       })}
-      <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 py-4">
+      <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 py-3.5">
         <dt className="text-ink text-sm font-semibold">{netLabel}</dt>
-        <dd className="text-kpi text-accent tabular">{fmt(netBrl)}</dd>
+        <dd
+          className={`text-num tabular text-base font-semibold ${
+            netBrl > 0.01 ? "text-accent" : netBrl < -0.01 ? "text-warning" : "text-ink"
+          }`}
+        >
+          {netBrl < -0.01 ? `− ${fmt(Math.abs(netBrl))}` : fmt(netBrl)}
+        </dd>
       </div>
     </dl>
     <ul className="text-ink-muted mt-4 space-y-1.5 text-xs leading-relaxed">
@@ -70,8 +76,9 @@ export const CalculoMockPage = (): JSX.Element => (
       <h1 className="text-display-3 text-ink mt-2">Redesenho da seção “Ver cálculo completo”</h1>
       <p className="text-ink-subtle mt-2 max-w-xl text-sm">
         Substitui o despejo de internals (Score-lab, retorno bruto cru, liquidez, alternativa
-        institucional) por um “waterfall” que mostra como o líquido foi formado. Dois cenários
-        abaixo: anuidade isenta (estado B do seu print) e cartão com anuidade + custo no exterior.
+        institucional) por um “waterfall” que mostra como o líquido foi formado. Três cenários
+        abaixo: anuidade isenta (estado B do seu print), cartão com anuidade + custo no exterior, e
+        líquido negativo (quando o motor cai no “melhor acionável” sem retorno positivo).
       </p>
 
       <div className="mt-8">
@@ -140,6 +147,37 @@ export const CalculoMockPage = (): JSX.Element => (
             "Câmbio: R$ 4,90 por US$ 1 — PTAX de 12/05/2026",
             "Acesso: sem exigência financeira",
             "Se paga a partir de R$ 2.200,00/mês de gasto · cada R$ 1 de anuidade rende R$ 2,20",
+          ]}
+        />
+      </div>
+
+      <div className="mt-8">
+        <Waterfall
+          title="Como chegamos ao líquido"
+          netLabel="Líquido estimado em 12 meses"
+          lines={[
+            {
+              label: "Valor em pontos",
+              caption: "9.600 pts acumulados · ~R$ 0,025/pt",
+              valueBrl: 240,
+            },
+            {
+              label: "Custo no exterior",
+              caption: "US$ 600,00/ano · câmbio R$ 4,90 + IOF",
+              valueBrl: -111,
+            },
+            {
+              label: "Anuidade",
+              caption: "R$ 588,00/ano — não isenta no seu cenário",
+              valueBrl: -588,
+            },
+          ]}
+          netBrl={-459}
+          footnotes={[
+            "No seu volume de gasto este cartão custa mais do que devolve.",
+            "Câmbio: R$ 4,90 por US$ 1 — PTAX de 12/05/2026",
+            "Acesso: sem exigência financeira",
+            "Compensaria a partir de R$ 4.900,00/mês de gasto",
           ]}
         />
       </div>
