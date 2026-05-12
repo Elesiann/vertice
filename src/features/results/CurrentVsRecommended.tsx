@@ -11,6 +11,7 @@ import type {
 } from "@/lib/comparison-narrative";
 import { formatBrl, formatUsd } from "@/lib/format";
 import type { ScoreLabVerdictKind } from "@/types";
+import { PreferencePanel, type PreferenceComparison } from "@/features/results/PreferencePanel";
 
 interface Props {
   narrative: ComparisonNarrative;
@@ -22,9 +23,9 @@ interface Props {
   // Short eligibility line for the recommended card ("exige R$ X investidos no emissor" /
   // "sem exigência financeira"). Shown in the thin meta line under the footer.
   accessLabel?: string;
-  // The "you picked X, the recommendation is Y" caveat, when the chosen redemption diverges
-  // from the recommended card's. Rendered as a third diagnosis paragraph.
-  preferenceNotice?: string;
+  // The "you picked X, the recommendation is Y" comparison, when the chosen redemption diverges
+  // from the recommended card's. Rendered as a panel between the table and the highlights.
+  preferenceComparison?: PreferenceComparison;
 }
 
 type Side = "current" | "recommended";
@@ -233,7 +234,7 @@ export const CurrentVsRecommended = ({
   recommendedLabel,
   recommendedBenefits = [],
   accessLabel = "sem exigência financeira",
-  preferenceNotice,
+  preferenceComparison,
 }: Props): JSX.Element => {
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
   const toggleRow = (key: string): void => {
@@ -342,8 +343,8 @@ export const CurrentVsRecommended = ({
         </table>
       </div>
 
-      {preferenceNotice !== undefined ? (
-        <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">{preferenceNotice}</p>
+      {preferenceComparison !== undefined ? (
+        <PreferencePanel comparison={preferenceComparison} />
       ) : null}
 
       <div className="border-line/60 border-t pt-5">

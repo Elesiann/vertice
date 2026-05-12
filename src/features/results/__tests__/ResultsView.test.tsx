@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
@@ -351,7 +351,7 @@ describe("ResultsView", () => {
     expect(screen.getByText(/Acesso: sem exigência financeira/i)).toBeInTheDocument();
   });
 
-  it("shows the preference-divergence copy inside the comparison diagnosis", async () => {
+  it("renders the preference panel inside the comparison view", async () => {
     const smilesAlternative = {
       ...stack,
       cards: [
@@ -385,11 +385,15 @@ describe("ResultsView", () => {
 
     await screen.findByRole("heading", { level: 1 });
 
+    const panel = screen.getByRole("region", {
+      name: "Sobre sua preferência por milhas Smiles",
+    });
     expect(
-      screen.getByText(
-        /Você marcou milhas Smiles, mas o recomendado rende em cashback: o melhor cartão de milhas Smiles acionável \(Smiles Alternative\) renderia R\$\s?500,00\/ano/i,
-      ),
+      within(panel).getByText(/O recomendado rende em cashback, não milhas Smiles puro/),
     ).toBeInTheDocument();
+    expect(within(panel).getByText("Smiles Alternative")).toBeInTheDocument();
+    expect(within(panel).getByText(/melhor milhas Smiles acionável/)).toBeInTheDocument();
+    expect(within(panel).getByText(/R\$\s?500,00\/ano/)).toBeInTheDocument();
   });
 
   it("uses recommendedNow as the displayed recommendation when the modeled leader is not actionable", async () => {
@@ -713,11 +717,13 @@ describe("ResultsView", () => {
       redemption: { kind: "miles", program: "smiles" },
     });
 
-    expect(
-      await screen.findByText(
-        /Você marcou milhas Smiles, mas o recomendado rende em cashback: o melhor cartão de milhas Smiles acionável \(Smiles Card\) renderia R\$\s?500,00\/ano — abaixo do recomendado/i,
-      ),
-    ).toBeInTheDocument();
+    const panel = await screen.findByRole("region", {
+      name: "Sobre sua preferência por milhas Smiles",
+    });
+    expect(within(panel).getByText("Smiles Card")).toBeInTheDocument();
+    expect(within(panel).getByText(/melhor milhas Smiles acionável/)).toBeInTheDocument();
+    expect(within(panel).getByText(/Sem barreira de acesso/)).toBeInTheDocument();
+    expect(within(panel).getByText(/R\$\s?500,00\/ano/)).toBeInTheDocument();
   });
 
   it("case 1 — no preferred-currency card among the alternatives at all", async () => {
@@ -729,14 +735,15 @@ describe("ResultsView", () => {
       redemption: { kind: "miles", program: "smiles" },
     });
 
+    expect(await screen.findByText("Sobre sua preferência por milhas Smiles")).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        /Você marcou milhas Smiles, mas o recomendado rende em cashback: nenhum cartão de milhas Smiles chega a R\$\s?1\.500,00\/ano do retorno dele/i,
+      screen.getByText(
+        /Nenhum cartão de milhas Smiles chega a R\$\s?1\.500,00\/ano do retorno dele/,
       ),
     ).toBeInTheDocument();
   });
 
-  it("case 3 — names the gated higher-return options alongside the best actionable one", async () => {
+  it("case 3 — panel lists the actionable card, the gated higher one, and the recommended", async () => {
     mockRecommendation({
       ...recommendationFixture,
       topStack: makeStack({
@@ -758,14 +765,24 @@ describe("ResultsView", () => {
       redemption: { kind: "cashback" },
     });
 
+    const panel = await screen.findByRole("region", {
+      name: "Sobre sua preferência por cashback",
+    });
     expect(
-      await screen.findByText(
-        /Você marcou cashback, mas o recomendado rende em milhas Smiles: o melhor cartão de cashback acionável \(Cheap Cashback\) renderia R\$\s?500,00\/ano; as opções acima disso \(Gated Cashback, R\$\s?4\.000,00\/ano\) exigem R\$\s?50\.000,00 investidos no emissor/i,
-      ),
+      within(panel).getByText(/O recomendado rende em milhas Smiles, não cashback puro/),
     ).toBeInTheDocument();
+    expect(within(panel).getByText("Cheap Cashback")).toBeInTheDocument();
+    expect(within(panel).getByText(/melhor cashback acionável/)).toBeInTheDocument();
+    expect(within(panel).getByText("Gated Cashback")).toBeInTheDocument();
+    expect(within(panel).getByText(/cashback maior/)).toBeInTheDocument();
+    expect(
+      within(panel).getByText(/Exige R\$\s?50\.000,00 investidos no emissor/),
+    ).toBeInTheDocument();
+    expect(within(panel).getByText(/R\$\s?4\.000,00\/ano/)).toBeInTheDocument();
+    expect(within(panel).getByText("Miles Top")).toBeInTheDocument();
   });
 
-  it("case 4 — points to Outras escolhas when a reachable preferred-currency card matches or beats the recommendation", async () => {
+  it("case 4 — panel shows a reachable preferred-currency card that matches or beats the recommendation", async () => {
     mockRecommendation({
       ...recommendationFixture,
       topStack: makeStack({
@@ -783,11 +800,12 @@ describe("ResultsView", () => {
       redemption: { kind: "cashback" },
     });
 
-    expect(
-      await screen.findByText(
-        /Você marcou cashback, mas o recomendado rende em milhas Smiles: o melhor cartão de cashback acionável \(Big Cashback, R\$\s?3\.000,00\/ano\) está nas Outras escolhas abaixo/i,
-      ),
-    ).toBeInTheDocument();
+    const panel = await screen.findByRole("region", {
+      name: "Sobre sua preferência por cashback",
+    });
+    expect(within(panel).getByText("Big Cashback")).toBeInTheDocument();
+    expect(within(panel).getByText(/melhor cashback acionável/)).toBeInTheDocument();
+    expect(within(panel).getByText(/R\$\s?3\.000,00\/ano/)).toBeInTheDocument();
   });
 
   it("case 5 — every preferred-currency card sits behind an investment gate", async () => {
@@ -812,11 +830,15 @@ describe("ResultsView", () => {
       redemption: { kind: "cashback" },
     });
 
+    const panel = await screen.findByRole("region", {
+      name: "Sobre sua preferência por cashback",
+    });
+    expect(within(panel).getByText("Gated A")).toBeInTheDocument();
+    expect(within(panel).getByText(/cashback maior/)).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        /Você marcou cashback, mas as melhores opções de cashback \(Gated A, R\$\s?4\.000,00\/ano\) exigem R\$\s?50\.000,00 investidos no emissor; o recomendado, em milhas Smiles, é o melhor retorno sem essa exigência/i,
-      ),
+      within(panel).getByText(/Exige R\$\s?50\.000,00 investidos no emissor/),
     ).toBeInTheDocument();
+    expect(within(panel).getByText(/R\$\s?4\.000,00\/ano/)).toBeInTheDocument();
   });
 
   it("hides the travel translation section for cashback recommendations", async () => {

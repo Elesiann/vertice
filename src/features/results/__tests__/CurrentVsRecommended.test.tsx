@@ -218,23 +218,48 @@ describe("CurrentVsRecommended", () => {
     expect(screen.queryByText(/^Mais no/)).toBeNull();
   });
 
-  it("renders the preference-divergence notice between the table and the highlights when provided", () => {
+  it("renders the preference panel between the table and the highlights when provided", () => {
     render(
       <CurrentVsRecommended
         narrative={variantANarrative}
         currentLabel="A"
         recommendedLabel="B"
-        preferenceNotice="Você marcou cashback. O recomendado é pontos."
+        preferenceComparison={{
+          preferenceLabel: "cashback",
+          recRedemption: "pontos Dux Experience",
+          intro: "O recomendado rende em pontos Dux Experience, não cashback puro.",
+          rows: [
+            {
+              label: "PicPay Card Black",
+              role: "melhor cashback acionável",
+              note: "Sem barreira de acesso",
+              warn: false,
+              netBrl: 2520,
+              recommended: false,
+            },
+            {
+              label: "BRB Dux",
+              role: "pontos, recomendado",
+              note: "Maior líquido total, sem barreira de acesso",
+              warn: false,
+              netBrl: 2847.96,
+              recommended: true,
+            },
+          ],
+        }}
       />,
     );
-    expect(screen.getByText("Você marcou cashback. O recomendado é pontos.")).toBeInTheDocument();
+    expect(screen.getByText("Sobre sua preferência por cashback")).toBeInTheDocument();
+    expect(screen.getByText("PicPay Card Black")).toBeInTheDocument();
+    expect(screen.getByText(/melhor cashback acionável/)).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s?2\.520,00\/ano/)).toBeInTheDocument();
   });
 
-  it("omits the preference-divergence notice when not provided", () => {
+  it("omits the preference panel when not provided", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    expect(screen.queryByText(/Você marcou/)).toBeNull();
+    expect(screen.queryByText(/Sobre sua preferência/)).toBeNull();
   });
 
   describe("per-row winner/loser styling", () => {

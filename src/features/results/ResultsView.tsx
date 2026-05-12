@@ -15,6 +15,11 @@ import { buildErrorReportUrl } from "@/lib/feedback";
 import { formatBrl, formatRoiMultiple, formatUsd } from "@/lib/format";
 import { whyWonSentences } from "@/lib/why-won";
 import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
+import {
+  PreferencePanel,
+  type PreferenceComparison,
+  type PreferenceComparisonRow,
+} from "@/features/results/PreferencePanel";
 import { buildComparisonNarrative } from "@/lib/comparison-narrative";
 import { ROUTES } from "@/routes";
 import type {
@@ -516,24 +521,56 @@ const alternativesHeroSentence = (tabs: AlternativeTab[], threshold: number): st
   return `Outra escolha próxima: ${tab.label.toLowerCase()}, ${stackLabel(alternative)} entrega ${formatAnnualBrl(alternative.yearOneNetValueBrl)}.`;
 };
 
-// Phrased for "… exigem {clause}." — the barrier of `stack`, or a generic fallback.
-const accessGateClause = (stack: StackEvaluation): string => {
+// One card-of-the-preferred-currency row in the preference panel — the access note comes from the
+// stack's investment/relationship barrier.
+const preferenceRow = (
+  stack: StackEvaluation,
+  role: string,
+  warn: boolean,
+): PreferenceComparisonRow => {
   const phrase = stackAccessBarrierPhrase(stack);
-  return phrase !== null ? `exigem ${phrase}` : "têm requisitos de acesso";
+  return {
+    label: stackLabel(stack),
+    role,
+    note: phrase === null ? "Sem barreira de acesso" : `Exige ${phrase}`,
+    warn: warn && phrase !== null,
+    netBrl: stack.yearOneNetValueBrl,
+    recommended: false,
+  };
 };
 
-const preferenceDivergenceNotice = (
+// Builds the "Sobre sua preferência por X" panel data when the recommended card earns in a
+// different currency than the one the user picked. null when there's nothing to explain.
+const preferenceDivergenceComparison = (
   profile: SpendingProfile,
   recommendation: Recommendation,
   threshold: number,
-): string | null => {
+): PreferenceComparison | null => {
   if (profile.redemption.kind === "any") return null;
-  if (stackMatchesPreference(recommendation.topStack, profile.redemption)) return null;
+  const top = recommendation.topStack;
+  if (stackMatchesPreference(top, profile.redemption)) return null;
 
-  const preferred = preferenceLabel(profile.redemption);
-  const recRedemption = programRedemptionLabel(primaryProgram(recommendation.topStack));
-  const recNet = recommendation.topStack.yearOneNetValueBrl;
-  const lead = `Você marcou ${preferred}, mas o recomendado rende em ${recRedemption}`;
+  const prefLabel = preferenceLabel(profile.redemption);
+  const recProgram = primaryProgram(top);
+  const recRedemption = programRedemptionLabel(recProgram);
+  const recCurrencyWord =
+    recProgram === "cashback"
+      ? "cashback"
+      : recProgram !== undefined && MILES_PROGRAMS.has(recProgram)
+        ? "milhas"
+        : "pontos";
+  const recBarrier = stackAccessBarrierLabel(top); // "exige …" | null
+  const recommendedRow: PreferenceComparisonRow = {
+    label: stackLabel(top),
+    role: `${recCurrencyWord}, recomendado`,
+    note:
+      recBarrier === null
+        ? "Maior líquido total, sem barreira de acesso"
+        : `Maior líquido total — ${recBarrier}`,
+    warn: false,
+    netBrl: top.yearOneNetValueBrl,
+    recommended: true,
+  };
 
   const matching = recommendation.alternatives
     .filter((stack) => stackMatchesPreference(stack, profile.redemption))
@@ -541,30 +578,61 @@ const preferenceDivergenceNotice = (
 
   // 1 — no card of the preferred currency among the alternatives at all.
   if (matching.length === 0) {
-    return `${lead}: nenhum cartão de ${preferred} chega a ${formatAnnualBrl(threshold)} do retorno dele.`;
+    return {
+      preferenceLabel: prefLabel,
+      recRedemption,
+      intro: `O recomendado rende em ${recRedemption}, não ${prefLabel}. Nenhum cartão de ${prefLabel} chega a ${formatAnnualBrl(threshold)} do retorno dele.`,
+      rows: [recommendedRow],
+    };
   }
 
   const bestActionable = matching.find((stack) => isAccessibleForProfile(profile, stack));
   const bestGated = matching.find((stack) => !isAccessibleForProfile(profile, stack));
+  const recNet = top.yearOneNetValueBrl;
+  const intro = `O recomendado rende em ${recRedemption}, não ${prefLabel} puro. Aqui está como ele se compara aos melhores cartões de ${prefLabel}:`;
 
   // 5 — cards of the preferred currency exist, but none is reachable for this profile.
   if (bestActionable === undefined) {
     if (bestGated === undefined) return null; // unreachable: `matching` is non-empty and all gated
-    return `Você marcou ${preferred}, mas as melhores opções de ${preferred} (${stackLabel(bestGated)}, ${formatAnnualBrl(bestGated.yearOneNetValueBrl)}) ${accessGateClause(bestGated)}; o recomendado, em ${recRedemption}, é o melhor retorno sem essa exigência.`;
+    return {
+      preferenceLabel: prefLabel,
+      recRedemption,
+      intro,
+      rows: [preferenceRow(bestGated, `${prefLabel} maior`, true), recommendedRow],
+    };
   }
 
   // 4 — a reachable card of the preferred currency ties or beats the recommendation (rare).
   if (bestActionable.yearOneNetValueBrl >= recNet) {
-    return `${lead}: o melhor cartão de ${preferred} acionável (${stackLabel(bestActionable)}, ${formatAnnualBrl(bestActionable.yearOneNetValueBrl)}) está nas Outras escolhas abaixo.`;
+    return {
+      preferenceLabel: prefLabel,
+      recRedemption,
+      intro,
+      rows: [preferenceRow(bestActionable, `melhor ${prefLabel} acionável`, false), recommendedRow],
+    };
   }
 
   // 3 — the reachable card is below the recommendation, but a higher one sits behind a gate.
   if (bestGated !== undefined && bestGated.yearOneNetValueBrl > bestActionable.yearOneNetValueBrl) {
-    return `${lead}: o melhor cartão de ${preferred} acionável (${stackLabel(bestActionable)}) renderia ${formatAnnualBrl(bestActionable.yearOneNetValueBrl)}; as opções acima disso (${stackLabel(bestGated)}, ${formatAnnualBrl(bestGated.yearOneNetValueBrl)}) ${accessGateClause(bestGated)}.`;
+    return {
+      preferenceLabel: prefLabel,
+      recRedemption,
+      intro,
+      rows: [
+        preferenceRow(bestActionable, `melhor ${prefLabel} acionável`, false),
+        preferenceRow(bestGated, `${prefLabel} maior`, true),
+        recommendedRow,
+      ],
+    };
   }
 
   // 2 — the reachable card is below the recommendation, with nothing better behind a gate.
-  return `${lead}: o melhor cartão de ${preferred} acionável (${stackLabel(bestActionable)}) renderia ${formatAnnualBrl(bestActionable.yearOneNetValueBrl)} — abaixo do recomendado.`;
+  return {
+    preferenceLabel: prefLabel,
+    recRedemption,
+    intro,
+    rows: [preferenceRow(bestActionable, `melhor ${prefLabel} acionável`, false), recommendedRow],
+  };
 };
 
 const displayStackFor = (recommendation: Recommendation): StackEvaluation =>
@@ -719,7 +787,11 @@ export const ResultsView = (): JSX.Element => {
   // Per-card compatibility % for the "Mais semelhantes" tab — the closest card is 100%.
   const compatById =
     activeTab?.id === "most-similar" ? mostSimilarCompat(activeTab.stacks, topStack) : null;
-  const divergenceNotice = preferenceDivergenceNotice(profile, displayRecommendation, threshold);
+  const divergenceComparison = preferenceDivergenceComparison(
+    profile,
+    displayRecommendation,
+    threshold,
+  );
   const _conditionalUpside = decisionTracks?.conditionalUpside;
   // const conditionalUpsideNotice =
   //   _conditionalUpside !== undefined && stackId(_conditionalUpside) !== stackId(topStack)
@@ -761,12 +833,9 @@ export const ResultsView = (): JSX.Element => {
     displayMoneyOnTheTableBrl !== undefined &&
     displayMoneyOnTheTableBrl > 0;
 
-  // The preference-divergence caveat lives inside the comparison table (as a diagnosis line) when
-  // there is one; only in solo mode does it surface as a hero note.
   const heroNotes = [
     noRecommendationNotice,
     // conditionalUpsideNotice,
-    hasCurrentComparison ? null : divergenceNotice,
     alternativeTabs.length < 2 ? alternativesHeroSentence(alternativeTabs, threshold) : null,
   ].filter((note): note is string => note !== null);
   const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
@@ -805,7 +874,9 @@ export const ResultsView = (): JSX.Element => {
             recommendedLabel={recommendedLabel}
             recommendedBenefits={recommendedBenefits ?? []}
             accessLabel={recommendedAccessLabel}
-            {...(divergenceNotice !== null ? { preferenceNotice: divergenceNotice } : {})}
+            {...(divergenceComparison !== null
+              ? { preferenceComparison: divergenceComparison }
+              : {})}
           />
         ) : (
           <section
@@ -878,6 +949,12 @@ export const ResultsView = (): JSX.Element => {
             </dl>
           </section>
         )}
+
+        {comparisonNarrative === null && divergenceComparison !== null ? (
+          <div className="border-line border-b py-8">
+            <PreferencePanel comparison={divergenceComparison} />
+          </div>
+        ) : null}
 
         {comparisonNarrative !== null && heroNotes.length > 0 ? (
           <section
