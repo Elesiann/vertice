@@ -49,6 +49,7 @@ export type LiquidityLevel = "high" | "medium" | "low";
 export interface CardOption {
   id: string;
   name: string;
+  imagePath?: string;
   bank: Bank;
   minInvestmentBrl?: number;
   minInvestmentUsd?: number;
@@ -81,6 +82,7 @@ export interface CardAllocation {
 export interface PublicStackCard {
   id: string;
   name: string;
+  imagePath?: string;
   bank: Bank;
   pointsProgram: ProgramId;
   requiresRelationship?: RelationshipLevel;
@@ -341,6 +343,7 @@ export interface PublicCardBenefit {
 export interface PublicCatalogCard {
   id: string;
   name: string;
+  imagePath?: string;
   bank: Bank;
   brand: CardBrand;
   tier: CardTier;

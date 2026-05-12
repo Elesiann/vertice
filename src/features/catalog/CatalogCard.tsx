@@ -14,7 +14,7 @@ import {
   Umbrella,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { CardArt } from "@/components/domain/CardArt";
+import { CardImage } from "@/components/domain/CardImage";
 import { VerifiedMark } from "@/components/domain/VerifiedMark";
 import { useSession } from "@/context/SessionContext";
 import { formatCashbackRate } from "@/lib/format";
@@ -149,7 +149,13 @@ export const CatalogCard = ({
       )}
     >
       <div className="relative">
-        <CardArt brand={card.brand} tier={card.tier} className="!w-full rounded-b-none border-0" />
+        <CardImage
+          imagePath={card.imagePath}
+          name={card.name}
+          brand={card.brand}
+          tier={card.tier}
+          className="!w-full rounded-b-none border-0"
+        />
         <button
           type="button"
           aria-pressed={inCompare}
