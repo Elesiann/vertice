@@ -648,12 +648,16 @@ describe("ResultsView", () => {
 
     const menorBarreiraTab = screen.getByRole("tab", { name: /Menor barreira/i });
     const tradicionalTab = screen.getByRole("tab", { name: /Tradicional/i });
-    const fintechTab = screen.getByRole("tab", { name: /Fintech/i });
     const maiorRetornoTab = screen.getByRole("tab", { name: /Maior retorno/i });
+    // "Fintech" was folded away — it almost always duplicated "Maior retorno".
+    expect(screen.queryByRole("tab", { name: /Fintech/i })).not.toBeInTheDocument();
 
     expect(menorBarreiraTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("link", { name: "Open Cashback Card" })).toBeInTheDocument();
     expect(screen.queryByText(/Institucional/i)).not.toBeInTheDocument();
+    // The recommended card is pinned as the ladder's anchor row.
+    expect(screen.getByText(/recomendado · maior líquido sem barreira/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /lista completa/i })).toBeInTheDocument();
 
     await userEvent.click(tradicionalTab);
     expect(tradicionalTab).toHaveAttribute("aria-selected", "true");
@@ -665,17 +669,14 @@ describe("ResultsView", () => {
       screen.queryByRole("link", { name: "Amazon.com.br Mastercard Platinum" }),
     ).not.toBeInTheDocument();
 
-    await userEvent.click(fintechTab);
-    expect(fintechTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("link", { name: "Nubank Ultravioleta" })).toBeInTheDocument();
-    // Cobranded cai aqui
+    await userEvent.click(maiorRetornoTab);
+    expect(maiorRetornoTab).toHaveAttribute("aria-selected", "true");
+    // Net Leader outranks the recommended (higher net value, gated): it sits above the anchor.
+    expect(screen.getByRole("link", { name: "Net Leader Card" })).toBeInTheDocument();
+    // Cobranded falls into the unfiltered ladder.
     expect(
       screen.getByRole("link", { name: "Amazon.com.br Mastercard Platinum" }),
     ).toBeInTheDocument();
-
-    await userEvent.click(maiorRetornoTab);
-    expect(maiorRetornoTab).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("link", { name: "Net Leader Card" })).toBeInTheDocument();
   });
 
   // Gated cashback stack — an investment minimum the test profile can't meet.
