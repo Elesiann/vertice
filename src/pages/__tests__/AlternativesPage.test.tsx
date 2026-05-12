@@ -88,7 +88,6 @@ describe("AlternativesPage", () => {
     expect(screen.getByText(/recomendado · maior líquido sem barreira/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Recommended Card" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Second Card" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Todos/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Voltar para a recomendação/i })).toBeInTheDocument();
   });
 });

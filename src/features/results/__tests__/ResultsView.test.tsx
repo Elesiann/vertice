@@ -647,10 +647,10 @@ describe("ResultsView", () => {
     expect(await screen.findByRole("heading", { name: /Outras escolhas/i })).toBeInTheDocument();
 
     const menorBarreiraTab = screen.getByRole("tab", { name: /Menor barreira/i });
-    const tradicionalTab = screen.getByRole("tab", { name: /Tradicional/i });
     const maiorRetornoTab = screen.getByRole("tab", { name: /Maior retorno/i });
-    // "Fintech" was folded away — it almost always duplicated "Maior retorno".
+    // "Fintech" and "Tradicional" were folded away — they nearly always duplicated "Maior retorno".
     expect(screen.queryByRole("tab", { name: /Fintech/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: /Tradicional/i })).not.toBeInTheDocument();
 
     expect(menorBarreiraTab).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("link", { name: "Open Cashback Card" })).toBeInTheDocument();
@@ -658,16 +658,6 @@ describe("ResultsView", () => {
     // The recommended card is pinned as the ladder's anchor row.
     expect(screen.getByText(/recomendado · maior líquido sem barreira/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /lista completa/i })).toBeInTheDocument();
-
-    await userEvent.click(tradicionalTab);
-    expect(tradicionalTab).toHaveAttribute("aria-selected", "true");
-    expect(
-      screen.getByRole("link", { name: "Itaú Personnalité Visa Infinite" }),
-    ).toBeInTheDocument();
-    // Cobranded com nome "Amazon" não é tradicional mesmo emitido por Bradesco
-    expect(
-      screen.queryByRole("link", { name: "Amazon.com.br Mastercard Platinum" }),
-    ).not.toBeInTheDocument();
 
     await userEvent.click(maiorRetornoTab);
     expect(maiorRetornoTab).toHaveAttribute("aria-selected", "true");

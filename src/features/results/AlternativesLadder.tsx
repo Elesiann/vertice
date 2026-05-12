@@ -32,7 +32,7 @@ const CardRow = ({
   const valueTone = above ? "text-warning" : "text-ink";
   const barrier = stackAccessBarrierLabel(stack);
   return (
-    <li className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 py-3.5">
+    <li className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 px-3 py-3.5">
       <span className="font-semibold">
         <StackLabelLink
           stack={stack}
@@ -81,7 +81,7 @@ export const AlternativesLadder = ({
       switch (row.kind) {
         case "above-summary":
           return (
-            <li key="above-summary" className="text-ink-subtle py-3.5 text-xs leading-relaxed">
+            <li key="above-summary" className="text-ink-subtle px-3 py-3.5 text-xs leading-relaxed">
               {row.count} {row.count === 1 ? "cartão rende" : "cartões rendem"} mais, mas{" "}
               {row.count === 1 ? "exige" : "exigem"} investimento alto ou private banking.
             </li>
@@ -113,7 +113,7 @@ export const AlternativesLadder = ({
           );
         case "gap":
           return (
-            <li key="gap" className="text-ink-subtle py-3 text-xs leading-relaxed">
+            <li key="gap" className="text-ink-subtle px-3 py-3 text-xs leading-relaxed">
               {row.count} {row.count === 1 ? "cartão" : "cartões"} — abaixo do recomendado
               {currentLabel !== null ? `, acima do seu ${currentLabel}` : ""}.{" "}
               <Link to={fullListHref} className="plain-link">
@@ -153,7 +153,7 @@ export const AlternativesLadder = ({
           return <CardRow key={stackId(row.stack)} stack={row.stack} deltaBrl={row.deltaBrl} />;
       }
     })}
-    <li className="pt-3.5">
+    <li className="px-3 pt-3.5">
       <Link to={fullListHref} className="plain-link">
         ver lista completa →
       </Link>

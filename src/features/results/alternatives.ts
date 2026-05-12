@@ -355,14 +355,6 @@ export const TAB_DESCRIPTIONS: Record<AlternativeTabId, string> = {
   "most-similar": "Cartões com o perfil de uso mais parecido com o recomendado.",
 };
 
-const withinThreshold = (
-  topStack: StackEvaluation,
-  candidate: StackEvaluation | undefined,
-  threshold: number,
-): candidate is StackEvaluation =>
-  candidate !== undefined &&
-  topStack.yearOneNetValueBrl - candidate.yearOneNetValueBrl <= threshold;
-
 export const returnGapSentence = (topStack: StackEvaluation, stack: StackEvaluation): string => {
   const delta = stack.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
   if (Math.abs(delta) < 0.01) return "Mesmo retorno líquido anual do recomendado.";
@@ -386,10 +378,7 @@ export const mostSimilarCompat = (
 
 export const buildAlternativeTabs = (recommendation: Recommendation): AlternativeTab[] => {
   const topStack = recommendation.topStack;
-  const threshold = comparisonThreshold(topStack);
   const pool = uniqueCandidatePool(recommendation);
-
-  const eligible = pool.filter((stack) => withinThreshold(topStack, stack, threshold));
 
   const dedupe = (stacks: StackEvaluation[]): StackEvaluation[] => {
     const seen = new Set<string>();
@@ -403,15 +392,18 @@ export const buildAlternativeTabs = (recommendation: Recommendation): Alternativ
     return result;
   };
 
-  const take = (stacks: StackEvaluation[]): StackEvaluation[] =>
-    dedupe(stacks).sort(compareCandidate).slice(0, ALTERNATIVES_PER_TAB);
+  // The ladder tabs feed `buildAlternativeLadder`, which does its own windowing — so they carry the
+  // *full* (deduped, ranked) candidate set, not a pre-sliced top-N. Slicing here is what made
+  // "Maior retorno" collapse to just the anchors when the top-N happened to be all gated-above cards.
+  const ranked = (stacks: StackEvaluation[]): StackEvaluation[] =>
+    dedupe(stacks).sort(compareCandidate);
 
   const recBarrier = stackAccessBarrierBrl(topStack);
   const lowerBarrier = (stack: StackEvaluation): boolean =>
     recBarrier === 0 ? hasNoInvestmentBarrier(stack) : stackAccessBarrierBrl(stack) <= recBarrier;
 
-  // "Mais semelhantes" ranks the full pool by score proximity — deliberately NOT threshold-gated
-  // like the other tabs (it's a usage-fit lens, not a return lens). Cards without a score drop out.
+  // "Mais semelhantes" ranks the full pool by score proximity — it's a usage-fit lens, not a return
+  // lens — and stays a flat top-N list. Cards without a score drop out.
   // Not hoisting decisionTracks.closestActionableSubstitute: it would break the "#1 = closest = 100%" framing.
   const topScore = topStack.scoreLab?.score;
   const mostSimilarStacks =
@@ -431,7 +423,7 @@ export const buildAlternativeTabs = (recommendation: Recommendation): Alternativ
     {
       id: "lowest-barrier",
       label: "Menor barreira",
-      stacks: take(eligible.filter(lowerBarrier)),
+      stacks: ranked(pool.filter(lowerBarrier)),
     },
     {
       id: "most-similar",
@@ -439,14 +431,9 @@ export const buildAlternativeTabs = (recommendation: Recommendation): Alternativ
       stacks: mostSimilarStacks,
     },
     {
-      id: "traditional",
-      label: "Tradicional",
-      stacks: take(eligible.filter(stackIsTraditional)),
-    },
-    {
       id: "highest-return",
       label: "Maior retorno",
-      stacks: take(eligible),
+      stacks: ranked(pool),
     },
   ];
 

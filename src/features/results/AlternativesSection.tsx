@@ -88,7 +88,7 @@ export const AlternativesSection = ({
           {activeTab.stacks.map((s) => (
             <li
               key={stackId(s)}
-              className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 py-3.5"
+              className="grid grid-cols-[1fr_auto] items-baseline gap-x-6 gap-y-1.5 px-3 py-3.5"
             >
               <span className="font-semibold">
                 <StackLabelLink
@@ -105,7 +105,7 @@ export const AlternativesSection = ({
               </p>
             </li>
           ))}
-          <li className="pt-3.5">
+          <li className="px-3 pt-3.5">
             <Link to={fullListHref} className="plain-link">
               ver lista completa →
             </Link>
