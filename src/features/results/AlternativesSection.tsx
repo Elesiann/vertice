@@ -67,9 +67,6 @@ export const AlternativesSection = ({
               )}
             >
               {tab.label}
-              <span className="tabular text-ink-subtle ml-2 text-xs font-normal">
-                {tab.stacks.length}
-              </span>
             </button>
           );
         })}

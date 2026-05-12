@@ -470,7 +470,7 @@ export const alternativesHeroSentence = (tabs: AlternativeTab[], threshold: numb
 // Anchored ladder model for "Outras escolhas".
 // ---------------------------------------------------------------------------
 
-export const GAP_COLLAPSE_MIN = 5;
+export const GAP_COLLAPSE_MIN = 2;
 export const LADDER_BELOW_RECOMMENDED = 3;
 
 export type LadderRow =
