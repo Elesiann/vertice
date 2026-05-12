@@ -137,7 +137,10 @@ const AlternativesPageInner = (): JSX.Element => {
         <p className="text-ink-subtle mt-3 text-xs leading-relaxed">{TAB_DESCRIPTIONS[filterId]}</p>
 
         <ol className="divide-line mt-3 divide-y text-sm">
-          {visible.map((row) => {
+          {visible.map((row, i) => {
+            // Number by position in the *visible* list — a filter prunes rows, so the global rank
+            // would read as gappy ("3, 6, 11…") and look like the list is missing entries.
+            const position = i + 1;
             const barrier = stackAccessBarrierLabel(row.stack);
             const rowBg = row.isRecommended
               ? RECOMMENDED_ROW_BG
@@ -165,7 +168,7 @@ const AlternativesPageInner = (): JSX.Element => {
                   rowBg !== "" && `${rowBg} rounded-sm`,
                 )}
               >
-                <span className="text-ink-subtle tabular text-xs">{row.rank}</span>
+                <span className="text-ink-subtle tabular text-xs">{position}</span>
                 <span className="font-semibold">
                   {row.isRecommended ? <span aria-hidden>★ </span> : null}
                   <StackLabelLink
