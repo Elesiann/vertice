@@ -88,13 +88,6 @@ export const AlternativesLadder = ({
   >
     {rows.map((row) => {
       switch (row.kind) {
-        case "above-summary":
-          return (
-            <li key="above-summary" className="text-ink-subtle px-3 py-3.5 text-xs leading-relaxed">
-              {row.count} {row.count === 1 ? "cartão rende" : "cartões rendem"} mais, mas{" "}
-              {row.count === 1 ? "exige" : "exigem"} investimento alto ou private banking.
-            </li>
-          );
         case "recommended":
           return (
             <li

@@ -342,7 +342,8 @@ export const isAccessibleForProfile = (
 };
 
 export const TAB_DESCRIPTIONS: Record<AlternativeTabId, string> = {
-  "highest-return": "Maior retorno líquido modelado — mesmo com barreiras adicionais.",
+  "highest-return":
+    "Maior retorno líquido modelado. Alguns cartões rendem mais, mas exigem investimento maior ou isenção condicionada ao seu gasto.",
   "lowest-barrier":
     "Cartões ao seu alcance — sem exigência de acesso, ou dentro do que você informou que tem para investir.",
 };
@@ -432,7 +433,6 @@ export const LADDER_WINDOW_AROUND_CURRENT = 2;
 
 export type LadderRow =
   | { kind: "card"; stack: StackEvaluation; deltaBrl: number }
-  | { kind: "above-summary"; count: number }
   | { kind: "recommended"; stack: StackEvaluation }
   | { kind: "current"; stack: StackEvaluation; deltaBrl: number }
   | { kind: "gap"; count: number };
@@ -475,12 +475,9 @@ export const buildAlternativeLadder = ({
 
   // Estado B: the anchor is the user's current card. Show a tight symmetric window — a couple of
   // higher-net cards (gated; they'd need more invested), the anchor, a couple of lower-net cards.
-  // Anything further up is folded into the above-summary; the rest is one tap away on the full list.
+  // Anything further up is left for the full list; the section blurb already frames the trade-off.
   if (anchoredOnCurrentCard) {
-    const aboveAnchor = ranked.slice(0, recIdx);
-    const shownAbove = aboveAnchor.slice(-LADDER_WINDOW_AROUND_CURRENT);
-    const hiddenAbove = aboveAnchor.length - shownAbove.length;
-    if (hiddenAbove > 0) rows.push({ kind: "above-summary", count: hiddenAbove });
+    const shownAbove = ranked.slice(0, recIdx).slice(-LADDER_WINDOW_AROUND_CURRENT);
     for (const s of shownAbove) rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
     rows.push({ kind: "recommended", stack: topStack });
     for (const s of ranked.slice(recIdx + 1, recIdx + 1 + LADDER_WINDOW_AROUND_CURRENT)) {
@@ -489,13 +486,12 @@ export const buildAlternativeLadder = ({
     return rows;
   }
 
-  // 2. Above the recommended (higher net value — typically gated). First as a row, rest as a summary.
+  // 2. Above the recommended (higher net value — typically gated). A lone one is worth a row; when
+  // there are several, the section blurb covers them and they stay on the full list.
   const above = ranked.slice(0, recIdx);
   const firstAbove = above[0];
   if (above.length === 1 && firstAbove !== undefined) {
     rows.push({ kind: "card", stack: firstAbove, deltaBrl: deltaVsRec(firstAbove) });
-  } else if (above.length > 1) {
-    rows.push({ kind: "above-summary", count: above.length });
   }
 
   // 3. The recommended.

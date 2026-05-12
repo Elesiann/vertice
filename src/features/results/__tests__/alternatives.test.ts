@@ -56,7 +56,7 @@ describe("buildAlternativeLadder", () => {
     ]);
   });
 
-  it("collapses 2+ gated-above cards into an above-summary row", () => {
+  it("drops 2+ gated-above cards from the ladder (the section blurb covers them)", () => {
     const pool = [
       makeStack({ id: "h1", netReturnBrl: 3600, requiredInvestmentBrl: 50000 }),
       makeStack({ id: "h2", netReturnBrl: 3200, requiredInvestmentBrl: 80000 }),
@@ -68,8 +68,8 @@ describe("buildAlternativeLadder", () => {
       gapCollapseMin: 5,
       belowRecommendedCount: 3,
     });
-    expect(rows[0]).toMatchObject({ kind: "above-summary", count: 2 });
-    expect(rows[1]).toMatchObject({ kind: "recommended" });
+    expect(rows[0]).toMatchObject({ kind: "recommended" });
+    expect(rows.map((r) => r.kind)).toEqual(["recommended", "card"]); // only "a", below
   });
 
   it("with a far current card: double window with a gap row carrying the hidden count", () => {
@@ -138,7 +138,7 @@ describe("buildAlternativeLadder", () => {
     ]);
   });
 
-  it("anchoredOnCurrentCard: symmetric window — summary + 2 above, anchor, 2 below", () => {
+  it("anchoredOnCurrentCard: symmetric window — 2 above, anchor, 2 below", () => {
     const pool = [
       makeStack({ id: "u1", netReturnBrl: 4000, requiredInvestmentBrl: 100000 }),
       makeStack({ id: "u2", netReturnBrl: 3500, requiredInvestmentBrl: 50000 }),
@@ -155,15 +155,17 @@ describe("buildAlternativeLadder", () => {
       belowRecommendedCount: 3,
       anchoredOnCurrentCard: true,
     });
+    // u1 (further up) is left for the full list; the window shows the two closest on each side.
     expect(rows.map((r) => r.kind)).toEqual([
-      "above-summary", // u1 hidden (1 above the shown window)
       "card", // u2
       "card", // u3
       "recommended", // the current card
       "card", // below1
       "card", // below2
     ]);
-    expect(rows[0]).toMatchObject({ kind: "above-summary", count: 1 });
+    const cards = rows.filter((r) => r.kind === "card");
+    expect(cards[0]).toMatchObject({ kind: "card" });
+    if (cards[0]?.kind === "card") expect(cards[0].stack.yearOneNetValueBrl).toBe(3500);
   });
 
   it("dedupes by stackId and never duplicates the recommended into a pool row", () => {
