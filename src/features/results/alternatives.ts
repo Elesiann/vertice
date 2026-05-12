@@ -427,6 +427,8 @@ export const alternativesHeroSentence = (tabs: AlternativeTab[], threshold: numb
 
 export const GAP_COLLAPSE_MIN = 2;
 export const LADDER_BELOW_RECOMMENDED = 3;
+// Estado B: how many cards to show on each side of the current-card anchor.
+export const LADDER_WINDOW_AROUND_CURRENT = 2;
 
 export type LadderRow =
   | { kind: "card"; stack: StackEvaluation; deltaBrl: number }
@@ -441,6 +443,7 @@ interface BuildLadderArgs {
   currentStack?: StackEvaluation | undefined;
   gapCollapseMin: number; // below this many hidden cards, render contiguously (no gap row)
   belowRecommendedCount: number; // how many "best alternative" rows directly under the recommended
+  anchoredOnCurrentCard?: boolean; // Estado B: the anchor IS the current card — show a symmetric window
 }
 
 export const buildAlternativeLadder = ({
@@ -449,6 +452,7 @@ export const buildAlternativeLadder = ({
   currentStack,
   gapCollapseMin,
   belowRecommendedCount,
+  anchoredOnCurrentCard = false,
 }: BuildLadderArgs): LadderRow[] => {
   // 1. Full ranked list, deduped by stackId, with the recommended and (if any) current card.
   const ranked: StackEvaluation[] = [];
@@ -468,6 +472,22 @@ export const buildAlternativeLadder = ({
     s.yearOneNetValueBrl - topStack.yearOneNetValueBrl;
 
   const rows: LadderRow[] = [];
+
+  // Estado B: the anchor is the user's current card. Show a tight symmetric window — a couple of
+  // higher-net cards (gated; they'd need more invested), the anchor, a couple of lower-net cards.
+  // Anything further up is folded into the above-summary; the rest is one tap away on the full list.
+  if (anchoredOnCurrentCard) {
+    const aboveAnchor = ranked.slice(0, recIdx);
+    const shownAbove = aboveAnchor.slice(-LADDER_WINDOW_AROUND_CURRENT);
+    const hiddenAbove = aboveAnchor.length - shownAbove.length;
+    if (hiddenAbove > 0) rows.push({ kind: "above-summary", count: hiddenAbove });
+    for (const s of shownAbove) rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
+    rows.push({ kind: "recommended", stack: topStack });
+    for (const s of ranked.slice(recIdx + 1, recIdx + 1 + LADDER_WINDOW_AROUND_CURRENT)) {
+      rows.push({ kind: "card", stack: s, deltaBrl: deltaVsRec(s) });
+    }
+    return rows;
+  }
 
   // 2. Above the recommended (higher net value — typically gated). First as a row, rest as a summary.
   const above = ranked.slice(0, recIdx);

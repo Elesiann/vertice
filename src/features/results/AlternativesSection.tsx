@@ -77,6 +77,7 @@ export const AlternativesSection = ({
           currentStack,
           gapCollapseMin: GAP_COLLAPSE_MIN,
           belowRecommendedCount: LADDER_BELOW_RECOMMENDED,
+          anchoredOnCurrentCard,
         })}
         currentLabel={currentLabel}
         anchoredOnCurrentCard={anchoredOnCurrentCard}

@@ -138,6 +138,34 @@ describe("buildAlternativeLadder", () => {
     ]);
   });
 
+  it("anchoredOnCurrentCard: symmetric window — summary + 2 above, anchor, 2 below", () => {
+    const pool = [
+      makeStack({ id: "u1", netReturnBrl: 4000, requiredInvestmentBrl: 100000 }),
+      makeStack({ id: "u2", netReturnBrl: 3500, requiredInvestmentBrl: 50000 }),
+      makeStack({ id: "u3", netReturnBrl: 3000, requiredInvestmentBrl: 30000 }),
+      makeStack({ id: "below1", netReturnBrl: 2700 }),
+      makeStack({ id: "below2", netReturnBrl: 2500 }),
+      makeStack({ id: "below3", netReturnBrl: 2200 }),
+    ];
+    // The current card is the anchor (passed as topStack); no separate currentStack in Estado B.
+    const rows = buildAlternativeLadder({
+      pool,
+      topStack: rec, // net 2848 — sits below u1/u2/u3, above the "below*" cards
+      gapCollapseMin: 5,
+      belowRecommendedCount: 3,
+      anchoredOnCurrentCard: true,
+    });
+    expect(rows.map((r) => r.kind)).toEqual([
+      "above-summary", // u1 hidden (1 above the shown window)
+      "card", // u2
+      "card", // u3
+      "recommended", // the current card
+      "card", // below1
+      "card", // below2
+    ]);
+    expect(rows[0]).toMatchObject({ kind: "above-summary", count: 1 });
+  });
+
   it("dedupes by stackId and never duplicates the recommended into a pool row", () => {
     const dup = makeStack({ id: "rec", netReturnBrl: 2848 }); // same stackId as rec
     const rows = buildAlternativeLadder({
