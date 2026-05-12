@@ -3,14 +3,13 @@ import { Link } from "react-router-dom";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { Disclosure } from "@/components/ui/Disclosure";
 import { Panel } from "@/components/ui/Panel";
 import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
 import { useStackBenefits } from "@/hooks/useStackBenefits";
 import { buildErrorReportUrl } from "@/lib/feedback";
-import { formatBrl, formatPoints, formatRoiMultiple } from "@/lib/format";
+import { formatBrl, formatPoints } from "@/lib/format";
 import { formatPointsProgram } from "@/lib/labels";
 import { whyWonSentences } from "@/lib/why-won";
 import { CurrentVsRecommended } from "@/features/results/CurrentVsRecommended";
@@ -34,25 +33,17 @@ import {
   preferenceLabel,
   primaryProgram,
   programRedemptionLabel,
-  returnGapSentence,
   stackAccessBarrierLabel,
   stackAccessBarrierPhrase,
-  stackAccessibilitySummary,
   stackId,
-  stackInvestmentRequirementLabel,
   stackLabel,
   stackMatchesPreference,
 } from "@/features/results/alternatives";
 import { AlternativesSection } from "@/features/results/AlternativesSection";
+import { CalculationBreakdown } from "@/features/results/CalculationBreakdown";
 import { HeroDetailLinks } from "@/features/results/HeroDetailLinks";
 import { StackLabelLink } from "@/features/results/StackLabelLink";
 import type { Recommendation, SpendingProfile, StackEvaluation } from "@/types";
-
-const LIQUIDITY_LABEL: Record<"high" | "medium" | "low", string> = {
-  high: "Alta",
-  medium: "Média",
-  low: "Baixa",
-};
 
 const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral" | "warning"> = {
   strong: "accent",
@@ -272,7 +263,6 @@ export const ResultsView = (): JSX.Element => {
     if (requirement.kind === "investment-fee-waiver") return "investment";
     return undefined;
   })();
-  const accessibilitySummary = stackAccessibilitySummary(profile, topStack);
   const recommendedAccessLabel = stackAccessBarrierLabel(topStack) ?? "sem exigência financeira";
   const threshold = comparisonThreshold(topStack);
   const alternativeTabs = buildAlternativeTabs(displayRecommendation, profile);
@@ -528,15 +518,6 @@ export const ResultsView = (): JSX.Element => {
           </section>
         ) : null}
 
-        {!hasCurrentComparison ? (
-          <section className="border-line border-b py-8" aria-label="Acesso">
-            <p className="text-ink-muted text-sm leading-relaxed">
-              <span className="text-caption text-ink-subtle mb-1 block">Acesso</span>
-              {accessibilitySummary}
-            </p>
-          </section>
-        ) : null}
-
         <AlternativesSection
           tabs={alternativeTabs}
           topStack={topStack}
@@ -545,83 +526,12 @@ export const ResultsView = (): JSX.Element => {
           fullListHref={ROUTES.ALTERNATIVES}
         />
 
-        <section className="mt-8" aria-label="Cálculo completo">
-          <Disclosure summary="Ver cálculo completo">
-            <div className="border-line/50 space-y-8 border-t px-4 py-6 sm:px-6">
-              {scoreLab ? (
-                <div>
-                  <h3 className="text-subheading text-ink">Score-lab</h3>
-                  <p className="text-ink-muted mt-2 text-sm leading-relaxed">
-                    Cálculo determinístico com câmbio do dia{" "}
-                    <span className="text-num text-ink font-semibold">
-                      {scoreLabMeta ? formatBrl(scoreLabMeta.ptaxRate) : "atual"}
-                    </span>{" "}
-                    por US$ 1.
-                  </p>
-                  <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3 lg:grid-cols-4">
-                    {scoreLab.breakEvenMonthlySpendBrl !== null ? (
-                      <Stat
-                        block
-                        label="Stack se paga a partir de"
-                        value={`${formatBrl(scoreLab.breakEvenMonthlySpendBrl)}/mês`}
-                        labelClassName="text-ink-subtle"
-                      />
-                    ) : null}
-                    {scoreLab.roiMultiple !== null ? (
-                      <Stat
-                        block
-                        label="Retorno por real de anuidade"
-                        value={formatRoiMultiple(scoreLab.roiMultiple)}
-                        labelClassName="text-ink-subtle"
-                      />
-                    ) : null}
-                    <Stat
-                      block
-                      label="Retorno bruto"
-                      value={formatBrl(scoreLab.modeledAnnual.grossValueBrl)}
-                      labelClassName="text-ink-subtle"
-                    />
-                    <Stat
-                      block
-                      label="Liquidez"
-                      value={LIQUIDITY_LABEL[topStack.liquidity]}
-                      labelClassName="text-ink-subtle"
-                    />
-                    <Stat
-                      block
-                      label="Condição financeira"
-                      value={stackInvestmentRequirementLabel(topStack)}
-                      labelClassName="text-ink-subtle"
-                    />
-                  </dl>
-                </div>
-              ) : null}
-
-              {scoreLabMeta?.netReturnLeaderDiffers ? (
-                <p className="border-line-strong text-ink-muted border-l-2 py-1 pl-3 text-sm leading-relaxed">
-                  Maior retorno líquido isolado:{" "}
-                  <span className="text-ink font-semibold">
-                    {stackLabel(scoreLabMeta.netReturnLeader)}
-                  </span>{" "}
-                  ({formatBrl(scoreLabMeta.netReturnLeader.yearOneNetValueBrl)}). O recomendado
-                  pondera retorno, condições de acesso, custo, objetivo e distribuição do gasto.
-                </p>
-              ) : null}
-
-              {scoreLabMeta?.institutionalAlternative ? (
-                <p className="border-line-strong text-ink-muted border-l-2 py-1 pl-3 text-sm leading-relaxed">
-                  Alternativa institucional próxima:{" "}
-                  <span className="text-ink font-semibold">
-                    {stackLabel(scoreLabMeta.institutionalAlternative.stack)}
-                  </span>
-                  . Entrega{" "}
-                  {formatAnnualBrl(scoreLabMeta.institutionalAlternative.stack.yearOneNetValueBrl)}.{" "}
-                  {returnGapSentence(topStack, scoreLabMeta.institutionalAlternative.stack)}
-                </p>
-              ) : null}
-            </div>
-          </Disclosure>
-        </section>
+        <CalculationBreakdown
+          stack={topStack}
+          profile={profile}
+          ptaxRate={scoreLabMeta?.ptaxRate}
+          ptaxAsOf={scoreLabMeta?.ptaxFetchedAt}
+        />
 
         <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
           <Link to={ROUTES.INPUT} className="plain-link">

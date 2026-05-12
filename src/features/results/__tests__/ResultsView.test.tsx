@@ -272,7 +272,8 @@ describe("ResultsView", () => {
     expect(
       screen.getByText(/Vence porque rende R\$ 1\.200,00\/ano em pontos/i),
     ).toBeInTheDocument();
-    expect(screen.getByText(/Ver cálculo completo/i)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: /Como chegamos ao líquido/i })).toBeInTheDocument();
+    expect(screen.getByText(/Líquido em 12 meses/i)).toBeInTheDocument();
     expect(screen.getByTestId("travel-hero-teaser")).toBeInTheDocument();
     expect(screen.queryByText(/Trade-offs por eixo/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Outras opções no eixo/i)).not.toBeInTheDocument();
@@ -600,13 +601,6 @@ describe("ResultsView", () => {
     // sobre "Anuidade isenta" (a anuidade já está zerada no cenário modelado).
     expect(screen.queryByText(/Anuidade isenta/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Sem exigência financeira de acesso/i)).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText(/Ver cálculo completo/i));
-    const investmentTerm = await screen.findByText(/Condição financeira/i);
-    const investmentRow = investmentTerm.closest("div");
-    expect(investmentRow).toBeInTheDocument();
-    expect(investmentRow).toHaveTextContent(/isenção/);
-    expect(investmentRow).toHaveTextContent(/50\.000,00/);
   });
 
   it("calls out anuidade waiver only when the modeled annual fee is non-zero", async () => {
