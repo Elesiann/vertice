@@ -311,7 +311,11 @@ export const ResultsView = (): JSX.Element => {
   ].filter((note): note is string => note !== null);
   const travelTranslationMatchesTopStack = stackId(topStack) === stackId(recommendation.topStack);
   const showTravelTranslation =
-    travelTranslationMatchesTopStack && recommendation.travelTranslation.program !== "cashback";
+    travelTranslationMatchesTopStack && recommendation.travelTranslation.kind !== "cashback";
+  const heroRedemption =
+    travelTranslationMatchesTopStack && recommendation.travelTranslation.kind === "redemption"
+      ? recommendation.travelTranslation
+      : null;
 
   const comparisonNarrative =
     hasCurrentComparison && recommendation.currentStack !== undefined
@@ -341,6 +345,13 @@ export const ResultsView = (): JSX.Element => {
             </p>
           ) : null}
           <HeroDetailLinks stack={topStack} />
+          {heroRedemption !== null ? (
+            <p className="text-ink-muted mt-3 text-sm" data-testid="travel-hero-teaser">
+              Os pontos de um ano equivalem a{" "}
+              {heroRedemption.trips === 1 ? "uma passagem" : <>{heroRedemption.trips} passagens</>}{" "}
+              {heroRedemption.fromLabel} → {heroRedemption.toLabel}.
+            </p>
+          ) : null}
         </header>
 
         {comparisonNarrative !== null ? (

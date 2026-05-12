@@ -217,14 +217,25 @@ export interface ScoreLabStack {
   roiMultiple: number | null;
 }
 
-export interface TravelTranslation {
-  program: ProgramId;
-  flight: string;
-  pointsRequired: number;
-  compatiblePoints: number;
-  trips: number;
-  remainingPoints: number;
-}
+export type TravelTranslation =
+  | { kind: "cashback"; valueBrl: number }
+  | { kind: "value"; program: ProgramId; compatiblePoints: number; valueBrl: number }
+  | {
+      kind: "redemption";
+      from: string;
+      fromLabel: string;
+      to: string;
+      toLabel: string;
+      region: "domestic" | "international";
+      cabin: "economy" | "premium-economy" | "business";
+      roundTrip: boolean;
+      programId: ProgramId;
+      viaProgram?: ProgramId;
+      pointsCost: number;
+      compatiblePoints: number;
+      trips: number;
+      remainingPoints: number;
+    };
 
 export type LeaderboardAxisId =
   | "net-return"

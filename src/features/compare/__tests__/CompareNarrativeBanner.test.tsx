@@ -65,14 +65,7 @@ const stubFetch = (byCardId: Record<string, number>): void => {
     alternatives: [],
     leaderboardsByAxis: [],
     isReturnDecisionTight: false,
-    travelTranslation: {
-      program: "cashback",
-      flight: "n/a",
-      pointsRequired: 0,
-      compatiblePoints: 0,
-      trips: 0,
-      remainingPoints: 0,
-    },
+    travelTranslation: { kind: "cashback", valueBrl: 0 },
     shoutout: "",
     scoreLab: {
       scenarioId: "test",

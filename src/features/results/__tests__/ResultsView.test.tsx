@@ -182,9 +182,16 @@ const recommendationFixture: Recommendation = {
   ],
   isReturnDecisionTight: false,
   travelTranslation: {
-    program: "tudoazul",
-    flight: "GRU-FOR economy via TudoAzul",
-    pointsRequired: 14000,
+    kind: "redemption",
+    from: "GRU",
+    fromLabel: "São Paulo",
+    to: "FOR",
+    toLabel: "Fortaleza",
+    region: "domestic",
+    cabin: "economy",
+    roundTrip: true,
+    programId: "tudoazul",
+    pointsCost: 14000,
     compatiblePoints: 37200,
     trips: 2,
     remainingPoints: 9200,
@@ -835,11 +842,7 @@ describe("ResultsView", () => {
   it("hides the travel translation section for cashback recommendations", async () => {
     mockRecommendation({
       ...recommendationFixture,
-      travelTranslation: {
-        ...recommendationFixture.travelTranslation,
-        program: "cashback",
-        compatiblePoints: 756,
-      },
+      travelTranslation: { kind: "cashback", valueBrl: 756 },
     });
 
     renderResults({
@@ -851,6 +854,36 @@ describe("ResultsView", () => {
     await screen.findByRole("heading", { level: 1 });
     expect(screen.queryByRole("region", { name: /Tradução em viagens/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Isso vira/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("travel-hero-teaser")).not.toBeInTheDocument();
+  });
+
+  it("shows a hero teaser for a redemption travel translation", async () => {
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "miles", program: "smiles" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    const teaser = screen.getByTestId("travel-hero-teaser");
+    expect(teaser).toHaveTextContent(/2 passagens/i);
+    expect(teaser).toHaveTextContent(/Fortaleza/);
+  });
+
+  it("shows no hero teaser for a value travel translation", async () => {
+    mockRecommendation({
+      ...recommendationFixture,
+      travelTranslation: { kind: "value", program: "smiles", compatiblePoints: 100, valueBrl: 2.5 },
+    });
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "miles", program: "smiles" },
+    });
+
+    await screen.findByRole("heading", { level: 1 });
+    expect(screen.queryByTestId("travel-hero-teaser")).not.toBeInTheDocument();
   });
 
   it("renders an error state when the solver rejects the profile", async () => {
