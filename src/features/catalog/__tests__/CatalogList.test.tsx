@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { CatalogList } from "@/features/catalog/CatalogList";
@@ -44,6 +44,17 @@ const emptyResponse: CardCatalogResponse = {
   catalogVersion: "test",
   count: 0,
   filters: {},
+};
+
+const deferred = <T,>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+} => {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
 };
 
 const renderList = (
@@ -132,6 +143,65 @@ describe("CatalogList search", () => {
     expect(await screen.findByText("Itaú Platinum")).toBeInTheDocument();
     expect(screen.queryByText("Itaú Gold")).not.toBeInTheDocument();
     expect(screen.queryByText("Outro Platinum")).not.toBeInTheDocument();
+  });
+});
+
+describe("CatalogList refresh", () => {
+  beforeEach(() => {
+    fetchCardCatalog.mockReset();
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  it("keeps the current result visible while refreshed filters are loading", async () => {
+    const firstFetch = deferred<CardCatalogResponse>();
+    const secondFetch = deferred<CardCatalogResponse>();
+    fetchCardCatalog
+      .mockImplementationOnce(() => firstFetch.promise)
+      .mockImplementationOnce(() => secondFetch.promise);
+
+    const view = render(
+      <MemoryRouter>
+        <SessionProvider>
+          <CatalogList filters={{}} />
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+      firstFetch.resolve(response([makeCard("a", "Cartão Atual")]));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Cartão Atual")).toBeInTheDocument();
+
+    view.rerender(
+      <MemoryRouter>
+        <SessionProvider>
+          <CatalogList filters={{ hasLounge: true }} />
+        </SessionProvider>
+      </MemoryRouter>,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByLabelText("Carregando cartões")).not.toBeInTheDocument();
+    expect(screen.getByText("Cartão Atual")).toBeInTheDocument();
+
+    await act(async () => {
+      secondFetch.resolve(response([makeCard("b", "Cartão Novo")]));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Cartão Novo")).toBeInTheDocument();
   });
 });
 

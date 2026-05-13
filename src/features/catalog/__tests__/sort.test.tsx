@@ -89,4 +89,17 @@ describe("catalog sorting", () => {
 
     expect(cardNameOrder()).toEqual(["Cartão Alpha", "Cartão Beta"]);
   });
+
+  it("renders a detailed row list when the list view is selected", async () => {
+    renderCatalog("/cards?view=list");
+
+    await screen.findByText("Cartão Alpha");
+
+    expect(
+      screen.getByRole("button", { name: "Visualização em lista, alternar para grade" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByRole("button", { name: "Comparar" })).toHaveLength(2);
+    expect(screen.getByText("R$ 900/ano")).toBeInTheDocument();
+    expect(screen.getByText("R$ 1.200/ano")).toBeInTheDocument();
+  });
 });

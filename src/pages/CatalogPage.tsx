@@ -1,17 +1,18 @@
-import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { motion, useInView, useReducedMotion } from "framer-motion";
-import { Search } from "lucide-react";
+import { type JSX, useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowUp, GitCompareArrows, Search, X } from "lucide-react";
 import {
   type CatalogCounts,
   CatalogFilterBar,
   type CatalogSort,
+  type CatalogViewMode,
 } from "@/features/catalog/CatalogFilters";
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { fetchCardCatalog } from "@/lib/api";
 import { useCompareStore } from "@/lib/compare-store";
-import { ButtonLink } from "@/components/ui/ButtonLink";
-import { ROUTES } from "@/routes";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
+import { ROUTES } from "@/lib/routes-constants";
 import type { CatalogFilters, CatalogRelationshipFilter, PublicCatalogCard } from "@/types";
 
 const FILTER_QUERY_KEYS = [
@@ -46,12 +47,30 @@ const computeCounts = (cards: PublicCatalogCard[]): CatalogCounts => ({
 const RELATIONSHIP_VALUES: CatalogRelationshipFilter[] = ["open", "checking", "investment"];
 const DEFAULT_SORT: CatalogSort = "fee_asc";
 const SORT_VALUES: CatalogSort[] = ["fee_asc", "fee_desc", "name_asc"];
+const VIEW_MODE_VALUES: CatalogViewMode[] = ["grid", "list"];
+const BACK_TO_TOP_SCROLL_THRESHOLD = 480;
 
 const catalogSortFromSearchParams = (searchParams: URLSearchParams): CatalogSort => {
   const value = searchParams.get("sort");
   return SORT_VALUES.some((candidate) => candidate === value)
     ? (value as CatalogSort)
     : DEFAULT_SORT;
+};
+
+const catalogViewModeFromSearchParams = (searchParams: URLSearchParams): CatalogViewMode => {
+  const value = searchParams.get("view");
+  return VIEW_MODE_VALUES.some((candidate) => candidate === value)
+    ? (value as CatalogViewMode)
+    : "grid";
+};
+
+const catalogFilterSearchKey = (searchParams: URLSearchParams): string => {
+  const params = new URLSearchParams();
+  FILTER_QUERY_KEYS.forEach((key) => {
+    const value = searchParams.get(key);
+    if (value !== null) params.set(key, value);
+  });
+  return params.toString();
 };
 
 const parseNumberParam = (value: string | null): number | undefined => {
@@ -151,26 +170,56 @@ const CatalogSearch = ({
   </div>
 );
 
+const CompareFloatingBar = ({
+  count,
+  compareHref,
+  onClear,
+}: {
+  count: number;
+  compareHref: string;
+  onClear: () => void;
+}): JSX.Element => (
+  <div className="fixed right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(1rem+env(safe-area-inset-bottom))] left-[calc(1rem+env(safe-area-inset-left))] z-40 sm:right-auto sm:left-1/2 sm:w-[25rem] sm:-translate-x-1/2">
+    <div className="border-line bg-surface-raised flex min-h-14 items-center gap-3 rounded-lg border px-3 py-2 shadow-md">
+      <div className="text-ink flex min-w-0 flex-1 items-center gap-2">
+        <GitCompareArrows size={18} className="text-ink-subtle shrink-0" aria-hidden="true" />
+        <span className="truncate text-sm font-medium">
+          {count === 1 ? "1 cartão selecionado" : `${String(count)} cartões selecionados`}
+        </span>
+      </div>
+      <Link
+        to={compareHref}
+        className="bg-accent hover:bg-accent-hover focus-visible:ring-accent inline-flex min-h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-medium text-white transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      >
+        Comparar
+      </Link>
+      <button
+        type="button"
+        aria-label="Limpar comparação"
+        onClick={onClear}
+        className="text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:ring-accent inline-flex size-9 shrink-0 items-center justify-center rounded-md transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      >
+        <X size={16} aria-hidden="true" />
+      </button>
+    </div>
+  </div>
+);
+
 export const CatalogPage = (): JSX.Element => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const filters = useMemo(() => catalogFiltersFromSearchParams(searchParams), [searchParams]);
+  const filterSearchKey = catalogFilterSearchKey(searchParams);
+  const filters = useMemo(
+    () => catalogFiltersFromSearchParams(new URLSearchParams(filterSearchKey)),
+    [filterSearchKey],
+  );
   const sort = catalogSortFromSearchParams(searchParams);
-  const { ids } = useCompareStore();
+  const viewMode = catalogViewModeFromSearchParams(searchParams);
+  const { ids, clear } = useCompareStore();
   const [meta, setMeta] = useState<{ total: number; counts: CatalogCounts }>();
   const [resultCount, setResultCount] = useState<number>();
-
-  // Sticky filter bar: a 1px sentinel right where the bar normally sits tells
-  // us when the bar has scrolled to the top. `scrolledPast` gates out the
-  // first frame (useInView reports false before the observer fires) so the bar
-  // doesn't flash its "stuck" styling on load.
-  const stickySentinelRef = useRef<HTMLDivElement | null>(null);
-  const sentinelInView = useInView(stickySentinelRef);
-  const [scrolledPast, setScrolledPast] = useState(false);
-  useEffect(() => {
-    if (sentinelInView) setScrolledPast(true);
-  }, [sentinelInView]);
-  const stuck = scrolledPast && !sentinelInView;
-  const reduceMotion = useReducedMotion();
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const compareHref = `${ROUTES.COMPARE}?ids=${ids.join(",")}`;
+  const hasCompareSelection = ids.length > 0;
 
   useEffect(() => {
     let cancelled = false;
@@ -208,6 +257,18 @@ export const CatalogPage = (): JSX.Element => {
     [setSearchParams],
   );
 
+  const handleViewModeChange = useCallback(
+    (next: CatalogViewMode) => {
+      setSearchParams((current) => {
+        const params = new URLSearchParams(current);
+        if (next === "grid") params.delete("view");
+        else params.set("view", next);
+        return params;
+      });
+    },
+    [setSearchParams],
+  );
+
   const handleSearchChange = useCallback(
     (value: string) => {
       const next: CatalogFilters = { ...filters };
@@ -218,62 +279,53 @@ export const CatalogPage = (): JSX.Element => {
     [filters, handleFiltersChange],
   );
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > BACK_TO_TOP_SCROLL_THRESHOLD);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  const handleBackToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div ref={stickySentinelRef} aria-hidden="true" className="h-px" />
-
-      {/* Contagem, busca e filtros ficam sticky juntos: o usuário pode
-          adicionar/remover filtros sem voltar ao topo. */}
-      <div className="sticky top-0 z-30">
-        <motion.div
-          initial={false}
-          animate={{
-            backgroundColor: stuck ? "rgba(248, 247, 242, 0.92)" : "rgba(248, 247, 242, 0)",
-            boxShadow: stuck
-              ? "0 14px 32px -22px rgba(31, 42, 36, 0.32)"
-              : "0 0 0 0 rgba(31, 42, 36, 0)",
-            padding: stuck ? "16px " : "0px",
-          }}
-          transition={{ duration: reduceMotion ? 0 : 0.28, ease: "easeOut" }}
-          className="border-line border-b backdrop-blur-md"
-        >
-          <header className="border-line flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
-            <h1 className="text-display-3 text-ink">
-              {meta !== undefined && resultCount !== undefined ? (
-                <>
-                  <span className="tabular">{resultCount}</span>{" "}
-                  <span className="font-normal italic">de</span>{" "}
-                  <span className="tabular">{meta.total}</span>{" "}
-                  <span className="font-normal italic">cartões</span>
-                </>
-              ) : (
-                "Catálogo de cartões"
-              )}
-            </h1>
-            <div className="flex items-center gap-3 sm:shrink-0">
-              {ids.length > 0 && (
-                <ButtonLink
-                  to={`${ROUTES.COMPARE}?ids=${ids.join(",")}`}
-                  variant="secondary"
-                  size="sm"
-                >
-                  Comparar ({ids.length})
-                </ButtonLink>
-              )}
-              <CatalogSearch value={filters.search ?? ""} onChange={handleSearchChange} />
-            </div>
-          </header>
-          <div className="py-4">
-            <CatalogFilterBar
-              filters={filters}
-              {...(meta !== undefined ? { counts: meta.counts } : {})}
-              sort={sort}
-              onChange={handleFiltersChange}
-              onSortChange={handleSortChange}
-              onClear={handleClear}
-            />
+      <div className="border-line border-b">
+        <header className="border-line flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <h1 className="text-display-3 text-ink">
+            {meta !== undefined && resultCount !== undefined ? (
+              <>
+                <span className="tabular">{resultCount}</span> <span className="tabular">de</span>{" "}
+                <span className="tabular">{meta.total}</span>{" "}
+                <span className="tabular">cartões</span>
+              </>
+            ) : (
+              "Catálogo de cartões"
+            )}
+          </h1>
+          <div className="flex items-center gap-3 sm:shrink-0">
+            <CatalogSearch value={filters.search ?? ""} onChange={handleSearchChange} />
           </div>
-        </motion.div>
+        </header>
+        <div className="py-4">
+          <CatalogFilterBar
+            filters={filters}
+            {...(meta !== undefined ? { counts: meta.counts } : {})}
+            sort={sort}
+            viewMode={viewMode}
+            onChange={handleFiltersChange}
+            onSortChange={handleSortChange}
+            onViewModeChange={handleViewModeChange}
+            onClear={handleClear}
+          />
+        </div>
       </div>
 
       <div className="pt-6">
@@ -281,9 +333,32 @@ export const CatalogPage = (): JSX.Element => {
           filters={filters}
           onClearFilters={handleClear}
           sort={sort}
+          viewMode={viewMode}
           onResultCount={setResultCount}
         />
       </div>
+
+      {hasCompareSelection && (
+        <CompareFloatingBar count={ids.length} compareHref={compareHref} onClear={clear} />
+      )}
+
+      {showBackToTop && (
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          ariaLabel="Voltar ao topo"
+          className={cn(
+            "fixed right-[calc(1.5rem+env(safe-area-inset-right))] z-40 size-12 rounded-full px-0 shadow-md",
+            hasCompareSelection
+              ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom))] sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]"
+              : "bottom-[calc(1.5rem+env(safe-area-inset-bottom))]",
+          )}
+          onClick={handleBackToTop}
+        >
+          <ArrowUp size={20} aria-hidden="true" />
+        </Button>
+      )}
     </div>
   );
 };

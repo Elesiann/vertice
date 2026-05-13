@@ -7,13 +7,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowRight, Check, ChevronDown, Star, X } from "lucide-react";
+import { ArrowRight, Check, ChevronDown, Grid2X2, List, Star, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import type { CatalogFilters, CatalogRelationshipFilter } from "@/types";
 
 export type CatalogSort = "fee_asc" | "fee_desc" | "name_asc";
+export type CatalogViewMode = "grid" | "list";
 
 // Per-facet card counts over the whole catalog (a static estimate — not a true
 // facet count that reacts to the other active filters). Shown next to each
@@ -29,8 +30,10 @@ interface CatalogFilterBarProps {
   filters: CatalogFilters;
   counts?: CatalogCounts;
   sort: CatalogSort;
+  viewMode: CatalogViewMode;
   onChange: (filters: CatalogFilters) => void;
   onSortChange: (sort: CatalogSort) => void;
+  onViewModeChange: (viewMode: CatalogViewMode) => void;
   onClear: () => void;
 }
 
@@ -154,7 +157,7 @@ const FeeRangeFields = ({
 // --- pill styling -----------------------------------------------------------
 
 const PILL_BASE =
-  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1";
+  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 cursor-pointer";
 const PILL_IDLE =
   "border-line bg-transparent text-ink-muted hover:border-line-strong hover:text-ink";
 const PILL_ACTIVE = "border-ink bg-ink text-surface-raised hover:bg-ink/90";
@@ -428,8 +431,10 @@ export const CatalogFilterBar = ({
   filters,
   counts,
   sort,
+  viewMode,
   onChange,
   onSortChange,
+  onViewModeChange,
   onClear,
 }: CatalogFilterBarProps): JSX.Element => {
   const set = (update: FilterUpdate): void => {
@@ -454,9 +459,10 @@ export const CatalogFilterBar = ({
     const selected = new Set(filters.requiresRelationship ?? []);
     if (checked) selected.add(value);
     else selected.delete(value);
-    const ordered = RELATIONSHIP_OPTIONS.map((option) => option.value).filter((v) =>
-      selected.has(v),
-    );
+    const ordered: CatalogRelationshipFilter[] = [];
+    for (const option of RELATIONSHIP_OPTIONS) {
+      if (selected.has(option.value)) ordered.push(option.value);
+    }
     set({ requiresRelationship: ordered.length > 0 ? ordered : undefined });
   };
 
@@ -637,6 +643,26 @@ export const CatalogFilterBar = ({
             ))
           }
         </FilterDropdown>
+
+        <button
+          type="button"
+          aria-label={
+            viewMode === "grid"
+              ? "Visualização em grade, alternar para lista"
+              : "Visualização em lista, alternar para grade"
+          }
+          aria-pressed={viewMode === "list"}
+          onClick={() => {
+            onViewModeChange(viewMode === "grid" ? "list" : "grid");
+          }}
+          className={cn(PILL_BASE, PILL_IDLE, "!p-2 !px-2.5")}
+        >
+          {viewMode === "grid" ? (
+            <Grid2X2 size={16} aria-hidden="true" />
+          ) : (
+            <List size={16} aria-hidden="true" />
+          )}
+        </button>
       </div>
 
       {chips.length > 0 && (

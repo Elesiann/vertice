@@ -1,11 +1,10 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
-// jsdom ships neither IntersectionObserver nor matchMedia. framer-motion's
-// `useInView` (sticky filter bar) creates an IntersectionObserver, and
-// `useReducedMotion` reads matchMedia. Provide inert stubs so component tests
-// don't blow up. The observer never fires, so "stuck" / lazy-load states stay
-// inactive; matchMedia reports "no preference" (animations are inert in jsdom).
+// jsdom ships neither IntersectionObserver nor matchMedia. Catalog lazy-loading
+// uses IntersectionObserver, and animation helpers can read matchMedia. Provide
+// inert stubs so component tests don't blow up. The observer never fires, so
+// lazy-load states stay inactive; matchMedia reports "no preference".
 if (typeof globalThis.IntersectionObserver === "undefined") {
   globalThis.IntersectionObserver = vi.fn(() => ({
     root: null,
