@@ -73,7 +73,8 @@ describe("catalog sorting", () => {
   it("updates the URL when the sort changes", async () => {
     renderCatalog();
 
-    await userEvent.selectOptions(screen.getByLabelText("Ordenar por"), "fee_desc");
+    await userEvent.click(screen.getByRole("button", { name: /^Ordenar:/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Maior anuidade" }));
 
     expect(screen.getByLabelText("url-search")).toHaveTextContent("sort=fee_desc");
   });

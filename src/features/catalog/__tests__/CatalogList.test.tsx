@@ -46,11 +46,19 @@ const emptyResponse: CardCatalogResponse = {
   filters: {},
 };
 
-const renderList = (filters: CatalogFilters, onClearFilters = vi.fn()): void => {
+const renderList = (
+  filters: CatalogFilters,
+  onClearFilters = vi.fn(),
+  onResultCount?: (count: number) => void,
+): void => {
   render(
     <MemoryRouter>
       <SessionProvider>
-        <CatalogList filters={filters} onClearFilters={onClearFilters} />
+        <CatalogList
+          filters={filters}
+          onClearFilters={onClearFilters}
+          {...(onResultCount ? { onResultCount } : {})}
+        />
       </SessionProvider>
     </MemoryRouter>,
   );
@@ -65,17 +73,19 @@ describe("CatalogList counts and clear-filters", () => {
     vi.clearAllMocks();
   });
 
-  it("shows visible and total card counts", async () => {
-    fetchCardCatalog.mockResolvedValueOnce(response([makeCard("a")]));
-    fetchCardCatalog.mockResolvedValueOnce(response([makeCard("a"), makeCard("b")]));
+  it("reports the result count after a fetch", async () => {
+    fetchCardCatalog.mockResolvedValue(response([makeCard("a")]));
+    const onResultCount = vi.fn();
 
-    renderList({ search: "alpha" });
+    renderList({ search: "alpha" }, vi.fn(), onResultCount);
 
-    expect(await screen.findByText("Mostrando 1 de 2 cartões")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onResultCount).toHaveBeenLastCalledWith(1);
+    });
   });
 
-  it("shows clear filters button only when filters are active", async () => {
-    fetchCardCatalog.mockResolvedValue(response([makeCard("a")]));
+  it("offers a clear-filters button in the empty state", async () => {
+    fetchCardCatalog.mockResolvedValue(emptyResponse);
     const onClearFilters = vi.fn();
 
     renderList({ hasLounge: true }, onClearFilters);
@@ -171,7 +181,7 @@ describe("CatalogList incremental rendering", () => {
 
     renderList({});
 
-    await screen.findByText("Mostrando 50 de 50 cartões");
+    await screen.findByText("Cartão 0");
     expect(screen.getAllByRole("article")).toHaveLength(30);
   });
 });

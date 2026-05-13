@@ -46,7 +46,7 @@ describe("catalog URL state", () => {
   it("hydrates filters from the URL", () => {
     renderCatalog("/cards?brand=visa");
 
-    expect(screen.getByLabelText("Bandeira")).toHaveValue("visa");
+    expect(screen.getByRole("button", { name: "Bandeira: Visa" })).toBeInTheDocument();
   });
 
   it("writes filter changes to URLSearchParams", async () => {

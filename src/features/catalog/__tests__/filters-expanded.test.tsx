@@ -114,12 +114,14 @@ describe("expanded catalog filters", () => {
       expect(fetchMock).toHaveBeenCalled();
     });
 
-    await user.click(screen.getByLabelText("Investback (CDB automático)"));
+    await user.click(screen.getByRole("button", { name: "Benefícios" }));
+    await user.click(screen.getByLabelText("Investback CDB"));
     expect(currentSearchParams().get("hasInvestback")).toBe("true");
     await waitFor(() => {
       expect(lastRequestParams(fetchMock, "hasInvestback").get("hasInvestback")).toBe("true");
     });
 
+    await user.click(screen.getByRole("button", { name: "Acesso" }));
     await user.click(screen.getByLabelText("Conta corrente"));
     await user.click(screen.getByLabelText("Investidor"));
     expect(currentSearchParams().get("requiresRelationship")).toBe("checking,investment");
@@ -129,14 +131,20 @@ describe("expanded catalog filters", () => {
       );
     });
 
+    await user.click(screen.getByRole("button", { name: "Anuidade" }));
     await user.type(screen.getByLabelText("Anuidade mínima (R$)"), "100");
-    expect(currentSearchParams().get("minAnnualFee")).toBe("100");
+    // The fee inputs debounce before writing to the URL.
+    await waitFor(() => {
+      expect(currentSearchParams().get("minAnnualFee")).toBe("100");
+    });
     await waitFor(() => {
       expect(lastRequestParams(fetchMock, "minAnnualFee").get("minAnnualFee")).toBe("100");
     });
 
     await user.type(screen.getByLabelText("Anuidade máxima (R$)"), "700");
-    expect(currentSearchParams().get("maxAnnualFee")).toBe("700");
+    await waitFor(() => {
+      expect(currentSearchParams().get("maxAnnualFee")).toBe("700");
+    });
     await waitFor(() => {
       expect(lastRequestParams(fetchMock, "maxAnnualFee").get("maxAnnualFee")).toBe("700");
     });
