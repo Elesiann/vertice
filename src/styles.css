@@ -318,6 +318,20 @@
 }
 
 /* =============================================================================
+   Compare page — winner column highlight.
+   Applied to both <th> and <td> in the recommended card column so the
+   background spans the full column (not just the card header wrapper).
+   ========================================================================== */
+
+@layer components {
+  .compare-winner-col {
+    background-color: color-mix(in srgb, var(--color-gold-soft) 25%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+  }
+}
+
+/* =============================================================================
    Print rules — used by the compare page (K7).
    The application is screen-first; only K7 (print/PDF the comparator) needs
    global print directives. Keep this block scoped and small.

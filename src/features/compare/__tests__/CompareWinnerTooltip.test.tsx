@@ -152,7 +152,7 @@ describe("CompareWinnerTooltip integration in CompareTable", () => {
     );
     const tooltips = await screen.findAllByRole("tooltip");
     const cashbackTooltip = tooltips.find((t) =>
-      /2,00% × R\$\s?5\.000,00\/mês = R\$\s?1\.200,00\/ano/.test(t.textContent),
+      /2,00% em cashback = R\$\s?1\.200,00\/ano em valor/.test(t.textContent),
     );
     expect(cashbackTooltip).toBeDefined();
   });
