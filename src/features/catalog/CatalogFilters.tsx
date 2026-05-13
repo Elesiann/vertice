@@ -1,25 +1,74 @@
-import type { ChangeEvent, JSX } from "react";
-import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
+import {
+  type ChangeEvent,
+  type JSX,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react";
+import { ArrowRight, Check, ChevronDown, Star, X } from "lucide-react";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { Button } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
+import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 import type { CatalogFilters, CatalogRelationshipFilter } from "@/types";
 
 export type CatalogSort = "fee_asc" | "fee_desc" | "name_asc";
 
-interface CatalogFiltersProps {
+// Per-facet card counts over the whole catalog (a static estimate — not a true
+// facet count that reacts to the other active filters). Shown next to each
+// checkbox so the user knows roughly how many cards a filter would surface.
+export interface CatalogCounts {
+  hasLounge: number;
+  hasCashback: number;
+  hasInvestback: number;
+  requiresRelationship: Partial<Record<CatalogRelationshipFilter, number>>;
+}
+
+interface CatalogFilterBarProps {
   filters: CatalogFilters;
+  counts?: CatalogCounts;
+  sort: CatalogSort;
   onChange: (filters: CatalogFilters) => void;
+  onSortChange: (sort: CatalogSort) => void;
   onClear: () => void;
 }
 
-// Merge filters, omitting any keys whose value is explicitly undefined.
+// Merge filters, dropping any key whose value is explicitly undefined or empty.
 // Required because the project uses exactOptionalPropertyTypes.
 type FilterUpdate = {
   [K in keyof CatalogFilters]?: CatalogFilters[K] | undefined;
 };
+
+const isEmptyFilterValue = (value: unknown): boolean =>
+  value === undefined || (Array.isArray(value) && value.length === 0);
+
+const mergeFilters = (base: CatalogFilters, update: FilterUpdate): CatalogFilters =>
+  Object.fromEntries(
+    Object.entries({ ...base, ...update }).filter(([, value]) => !isEmptyFilterValue(value)),
+  );
+
+const SORT_OPTIONS: { value: CatalogSort; label: string }[] = [
+  { value: "fee_asc", label: "Menor anuidade" },
+  { value: "fee_desc", label: "Maior anuidade" },
+  { value: "name_asc", label: "Nome (A–Z)" },
+];
+
+const BRAND_OPTIONS = [
+  { value: "visa", label: "Visa" },
+  { value: "mastercard", label: "Mastercard" },
+  { value: "amex", label: "Amex" },
+  { value: "elo", label: "Elo" },
+  { value: "hipercard", label: "Hipercard" },
+];
+
+const TIER_OPTIONS = [
+  { value: "standard", label: "Standard" },
+  { value: "gold", label: "Gold" },
+  { value: "platinum", label: "Platinum" },
+  { value: "black", label: "Black" },
+  { value: "infinite", label: "Infinite" },
+];
 
 const RELATIONSHIP_OPTIONS: { value: CatalogRelationshipFilter; label: string }[] = [
   { value: "open", label: "Sem relacionamento" },
@@ -27,190 +76,593 @@ const RELATIONSHIP_OPTIONS: { value: CatalogRelationshipFilter; label: string }[
   { value: "investment", label: "Investidor" },
 ];
 
-const MIN_ANNUAL_FEE_LABEL = "Anuidade mínima (R$)"; // TODO: lint stackr-writing
-const MAX_ANNUAL_FEE_LABEL = "Anuidade máxima (R$)";
+const labelFor = (options: readonly { value: string; label: string }[], value: string): string =>
+  options.find((option) => option.value === value)?.label ?? value;
 
-const isEmptyFilterValue = (value: unknown): boolean =>
-  value === undefined || (Array.isArray(value) && value.length === 0);
+const formatFeeBrl = (value: number): string => value.toLocaleString("pt-BR");
 
-const mergeFilters = (base: CatalogFilters, update: FilterUpdate): CatalogFilters => {
-  const merged = { ...base, ...update };
-  return Object.fromEntries(Object.entries(merged).filter(([, v]) => !isEmptyFilterValue(v)));
+const feeChipLabel = (bound: "min" | "max", value: number): string => {
+  if (bound === "max" && value === 0) return "Sem anuidade";
+  return `Anuidade ${bound === "min" ? "≥" : "≤"} R$ ${formatFeeBrl(value)}`;
 };
 
-export const CatalogFiltersPanel = ({
-  filters,
+const parseFee = (value: string): number | undefined => {
+  if (value.length === 0) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+// Min/max annual-fee inputs with a debounce — typing shouldn't fire a request
+// (and rewrite the URL) on every keystroke. Local state holds what the user is
+// typing; it syncs up after they pause. Remounts whenever the popover reopens,
+// so it re-seeds from the current filter values then.
+const FeeRangeFields = ({
+  min,
+  max,
   onChange,
+}: {
+  min: number | undefined;
+  max: number | undefined;
+  onChange: (next: { min: number | undefined; max: number | undefined }) => void;
+}): JSX.Element => {
+  const [localMin, setLocalMin] = useState(() => (min !== undefined ? String(min) : ""));
+  const [localMax, setLocalMax] = useState(() => (max !== undefined ? String(max) : ""));
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  });
+  useEffect(() => {
+    const parsedMin = parseFee(localMin);
+    const parsedMax = parseFee(localMax);
+    if (parsedMin === min && parsedMax === max) return;
+    const id = setTimeout(() => {
+      onChangeRef.current({ min: parsedMin, max: parsedMax });
+    }, 300);
+    return () => {
+      clearTimeout(id);
+    };
+  }, [localMin, localMax, min, max]);
+  return (
+    <div className="flex flex-col gap-2 p-1">
+      <span className="text-caption text-ink-subtle">Faixa (R$ por ano)</span>
+      <div className="grid grid-cols-2 gap-2">
+        <Input
+          type="number"
+          min={0}
+          placeholder="Mínima"
+          aria-label="Anuidade mínima (R$)"
+          value={localMin}
+          onChange={(event) => {
+            setLocalMin(event.target.value);
+          }}
+        />
+        <Input
+          type="number"
+          min={0}
+          placeholder="Máxima"
+          aria-label="Anuidade máxima (R$)"
+          value={localMax}
+          onChange={(event) => {
+            setLocalMax(event.target.value);
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+// --- pill styling -----------------------------------------------------------
+
+const PILL_BASE =
+  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1";
+const PILL_IDLE =
+  "border-line bg-transparent text-ink-muted hover:border-line-strong hover:text-ink";
+const PILL_ACTIVE = "border-ink bg-ink text-surface-raised hover:bg-ink/90";
+
+const Divider = (): JSX.Element => (
+  <span aria-hidden="true" className="bg-line mx-1 hidden h-5 w-px shrink-0 sm:block" />
+);
+
+// --- dropdown ---------------------------------------------------------------
+
+interface DropdownApi {
+  close: () => void;
+}
+
+interface FilterDropdownProps {
+  /** Pill text. */
+  label: string;
+  /** Whether the pill renders in the filled "active" state. */
+  active: boolean;
+  /** Accessible label for the popover region. */
+  panelLabel: string;
+  /** Extra classes for the popover panel (e.g. a fixed width). */
+  panelClassName?: string;
+  children: ReactNode | ((api: DropdownApi) => ReactNode);
+}
+
+const FilterDropdown = ({
+  label,
+  active,
+  panelLabel,
+  panelClassName,
+  children,
+}: FilterDropdownProps): JSX.Element => {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent): void => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={wrapperRef}
+      className="relative"
+      onBlur={(event) => {
+        // null relatedTarget means a non-focusable element was clicked (e.g. a
+        // <label>); the document mousedown listener handles outside clicks, so
+        // keep open here. For keyboard tab-out, relatedTarget is the next element.
+        if (event.relatedTarget === null) return;
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+        }
+      }}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
+        onClick={() => {
+          setOpen((value) => !value);
+        }}
+        className={cn(
+          PILL_BASE,
+          active ? PILL_ACTIVE : PILL_IDLE,
+          active ? "focus-visible:ring-ink/30" : "focus-visible:ring-accent/30",
+        )}
+      >
+        <span>{label}</span>
+        <ChevronDown
+          size={13}
+          aria-hidden="true"
+          className={cn("shrink-0 transition-transform", open && "rotate-180")}
+        />
+      </button>
+      {open && (
+        <div
+          id={panelId}
+          role="group"
+          aria-label={panelLabel}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+          }}
+          className={cn(
+            "border-line bg-surface-raised absolute top-[calc(100%+0.5rem)] left-0 z-40 flex min-w-[13rem] flex-col gap-0.5 rounded-xl border p-2 shadow-lg",
+            panelClassName,
+          )}
+        >
+          {typeof children === "function"
+            ? children({
+                close: () => {
+                  setOpen(false);
+                },
+              })
+            : children}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- popover rows -----------------------------------------------------------
+
+// Radio-like row for single-select dropdowns (bandeira, categoria, ordenação).
+const OptionRow = ({
+  label,
+  selected,
+  onSelect,
+}: {
+  label: string;
+  selected: boolean;
+  onSelect: () => void;
+}): JSX.Element => (
+  <button
+    type="button"
+    aria-pressed={selected}
+    onClick={onSelect}
+    className={cn(
+      "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors",
+      selected
+        ? "bg-surface-sunken text-ink font-medium"
+        : "text-ink-muted hover:bg-surface-sunken/60 hover:text-ink",
+    )}
+  >
+    <Check
+      size={13}
+      aria-hidden="true"
+      className={cn("text-accent shrink-0", !selected && "invisible")}
+    />
+    <span>{label}</span>
+  </button>
+);
+
+// Checkbox row for multi-select dropdowns. The count sits *outside* the
+// <label> so the input's accessible name stays exactly the label text.
+const CheckRow = ({
+  label,
+  checked,
+  count,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  count?: number | undefined;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}): JSX.Element => (
+  <div className="hover:bg-surface-sunken/60 flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5 transition-colors">
+    <label className="text-ink flex cursor-pointer items-center gap-2.5 text-sm">
+      <Checkbox checked={checked} onChange={onChange} />
+      {label}
+    </label>
+    {count !== undefined && (
+      <span className="text-ink-subtle tabular shrink-0 text-xs">{count}</span>
+    )}
+  </div>
+);
+
+// --- active-filter chips ----------------------------------------------------
+
+interface ActiveChip {
+  key: string;
+  label: string;
+  onRemove: () => void;
+}
+
+const buildActiveChips = (
+  filters: CatalogFilters,
+  set: (update: FilterUpdate) => void,
+): ActiveChip[] => {
+  const chips: ActiveChip[] = [];
+  if (filters.brand !== undefined) {
+    chips.push({
+      key: "brand",
+      label: `Bandeira: ${labelFor(BRAND_OPTIONS, filters.brand)}`,
+      onRemove: () => {
+        set({ brand: undefined });
+      },
+    });
+  }
+  if (filters.tier !== undefined) {
+    chips.push({
+      key: "tier",
+      label: `Categoria: ${labelFor(TIER_OPTIONS, filters.tier)}`,
+      onRemove: () => {
+        set({ tier: undefined });
+      },
+    });
+  }
+  if (filters.hasLounge === true) {
+    chips.push({
+      key: "hasLounge",
+      label: "Com acesso a lounge",
+      onRemove: () => {
+        set({ hasLounge: undefined });
+      },
+    });
+  }
+  if (filters.hasCashback === true) {
+    chips.push({
+      key: "hasCashback",
+      label: "Cashback direto",
+      onRemove: () => {
+        set({ hasCashback: undefined });
+      },
+    });
+  }
+  if (filters.hasInvestback === true) {
+    chips.push({
+      key: "hasInvestback",
+      label: "Investback CDB",
+      onRemove: () => {
+        set({ hasInvestback: undefined });
+      },
+    });
+  }
+  (filters.requiresRelationship ?? []).forEach((value) => {
+    chips.push({
+      key: `rel-${value}`,
+      label: `Acesso: ${labelFor(RELATIONSHIP_OPTIONS, value)}`,
+      onRemove: () => {
+        set({
+          requiresRelationship: (filters.requiresRelationship ?? []).filter((v) => v !== value),
+        });
+      },
+    });
+  });
+  if (filters.minAnnualFee !== undefined) {
+    chips.push({
+      key: "minAnnualFee",
+      label: feeChipLabel("min", filters.minAnnualFee),
+      onRemove: () => {
+        set({ minAnnualFee: undefined });
+      },
+    });
+  }
+  if (filters.maxAnnualFee !== undefined) {
+    chips.push({
+      key: "maxAnnualFee",
+      label: feeChipLabel("max", filters.maxAnnualFee),
+      onRemove: () => {
+        set({ maxAnnualFee: undefined });
+      },
+    });
+  }
+  return chips;
+};
+
+// --- the bar ----------------------------------------------------------------
+
+export const CatalogFilterBar = ({
+  filters,
+  counts,
+  sort,
+  onChange,
+  onSortChange,
   onClear,
-}: CatalogFiltersProps): JSX.Element => {
-  const hasActiveFilters = Object.values(filters).some((value) => value !== undefined);
-  const set = (update: FilterUpdate) => {
+}: CatalogFilterBarProps): JSX.Element => {
+  const set = (update: FilterUpdate): void => {
     onChange(mergeFilters(filters, update));
   };
 
   const premiumFreeActive = filters.maxAnnualFee === 0 && filters.hasLounge === true;
-
-  const handlePremiumFree = () => {
-    if (premiumFreeActive) {
-      set({ maxAnnualFee: undefined, hasLounge: undefined });
-      return;
-    }
-    set({ maxAnnualFee: 0, hasLounge: true });
-  };
-
-  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
-    set({ search: e.target.value.length > 0 ? e.target.value : undefined });
-  };
-
-  const handleBrand = (e: ChangeEvent<HTMLSelectElement>) => {
-    set({ brand: e.target.value.length > 0 ? e.target.value : undefined });
-  };
-
-  const handleTier = (e: ChangeEvent<HTMLSelectElement>) => {
-    set({ tier: e.target.value.length > 0 ? e.target.value : undefined });
-  };
-
-  const handleMaxFee = (e: ChangeEvent<HTMLInputElement>) => {
-    set({ maxAnnualFee: e.target.value.length > 0 ? Number(e.target.value) : undefined });
-  };
-
-  const handleMinFee = (e: ChangeEvent<HTMLInputElement>) => {
-    set({ minAnnualFee: e.target.value.length > 0 ? Number(e.target.value) : undefined });
-  };
-
-  const handleLounge = (e: ChangeEvent<HTMLInputElement>) => {
-    set({ hasLounge: e.target.checked ? true : undefined });
-  };
-
-  const handleCashback = (e: ChangeEvent<HTMLInputElement>) => {
-    set({ hasCashback: e.target.checked ? true : undefined });
-  };
-
-  const handleInvestback = (e: ChangeEvent<HTMLInputElement>) => {
-    set({ hasInvestback: e.target.checked ? true : undefined });
-  };
-
-  const handleRelationship = (
-    value: CatalogRelationshipFilter,
-    e: ChangeEvent<HTMLInputElement>,
-  ) => {
-    const selected = new Set(filters.requiresRelationship ?? []);
-    if (e.target.checked) {
-      selected.add(value);
-    } else {
-      selected.delete(value);
-    }
-    const next = RELATIONSHIP_OPTIONS.map((option) => option.value).filter((option) =>
-      selected.has(option),
+  const handlePremiumFree = (): void => {
+    set(
+      premiumFreeActive
+        ? { maxAnnualFee: undefined, hasLounge: undefined }
+        : { maxAnnualFee: 0, hasLounge: true },
     );
-    set({ requiresRelationship: next.length > 0 ? next : undefined });
   };
+
+  const benefitsActive =
+    filters.hasLounge === true || filters.hasCashback === true || filters.hasInvestback === true;
+  const accessActive = (filters.requiresRelationship?.length ?? 0) > 0;
+  const feeActive = filters.minAnnualFee !== undefined || filters.maxAnnualFee !== undefined;
+
+  const setRelationship = (value: CatalogRelationshipFilter, checked: boolean): void => {
+    const selected = new Set(filters.requiresRelationship ?? []);
+    if (checked) selected.add(value);
+    else selected.delete(value);
+    const ordered = RELATIONSHIP_OPTIONS.map((option) => option.value).filter((v) =>
+      selected.has(v),
+    );
+    set({ requiresRelationship: ordered.length > 0 ? ordered : undefined });
+  };
+
+  const chips = buildActiveChips(filters, set);
 
   return (
-    <aside className="border-line bg-surface-raised flex flex-col gap-4 rounded-xl border p-4">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-caption text-ink-subtle">Atalhos</span>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           aria-pressed={premiumFreeActive}
-          className="self-start"
           onClick={handlePremiumFree}
+          className={cn(
+            PILL_BASE,
+            "border-warning/25 text-warning focus-visible:ring-warning/30",
+            premiumFreeActive
+              ? "bg-warning-soft ring-warning/35 ring-1"
+              : "bg-warning-soft/55 hover:bg-warning-soft",
+          )}
         >
-          <Badge tone={premiumFreeActive ? "accent" : "neutral"}>Premium grátis</Badge>
+          <Star size={13} className="shrink-0 fill-current" aria-hidden="true" />
+          <span>Premium grátis</span>
+          {premiumFreeActive ? (
+            <Check size={14} aria-hidden="true" className="shrink-0" />
+          ) : (
+            <ArrowRight size={13} aria-hidden="true" className="shrink-0" />
+          )}
         </button>
-      </div>
 
-      <Field label="Buscar">
-        <Input
-          type="search"
-          placeholder="Nome ou banco..."
-          value={filters.search ?? ""}
-          onChange={handleSearch}
-        />
-      </Field>
+        <Divider />
 
-      <Field label="Bandeira">
-        <Select value={filters.brand ?? ""} onChange={handleBrand}>
-          <option value="">Todas</option>
-          <option value="visa">Visa</option>
-          <option value="mastercard">Mastercard</option>
-          <option value="amex">Amex</option>
-          <option value="elo">Elo</option>
-          <option value="hipercard">Hipercard</option>
-        </Select>
-      </Field>
-
-      <Field label="Categoria">
-        <Select value={filters.tier ?? ""} onChange={handleTier}>
-          <option value="">Todas</option>
-          <option value="standard">Standard</option>
-          <option value="gold">Gold</option>
-          <option value="platinum">Platinum</option>
-          <option value="black">Black</option>
-          <option value="infinite">Infinite</option>
-        </Select>
-      </Field>
-
-      <Field label="Anuidade entre">
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="number"
-            min={0}
-            placeholder="0"
-            aria-label={MIN_ANNUAL_FEE_LABEL}
-            value={filters.minAnnualFee ?? ""}
-            onChange={handleMinFee}
-          />
-          <Input
-            type="number"
-            min={0}
-            placeholder="Sem limite"
-            aria-label={MAX_ANNUAL_FEE_LABEL}
-            value={filters.maxAnnualFee ?? ""}
-            onChange={handleMaxFee}
-          />
-        </div>
-      </Field>
-
-      <div className="flex flex-col gap-2">
-        <label className="text-ink flex cursor-pointer items-center gap-2 text-sm">
-          <Checkbox checked={filters.hasLounge === true} onChange={handleLounge} />
-          Com acesso a lounge
-        </label>
-        <label className="text-ink flex cursor-pointer items-center gap-2 text-sm">
-          <Checkbox checked={filters.hasCashback === true} onChange={handleCashback} />
-          Com cashback
-        </label>
-        <label className="text-ink flex cursor-pointer items-center gap-2 text-sm">
-          <Checkbox checked={filters.hasInvestback === true} onChange={handleInvestback} />
-          Investback (CDB automático)
-        </label>
-      </div>
-
-      <Field label="Relacionamento">
-        <div className="flex flex-col gap-2">
-          {RELATIONSHIP_OPTIONS.map((option) => (
-            <label
-              key={option.value}
-              className="text-ink flex cursor-pointer items-center gap-2 text-sm"
-            >
-              <Checkbox
-                checked={filters.requiresRelationship?.includes(option.value) ?? false}
-                onChange={(event) => {
-                  handleRelationship(option.value, event);
+        <FilterDropdown
+          label={
+            filters.brand !== undefined
+              ? `Bandeira: ${labelFor(BRAND_OPTIONS, filters.brand)}`
+              : "Bandeira"
+          }
+          active={filters.brand !== undefined}
+          panelLabel="Filtrar por bandeira"
+        >
+          {({ close }) => (
+            <>
+              <OptionRow
+                label="Todas as bandeiras"
+                selected={filters.brand === undefined}
+                onSelect={() => {
+                  set({ brand: undefined });
+                  close();
                 }}
               />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      </Field>
+              {BRAND_OPTIONS.map((option) => (
+                <OptionRow
+                  key={option.value}
+                  label={option.label}
+                  selected={filters.brand === option.value}
+                  onSelect={() => {
+                    set({ brand: option.value });
+                    close();
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </FilterDropdown>
 
-      {hasActiveFilters ? (
-        <Button variant="ghost" size="sm" onClick={onClear}>
-          Limpar filtros
-        </Button>
-      ) : null}
-    </aside>
+        <FilterDropdown
+          label={
+            filters.tier !== undefined
+              ? `Categoria: ${labelFor(TIER_OPTIONS, filters.tier)}`
+              : "Categoria"
+          }
+          active={filters.tier !== undefined}
+          panelLabel="Filtrar por categoria"
+        >
+          {({ close }) => (
+            <>
+              <OptionRow
+                label="Todas as categorias"
+                selected={filters.tier === undefined}
+                onSelect={() => {
+                  set({ tier: undefined });
+                  close();
+                }}
+              />
+              {TIER_OPTIONS.map((option) => (
+                <OptionRow
+                  key={option.value}
+                  label={option.label}
+                  selected={filters.tier === option.value}
+                  onSelect={() => {
+                    set({ tier: option.value });
+                    close();
+                  }}
+                />
+              ))}
+            </>
+          )}
+        </FilterDropdown>
+
+        <FilterDropdown
+          label="Benefícios"
+          active={benefitsActive}
+          panelLabel="Filtrar por benefícios"
+        >
+          <CheckRow
+            label="Acesso a lounge"
+            checked={filters.hasLounge === true}
+            count={counts?.hasLounge}
+            onChange={(event) => {
+              set({ hasLounge: event.target.checked ? true : undefined });
+            }}
+          />
+          <CheckRow
+            label="Cashback direto"
+            checked={filters.hasCashback === true}
+            count={counts?.hasCashback}
+            onChange={(event) => {
+              set({ hasCashback: event.target.checked ? true : undefined });
+            }}
+          />
+          <CheckRow
+            label="Investback CDB"
+            checked={filters.hasInvestback === true}
+            count={counts?.hasInvestback}
+            onChange={(event) => {
+              set({ hasInvestback: event.target.checked ? true : undefined });
+            }}
+          />
+        </FilterDropdown>
+
+        <FilterDropdown label="Acesso" active={accessActive} panelLabel="Filtrar por acesso">
+          {RELATIONSHIP_OPTIONS.map((option) => (
+            <CheckRow
+              key={option.value}
+              label={option.label}
+              checked={filters.requiresRelationship?.includes(option.value) ?? false}
+              count={counts?.requiresRelationship[option.value]}
+              onChange={(event) => {
+                setRelationship(option.value, event.target.checked);
+              }}
+            />
+          ))}
+        </FilterDropdown>
+
+        <FilterDropdown
+          label="Anuidade"
+          active={feeActive}
+          panelLabel="Filtrar por anuidade"
+          panelClassName="w-64"
+        >
+          <FeeRangeFields
+            min={filters.minAnnualFee}
+            max={filters.maxAnnualFee}
+            onChange={(next) => {
+              set({ minAnnualFee: next.min, maxAnnualFee: next.max });
+            }}
+          />
+        </FilterDropdown>
+
+        <Divider />
+
+        <FilterDropdown
+          label={`Ordenar: ${labelFor(SORT_OPTIONS, sort)}`}
+          active={false}
+          panelLabel="Ordenar catálogo"
+        >
+          {({ close }) =>
+            SORT_OPTIONS.map((option) => (
+              <OptionRow
+                key={option.value}
+                label={option.label}
+                selected={option.value === sort}
+                onSelect={() => {
+                  onSortChange(option.value);
+                  close();
+                }}
+              />
+            ))
+          }
+        </FilterDropdown>
+      </div>
+
+      {chips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <span className="text-ink-subtle text-xs">Filtros ativos:</span>
+          {chips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={chip.onRemove}
+              aria-label={`Remover filtro: ${chip.label}`}
+              className="bg-surface-sunken text-ink-muted hover:bg-line/50 hover:text-ink inline-flex items-center gap-1.5 rounded-full py-1 pr-2.5 pl-3 text-xs transition-colors"
+            >
+              <span>{chip.label}</span>
+              <X size={12} aria-hidden="true" className="shrink-0 opacity-60" />
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-ink-subtle hover:text-accent ml-1 text-xs italic transition-colors"
+          >
+            limpar tudo
+          </button>
+        </div>
+      )}
+    </div>
   );
 };

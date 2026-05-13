@@ -182,7 +182,7 @@ export const CatalogCard = ({
         </button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-2.5 overflow-hidden p-5">
+      <div className="flex flex-1 flex-col gap-2 overflow-hidden p-4">
         <div className="flex flex-col gap-0.5">
           <Link
             to={`/cards/${card.id}`}
@@ -196,16 +196,16 @@ export const CatalogCard = ({
           {isCurrentCard && <span className="text-caption text-accent">Seu cartão hoje</span>}
         </div>
 
-        <div className="border-line flex flex-col gap-2.5 border-t pt-2.5">
+        <div className="border-line flex flex-col gap-2 border-t pt-2">
           <div>
             <p className="text-caption text-ink-subtle">Anuidade</p>
             {feeAmount !== null ? (
-              <p className="text-num text-ink mt-0.5 text-lg font-semibold">
+              <p className="text-num text-ink text-lg font-semibold">
                 {feeAmount}
                 <span className="text-ink-muted text-sm font-normal"> /ano</span>
               </p>
             ) : (
-              <p className="text-ink mt-0.5 text-lg font-semibold">Sem anuidade</p>
+              <p className="text-ink text-lg font-semibold">Sem anuidade</p>
             )}
           </div>
 
