@@ -345,7 +345,7 @@
 
   body {
     background: white !important;
-    zoom: 0.75;
+    zoom: 0.65;
   }
 
   /* Avoid splitting comparator rows across pages. Combined with each row's
