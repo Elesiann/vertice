@@ -1,5 +1,6 @@
 import { useState, type JSX } from "react";
 import { Link } from "react-router-dom";
+import { Check, Plus } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -8,6 +9,7 @@ import { formatBrl } from "@/lib/format";
 import { ROUTES } from "@/lib/routes-constants";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
+import { useCompareActions } from "@/features/compare/useCompareActions";
 import { StackLabelLink } from "@/features/results/StackLabelLink";
 import {
   TAB_DESCRIPTIONS,
@@ -39,6 +41,7 @@ const filterTest = (
 const AlternativesPageInner = (): JSX.Element => {
   const { profile } = useSession();
   const result = useRecommendation();
+  const { hasCard, toggleCard } = useCompareActions();
   const [filterId, setFilterId] = useState<AlternativeTabId>("highest-return");
 
   if (profile === null) {
@@ -160,11 +163,13 @@ const AlternativesPageInner = (): JSX.Element => {
                 : row.deltaBrl < -0.01
                   ? `−${formatBrl(Math.abs(row.deltaBrl))} vs ${anchorWord}`
                   : `mesmo retorno do ${anchorWord}`;
+            const compareCardId = row.stack.cards[0]?.id ?? row.stack.allocation[0]?.cardId;
+            const inCompare = compareCardId !== undefined && hasCard(compareCardId);
             return (
               <li
                 key={stackId(row.stack)}
                 className={cn(
-                  "grid grid-cols-[2rem_1fr_auto] items-baseline gap-x-4 gap-y-1 px-3 py-3.5",
+                  "grid grid-cols-[2rem_1fr_auto_auto] items-baseline gap-x-4 gap-y-1 px-3 py-3.5",
                   rowBg !== "" && `${rowBg} rounded-sm`,
                 )}
               >
@@ -182,7 +187,29 @@ const AlternativesPageInner = (): JSX.Element => {
                 >
                   {formatAnnualBrl(row.stack.yearOneNetValueBrl)}
                 </span>
-                <p className="text-ink-subtle col-span-3 pl-12 text-xs leading-relaxed">
+                <button
+                  type="button"
+                  aria-pressed={inCompare}
+                  aria-label={inCompare ? "Tirar da comparação" : "Adicionar à comparação"}
+                  disabled={compareCardId === undefined}
+                  onClick={() => {
+                    if (compareCardId !== undefined) toggleCard(compareCardId);
+                  }}
+                  className={cn(
+                    "focus-visible:ring-accent inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    inCompare
+                      ? "border-accent bg-accent text-white"
+                      : "border-line text-ink bg-surface-raised hover:bg-surface-sunken",
+                  )}
+                >
+                  {inCompare ? (
+                    <Check size={14} aria-hidden="true" />
+                  ) : (
+                    <Plus size={14} aria-hidden="true" />
+                  )}
+                  <span className="hidden sm:inline">{inCompare ? "Selecionado" : "Comparar"}</span>
+                </button>
+                <p className="text-ink-subtle col-span-4 pl-12 text-xs leading-relaxed">
                   {row.isCurrent && !(anchoredOnCurrentCard && row.isRecommended)
                     ? "seu cartão hoje · "
                     : null}

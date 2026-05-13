@@ -7,7 +7,7 @@ import { CardDetailSections } from "@/features/card-detail/CardDetailSections";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { useCompareStore } from "@/lib/compare-store";
+import { useCompareActions } from "@/features/compare/useCompareActions";
 import { useSession } from "@/context/SessionContext";
 import { categoryLinks } from "@/features/card-detail/detail-model";
 import { ROUTES } from "@/routes";
@@ -21,8 +21,8 @@ type State =
   | { status: "ok"; card: PublicCardDetail };
 
 const CardCompareButton = ({ card }: { card: PublicCardDetail }): JSX.Element => {
-  const { add, remove, has } = useCompareStore();
-  const inCompare = has(card.id);
+  const { hasCard, toggleCard } = useCompareActions();
+  const inCompare = hasCard(card.id);
 
   return (
     <Button
@@ -30,11 +30,7 @@ const CardCompareButton = ({ card }: { card: PublicCardDetail }): JSX.Element =>
       size="sm"
       className="w-fit shrink-0"
       onClick={() => {
-        if (inCompare) {
-          remove(card.id);
-        } else {
-          add(card.id);
-        }
+        toggleCard(card.id);
       }}
     >
       {inCompare ? "Remover da comparação" : "Adicionar à comparação"}
