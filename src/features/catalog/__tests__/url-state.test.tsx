@@ -4,6 +4,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { CatalogPage } from "@/pages/CatalogPage";
+import { CompareFloatingBar } from "@/features/compare/CompareFloatingBar";
 import { useCompareStore } from "@/lib/compare-store";
 import type { CardCatalogResponse, CatalogFilters } from "@/types";
 
@@ -30,6 +31,7 @@ const renderCatalog = (initialEntry: string): void => {
   render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <CatalogPage />
+      <CompareFloatingBar />
       <LocationProbe />
     </MemoryRouter>,
   );

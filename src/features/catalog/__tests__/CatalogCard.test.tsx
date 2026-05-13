@@ -146,19 +146,23 @@ describe("CatalogCard", () => {
     expect(onCompare).toHaveBeenCalledWith("test-card");
   });
 
-  it("navigates to compare with current card first when profile has currentCardIds", async () => {
-    renderCard(otherCardProfile);
+  it("calls onCompare when profile has currentCardIds", async () => {
+    const onCompare = vi.fn();
+    renderCard(otherCardProfile, card, { onCompare });
 
     await userEvent.click(screen.getByRole("button", { name: /comparar/i }));
 
-    expect(screen.getByTestId("location")).toHaveTextContent("/compare?ids=current-card,test-card");
+    expect(onCompare).toHaveBeenCalledWith("test-card");
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
-  it("does not duplicate current card when selected card is already current", async () => {
-    renderCard(ownedProfile);
+  it("calls onCompare when selected card is already current", async () => {
+    const onCompare = vi.fn();
+    renderCard(ownedProfile, card, { onCompare });
 
     await userEvent.click(screen.getByRole("button", { name: /comparar/i }));
 
-    expect(screen.getByTestId("location")).toHaveTextContent("/compare?ids=test-card");
+    expect(onCompare).toHaveBeenCalledWith("test-card");
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 });

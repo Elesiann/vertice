@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   Armchair,
   Check,
@@ -111,17 +111,10 @@ export const CatalogCard = ({
   inCompare = false,
   className,
 }: CatalogCardProps): JSX.Element => {
-  const navigate = useNavigate();
   const { profile } = useSession();
   const isCurrentCard = profile?.currentCardIds?.includes(card.id) === true;
 
   const handleCompare = (): void => {
-    const currentCardId = profile?.currentCardIds?.[0];
-    if (currentCardId !== undefined) {
-      const ids = currentCardId === card.id ? [currentCardId] : [currentCardId, card.id];
-      void navigate(`/compare?ids=${ids.join(",")}`);
-      return;
-    }
     onCompare?.(card.id);
   };
 

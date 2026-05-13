@@ -13,13 +13,13 @@ import {
   Umbrella,
 } from "lucide-react";
 import { fetchCardCatalog } from "@/lib/api";
-import { useCompareStore } from "@/lib/compare-store";
 import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { CardImage } from "@/components/domain/CardImage";
 import { cn } from "@/lib/cn";
 import { formatCashbackRate } from "@/lib/format";
 import { formatBankLabel, formatPointsProgram } from "@/lib/labels";
+import { useCompareActions } from "@/features/compare/useCompareActions";
 import { CatalogCard } from "./CatalogCard";
 import type { CatalogSort, CatalogViewMode } from "./CatalogFilters";
 import type { CatalogFilters, PublicCatalogCard } from "@/types";
@@ -224,7 +224,7 @@ export const CatalogList = ({
 }: CatalogListProps): JSX.Element => {
   const [state, setState] = useState<State>({ status: "loading" });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const { add, remove, has } = useCompareStore();
+  const { hasCard, toggleCard } = useCompareActions();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const hasLoadedRef = useRef(false);
@@ -344,14 +344,8 @@ export const CatalogList = ({
             <CatalogListRow
               key={card.id}
               card={card}
-              inCompare={has(card.id)}
-              onToggleCompare={(id) => {
-                if (has(id)) {
-                  remove(id);
-                } else {
-                  add(id);
-                }
-              }}
+              inCompare={hasCard(card.id)}
+              onToggleCompare={toggleCard}
             />
           ))}
         </div>
@@ -361,14 +355,8 @@ export const CatalogList = ({
             <CatalogCard
               key={card.id}
               card={card}
-              inCompare={has(card.id)}
-              onCompare={(id) => {
-                if (has(id)) {
-                  remove(id);
-                } else {
-                  add(id);
-                }
-              }}
+              inCompare={hasCard(card.id)}
+              onCompare={toggleCard}
             />
           ))}
         </div>
