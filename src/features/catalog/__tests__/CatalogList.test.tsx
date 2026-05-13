@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { SWRConfig } from "swr";
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { SessionProvider } from "@/context/SessionContext";
 import type { CardCatalogResponse, CatalogFilters, PublicCatalogCard } from "@/types";
@@ -63,15 +64,17 @@ const renderList = (
   onResultCount?: (count: number) => void,
 ): void => {
   render(
-    <MemoryRouter>
-      <SessionProvider>
-        <CatalogList
-          filters={filters}
-          onClearFilters={onClearFilters}
-          {...(onResultCount ? { onResultCount } : {})}
-        />
-      </SessionProvider>
-    </MemoryRouter>,
+    <SWRConfig value={{ provider: () => new Map() }}>
+      <MemoryRouter>
+        <SessionProvider>
+          <CatalogList
+            filters={filters}
+            onClearFilters={onClearFilters}
+            {...(onResultCount ? { onResultCount } : {})}
+          />
+        </SessionProvider>
+      </MemoryRouter>
+    </SWRConfig>,
   );
 };
 
@@ -133,11 +136,13 @@ describe("CatalogList search", () => {
 
   it("matches multi-keyword search across card fields with AND semantics", async () => {
     render(
-      <MemoryRouter>
-        <SessionProvider>
-          <CatalogList filters={{ search: "itau platinum" }} />
-        </SessionProvider>
-      </MemoryRouter>,
+      <SWRConfig value={{ provider: () => new Map() }}>
+        <MemoryRouter>
+          <SessionProvider>
+            <CatalogList filters={{ search: "itau platinum" }} />
+          </SessionProvider>
+        </MemoryRouter>
+      </SWRConfig>,
     );
 
     expect(await screen.findByText("Itaú Platinum")).toBeInTheDocument();
@@ -165,11 +170,13 @@ describe("CatalogList refresh", () => {
       .mockImplementationOnce(() => secondFetch.promise);
 
     const view = render(
-      <MemoryRouter>
-        <SessionProvider>
-          <CatalogList filters={{}} />
-        </SessionProvider>
-      </MemoryRouter>,
+      <SWRConfig value={{ provider: () => new Map() }}>
+        <MemoryRouter>
+          <SessionProvider>
+            <CatalogList filters={{}} />
+          </SessionProvider>
+        </MemoryRouter>
+      </SWRConfig>,
     );
 
     await act(async () => {
@@ -181,11 +188,13 @@ describe("CatalogList refresh", () => {
     expect(screen.getByText("Cartão Atual")).toBeInTheDocument();
 
     view.rerender(
-      <MemoryRouter>
-        <SessionProvider>
-          <CatalogList filters={{ hasLounge: true }} />
-        </SessionProvider>
-      </MemoryRouter>,
+      <SWRConfig value={{ provider: () => new Map() }}>
+        <MemoryRouter>
+          <SessionProvider>
+            <CatalogList filters={{ hasLounge: true }} />
+          </SessionProvider>
+        </MemoryRouter>
+      </SWRConfig>,
     );
 
     await act(async () => {

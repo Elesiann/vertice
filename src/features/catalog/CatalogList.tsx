@@ -1,4 +1,5 @@
-import { type JSX, useCallback, useEffect, useRef, useState } from "react";
+import { type JSX, useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import { Link } from "react-router-dom";
 import {
   Armchair,
@@ -33,13 +34,10 @@ interface CatalogListProps {
   onResultCount?: (count: number) => void;
 }
 
-type State =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "ok"; cards: PublicCatalogCard[] };
-
 const SKELETON_COUNT = 8;
 const DEFAULT_SORT: CatalogSort = "fee_asc";
+
+const FETCH_DEBOUNCE_MS = 300;
 // Renderiza incrementalmente: o catálogo inteiro vem numa requisição (a API
 // não pagina), mas só montamos PAGE_SIZE cards por vez e um sentinela no fim
 // do grid revela mais conforme o usuário rola.
@@ -222,55 +220,70 @@ export const CatalogList = ({
   viewMode = "grid",
   onResultCount,
 }: CatalogListProps): JSX.Element => {
-  const [state, setState] = useState<State>({ status: "loading" });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { hasCard, toggleCard } = useCompareActions();
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
-  const hasLoadedRef = useRef(false);
-  const requestIdRef = useRef(0);
   const onResultCountRef = useRef(onResultCount);
   useEffect(() => {
     onResultCountRef.current = onResultCount;
   });
 
-  const load = useCallback(async (f: CatalogFilters) => {
-    const requestId = requestIdRef.current + 1;
-    requestIdRef.current = requestId;
-    if (!hasLoadedRef.current) setState({ status: "loading" });
-    setVisibleCount(PAGE_SIZE);
-    try {
+  // Debounce os filtros para não disparar fetch a cada tecla na busca.
+  // Pula o primeiro render: `debouncedFilters` já é `filters` via useState.
+  const [debouncedFilters, setDebouncedFilters] = useState(filters);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedFilters(filters);
+    }, FETCH_DEBOUNCE_MS);
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [filters]);
+
+  const cacheKey = JSON.stringify(debouncedFilters);
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const {
+    data: cards,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR(
+    cacheKey,
+    async (key: string) => {
+      const f = JSON.parse(key) as CatalogFilters;
       const terms = searchTerms(f.search);
       const { search: _search, ...filtersWithoutSearch } = f;
       const requestFilters = terms.length > 1 ? filtersWithoutSearch : f;
       const res = await fetchCardCatalog(requestFilters);
-      if (requestId !== requestIdRef.current) return;
-      const cards = res.cards.filter((card) => matchesSearchTerms(card, terms));
-      hasLoadedRef.current = true;
-      setState({ status: "ok", cards });
-      onResultCountRef.current?.(cards.length);
-    } catch {
-      if (requestId !== requestIdRef.current) return;
-      setState({ status: "error", message: "Não foi possível carregar o catálogo." });
-    }
-  }, []);
+      return res.cards.filter((card) => matchesSearchTerms(card, terms));
+    },
+    {
+      dedupingInterval: 10 * 60 * 1000,
+      keepPreviousData: true,
+      revalidateOnFocus: false,
+    },
+  );
 
+  // Reporta contagem de resultados
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => void load(filters), 300);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [filters, load]);
+    if (cards !== undefined) onResultCountRef.current?.(cards.length);
+  }, [cards]);
 
-  // Reordenar mostra de novo só a primeira página.
+  // Reinicia paginação quando o resultado muda
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [sort]);
+  }, [cards, sort]);
 
   const visibleCards =
-    state.status === "ok" ? sortCatalogCards(state.cards, sort).slice(0, visibleCount) : [];
-  const hasMore = state.status === "ok" && visibleCount < state.cards.length;
+    cards !== undefined ? sortCatalogCards(cards, sort).slice(0, visibleCount) : [];
+  const hasMore = cards !== undefined && visibleCount < cards.length;
 
   useEffect(() => {
     if (!hasMore) return;
@@ -291,7 +304,7 @@ export const CatalogList = ({
     };
   }, [hasMore, visibleCount]);
 
-  if (state.status === "loading") {
+  if (isLoading && cards === undefined) {
     if (viewMode === "list") {
       return (
         <div className="border-line border-y" aria-busy="true" aria-label="Carregando cartões">
@@ -311,18 +324,23 @@ export const CatalogList = ({
     );
   }
 
-  if (state.status === "error") {
+  if (error !== undefined) {
     return (
       <Panel tone="raised" className="p-6 text-center">
-        <p className="text-body text-ink-muted">{state.message}</p>
-        <Button className="mt-4" onClick={() => void load(filters)}>
+        <p className="text-body text-ink-muted">Não foi possível carregar o catálogo.</p>
+        <Button
+          className="mt-4"
+          onClick={() => {
+            void mutate();
+          }}
+        >
           Tentar de novo
         </Button>
       </Panel>
     );
   }
 
-  if (state.cards.length === 0) {
+  if (cards?.length === 0) {
     return (
       <Panel tone="sunken" className="p-6 text-center">
         <p className="text-body text-ink-muted">Nenhum cartão com esses filtros.</p>
