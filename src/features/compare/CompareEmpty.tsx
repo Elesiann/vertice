@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
-import { ROUTES } from "@/routes";
+import { ROUTES } from "@/lib/routes-constants";
 
 export const CompareEmpty = (): JSX.Element => (
   <div className="mx-auto max-w-2xl px-4 py-16 text-center">

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import type * as ReactRouter from "react-router-dom";
@@ -48,6 +48,12 @@ const mockCardsResponse = (): void => {
   );
 };
 
+const settleEffects = async (): Promise<void> => {
+  await act(async () => {
+    await Promise.resolve();
+  });
+};
+
 describe("InputForm", () => {
   beforeEach(() => {
     navigateMock.mockClear();
@@ -55,8 +61,9 @@ describe("InputForm", () => {
     window.localStorage.clear();
   });
 
-  it("renders spending, income and preference controls", () => {
+  it("renders spending, income and preference controls", async () => {
     renderForm(() => undefined);
+    await settleEffects();
 
     expect(screen.getByLabelText(/Gasto mensal \(R\$\)/i)).toBeInTheDocument();
     expect(screen.queryByLabelText(/Gasto mensal em viagens/i)).not.toBeInTheDocument();

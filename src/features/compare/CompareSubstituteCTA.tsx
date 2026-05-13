@@ -5,7 +5,7 @@ import { useSession } from "@/context/SessionContext";
 import { useModeledReturns } from "@/features/compare/useModeledReturns";
 import { fetchCardDetail } from "@/lib/api";
 import { formatBrl } from "@/lib/format";
-import { ROUTES } from "@/routes";
+import { ROUTES } from "@/lib/routes-constants";
 import type { PublicCardDetail } from "@/types";
 
 interface CompareSubstituteCTAProps {
@@ -42,11 +42,13 @@ export const CompareSubstituteCTA = ({ cards }: CompareSubstituteCTAProps): JSX.
   const currentReturn = modeled.byCardId[currentCardId];
   if (currentReturn === undefined) return null;
 
-  const ranked = cards
-    .filter((c) => c.id !== currentCardId)
-    .map((c) => ({ card: c, ret: modeled.byCardId[c.id] }))
-    .filter((entry): entry is { card: PublicCardDetail; ret: number } => entry.ret !== undefined)
-    .sort((a, b) => b.ret - a.ret);
+  const ranked: { card: PublicCardDetail; ret: number }[] = [];
+  for (const card of cards) {
+    if (card.id === currentCardId) continue;
+    const ret = modeled.byCardId[card.id];
+    if (ret !== undefined) ranked.push({ card, ret });
+  }
+  ranked.sort((a, b) => b.ret - a.ret);
   const leader = ranked[0];
   if (leader === undefined) return null;
   if (leader.ret <= currentReturn) return null;

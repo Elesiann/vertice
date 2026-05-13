@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
@@ -120,6 +120,12 @@ const stubFetch = (byCardId: Record<string, number>, externalCard?: PublicCardDe
   );
 };
 
+const settleEffects = async (): Promise<void> => {
+  await act(async () => {
+    await Promise.resolve();
+  });
+};
+
 describe("CompareSubstituteCTA", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -129,7 +135,7 @@ describe("CompareSubstituteCTA", () => {
     vi.unstubAllGlobals();
   });
 
-  it("does not render when profile has no currentCardIds", () => {
+  it("does not render when profile has no currentCardIds", async () => {
     stubFetch({ a: 500, b: 1500 });
     render(
       <Wrap
@@ -142,6 +148,7 @@ describe("CompareSubstituteCTA", () => {
         <CompareSubstituteCTA cards={[makeCard("a", "Alpha"), makeCard("b", "Beta")]} />
       </Wrap>,
     );
+    await settleEffects();
     expect(screen.queryByText(/Substituir/i)).not.toBeInTheDocument();
   });
 
@@ -159,8 +166,7 @@ describe("CompareSubstituteCTA", () => {
         <CompareSubstituteCTA cards={[makeCard("a", "Alpha"), makeCard("b", "Beta")]} />
       </Wrap>,
     );
-    // Wait a tick for fetch to settle
-    await new Promise((r) => setTimeout(r, 10));
+    await settleEffects();
     expect(screen.queryByText(/Substituir/i)).not.toBeInTheDocument();
   });
 

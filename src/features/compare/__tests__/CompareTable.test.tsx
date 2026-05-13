@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
@@ -256,9 +256,12 @@ describe("CompareTable", () => {
     const row = labels.map((el) => el.closest("tr")).find((tr) => tr !== null);
     expect(row?.querySelectorAll(".animate-pulse").length).toBe(cards.length);
 
-    resolveFetch({
-      ok: true,
-      json: () => Promise.resolve({ ok: true, data: recommendation() }),
+    await act(async () => {
+      resolveFetch({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, data: recommendation() }),
+      });
+      await Promise.resolve();
     });
   });
 
