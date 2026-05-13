@@ -4,8 +4,12 @@ import { useEffect, useState } from "react";
 import { fetchCardDetail } from "@/lib/api";
 import { CardDetailHero } from "@/features/card-detail/CardDetailHero";
 import { CardDetailSections } from "@/features/card-detail/CardDetailSections";
+import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { useCompareStore } from "@/lib/compare-store";
+import { useSession } from "@/context/SessionContext";
+import { categoryLinks } from "@/features/card-detail/detail-model";
 import { ROUTES } from "@/routes";
 import type { PublicCardDetail, SolverError } from "@/types";
 import type { Result } from "@/lib/result";
@@ -16,8 +20,49 @@ type State =
   | { status: "error"; message: string }
   | { status: "ok"; card: PublicCardDetail };
 
+const CardCompareButton = ({ card }: { card: PublicCardDetail }): JSX.Element => {
+  const { add, remove, has } = useCompareStore();
+  const inCompare = has(card.id);
+
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      className="w-fit shrink-0"
+      onClick={() => {
+        if (inCompare) {
+          remove(card.id);
+        } else {
+          add(card.id);
+        }
+      }}
+    >
+      {inCompare ? "Remover da comparação" : "Adicionar à comparação"}
+    </Button>
+  );
+};
+
+const CardCategoryLinks = ({ card }: { card: PublicCardDetail }): JSX.Element => (
+  <nav
+    aria-label="Categorias relacionadas"
+    className="text-body-sm text-ink-muted flex flex-wrap items-baseline gap-x-5 gap-y-2 py-10"
+  >
+    <span className="text-ink-subtle text-caption">Explorar</span>
+    {categoryLinks(card).map((link) => (
+      <Link
+        key={`${link.param}-${link.value}`}
+        to={`${ROUTES.CATALOG}?${link.param}=${encodeURIComponent(link.value)}`}
+        className="text-ink hover:text-accent underline decoration-1 underline-offset-4 transition-colors"
+      >
+        {link.label}
+      </Link>
+    ))}
+  </nav>
+);
+
 export const CardDetailPage = (): JSX.Element => {
   const { id } = useParams<{ id: string }>();
+  const { profile } = useSession();
   const [state, setState] = useState<State>({ status: "loading" });
 
   useEffect(() => {
@@ -38,50 +83,65 @@ export const CardDetailPage = (): JSX.Element => {
 
   if (state.status === "loading") {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-8" aria-busy="true">
-        <div className="bg-surface-sunken h-40 animate-pulse rounded-xl" />
-        <div className="bg-surface-sunken h-64 animate-pulse rounded-xl" />
-      </div>
+      <main className="bg-surface text-ink-muted min-h-screen">
+        <div
+          className="mx-auto flex max-w-5xl flex-col gap-6 px-5 py-8 sm:px-6 md:py-12 lg:px-10"
+          aria-busy="true"
+        >
+          <div className="bg-surface-sunken h-56 animate-pulse rounded-lg" />
+          <div className="bg-surface-sunken h-64 animate-pulse rounded-lg" />
+        </div>
+      </main>
     );
   }
 
   if (state.status === "not-found") {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <Panel tone="raised" className="p-8">
-          <p className="text-heading text-ink">Cartão não encontrado</p>
-          <p className="text-body-sm text-ink-muted mt-2">
-            O cartão que você está procurando não existe no catálogo.
-          </p>
-          <ButtonLink to={ROUTES.CATALOG} className="mt-6 inline-flex">
-            Voltar ao catálogo
-          </ButtonLink>
-        </Panel>
-      </div>
+      <main className="bg-surface text-ink-muted min-h-screen">
+        <div className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
+          <Panel tone="raised" className="p-8">
+            <p className="text-heading text-ink text-balance">Cartão não encontrado</p>
+            <p className="text-body-sm text-ink-muted mt-2 text-pretty">
+              O cartão que você está procurando não existe no catálogo.
+            </p>
+            <ButtonLink to={ROUTES.CATALOG} className="mt-6 inline-flex">
+              Voltar ao catálogo
+            </ButtonLink>
+          </Panel>
+        </div>
+      </main>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-16 text-center">
-        <Panel tone="raised" className="p-8">
-          <p className="text-body text-ink-muted">{state.message}</p>
-        </Panel>
-      </div>
+      <main className="bg-surface text-ink-muted min-h-screen">
+        <div className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
+          <Panel tone="raised" className="p-8">
+            <p className="text-body text-ink-muted text-pretty">{state.message}</p>
+          </Panel>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8">
-      <nav aria-label="Breadcrumb" className="text-body-sm text-ink-muted">
-        <Link to={ROUTES.CATALOG} className="hover:text-accent">
-          Catálogo
-        </Link>
-        <span className="mx-2">/</span>
-        <span className="text-ink">{state.card.name}</span>
-      </nav>
-      <CardDetailHero card={state.card} />
-      <CardDetailSections card={state.card} />
-    </div>
+    <main className="bg-surface text-ink-muted min-h-screen">
+      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <nav aria-label="Breadcrumb" className="text-body-sm text-ink-muted">
+            <Link to={ROUTES.CATALOG} className="hover:text-accent">
+              Catálogo
+            </Link>
+            <span className="mx-2">/</span>
+            <span className="text-ink">{state.card.name}</span>
+          </nav>
+          <CardCompareButton card={state.card} />
+        </div>
+        <CardDetailHero card={state.card} profile={profile} />
+        <CardDetailSections card={state.card} profile={profile} />
+        <CardCategoryLinks card={state.card} />
+      </div>
+    </main>
   );
 };
