@@ -45,6 +45,7 @@ import { AlternativesSection } from "@/features/results/AlternativesSection";
 import { CalculationBreakdown } from "@/features/results/CalculationBreakdown";
 import { HeroDetailLinks } from "@/features/results/HeroDetailLinks";
 import { StackLabelLink } from "@/features/results/StackLabelLink";
+import { displayStackFor, displayStackForProfile } from "@/features/results/display-recommendation";
 import type { Recommendation, SpendingProfile, StackEvaluation } from "@/types";
 
 const VERDICT_TONE: Record<"strong" | "viable" | "negative", "accent" | "neutral" | "warning"> = {
@@ -175,9 +176,6 @@ const preferenceDivergenceComparison = (
   };
 };
 
-const displayStackFor = (recommendation: Recommendation): StackEvaluation =>
-  recommendation.scoreLab?.decisionTracks?.recommendedNow ?? recommendation.topStack;
-
 const recommendationWithTopStack = (
   recommendation: Recommendation,
   topStack: StackEvaluation,
@@ -245,10 +243,7 @@ export const ResultsView = (): JSX.Element => {
   // When the user already holds the highest-net stack on offer, reframe the whole page around their
   // current card (it becomes "the subject") instead of pitching the engine's lower-net pick.
   const isCurrentCardBest = currentCardIsBest(recommendation, profile);
-  const topStack =
-    isCurrentCardBest && recommendation.currentStack !== undefined
-      ? recommendation.currentStack
-      : displayStackFor(recommendation);
+  const topStack = displayStackForProfile(recommendation, profile);
   const currentCardUpside = isCurrentCardBest
     ? bestUpsideForCurrentCard(recommendation, profile)
     : null;

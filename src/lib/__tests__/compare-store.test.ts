@@ -42,6 +42,14 @@ describe("useCompareStore", () => {
     expect(result.current.ids).not.toContain("e");
   });
 
+  it("setIds deduplicates and caps at 4 cards", () => {
+    const { result } = renderHook(() => useCompareStore());
+    act(() => {
+      result.current.setIds(["a", "b", "a", "c", "d", "e"]);
+    });
+    expect(result.current.ids).toEqual(["a", "b", "c", "d"]);
+  });
+
   it("removes an id", () => {
     const { result } = renderHook(() => useCompareStore());
     act(() => {
