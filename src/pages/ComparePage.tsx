@@ -2,6 +2,7 @@ import type { JSX } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { fetchCardCatalog, fetchCardDetail } from "@/lib/api";
+import { BackLink } from "@/components/ui/BackLink";
 import { CompareTable } from "@/features/compare/CompareTable";
 import { CompareEmpty } from "@/features/compare/CompareEmpty";
 import { useSession } from "@/context/SessionContext";
@@ -125,9 +126,12 @@ export const ComparePage = (): JSX.Element => {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <BackLink className="mb-4" to="/cards">
+        Catálogo
+      </BackLink>
       <h1 className="text-display-3 text-ink mb-1">Comparar Cartões</h1>
       {/* Meta-line */}
-      <p className="text-body-sm text-ink-muted mb-6 flex flex-wrap items-center gap-1.5">
+      <p className="text-body-sm text-ink-muted mb-4 flex flex-wrap items-center gap-1.5">
         <span>
           {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
         </span>

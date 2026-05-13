@@ -8,6 +8,7 @@ import {
   type CatalogViewMode,
 } from "@/features/catalog/CatalogFilters";
 import { CatalogList } from "@/features/catalog/CatalogList";
+import { BackLink } from "@/components/ui/BackLink";
 import { fetchCardCatalog } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -260,6 +261,9 @@ export const CatalogPage = (): JSX.Element => {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
+      <BackLink className="mb-4" to="/">
+        Home
+      </BackLink>
       <div className="border-line border-b">
         <header className="border-line flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <h1 className="text-display-3 text-ink">

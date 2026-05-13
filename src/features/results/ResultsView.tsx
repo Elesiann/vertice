@@ -1,5 +1,6 @@
 import { type JSX } from "react";
 import { Link } from "react-router-dom";
+import { BackLink } from "@/components/ui/BackLink";
 import { FeeTierBadge } from "@/components/domain/FeeTierBadge";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
@@ -331,6 +332,9 @@ export const ResultsView = (): JSX.Element => {
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
       <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
+        <BackLink className="mb-6" to="/input">
+          Perfil
+        </BackLink>
         <header className="max-w-4xl">
           <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
           <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
@@ -544,9 +548,14 @@ export const ResultsView = (): JSX.Element => {
         </section>
 
         <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-          <Link to={ROUTES.INPUT} className="plain-link">
-            Ajustar dados
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link to={ROUTES.INPUT} className="plain-link">
+              Ajustar dados
+            </Link>
+            <Link to={ROUTES.CATALOG} className="plain-link">
+              Explorar catálogo →
+            </Link>
+          </div>
           <a
             href={buildErrorReportUrl({
               stackLabel: stackLabel(topStack),
