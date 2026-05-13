@@ -193,7 +193,7 @@ export const CatalogList = ({
 
       {state.status === "loading" && (
         <div
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3"
           aria-busy="true"
           aria-label="Carregando cartões"
         >
@@ -226,7 +226,7 @@ export const CatalogList = ({
 
       {state.status === "ok" && state.cards.length > 0 && (
         <>
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2 xl:grid-cols-3">
             {visibleCards.map((card) => (
               <CatalogCard
                 key={card.id}

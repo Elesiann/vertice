@@ -91,24 +91,27 @@ describe("CatalogCard", () => {
     expect(screen.getByText(/R\$ 1\.200/)).toBeInTheDocument();
   });
 
-  it("shows 'Sem anuidade' as a perk and no fee block for fee-free cards", () => {
+  it("shows the annual-fee block reading 'Sem anuidade' for fee-free cards", () => {
     renderCard(null, { ...card, annualFeeBrl: 0 });
+    expect(screen.getByText("Anuidade")).toBeInTheDocument();
     expect(screen.getByText("Sem anuidade")).toBeInTheDocument();
-    expect(screen.queryByText("Anuidade")).not.toBeInTheDocument();
   });
 
-  it("shows an access-barrier line for cards gated by investing in the issuer's brokerage", () => {
+  it("shows an access-barrier chip for cards gated by investing in the issuer's brokerage", () => {
     renderCard(null, {
       ...card,
       requiresRelationship: "investment",
       requiredInvestmentBrl: 20000,
     });
-    expect(screen.getByText("Exige R$ 20 mil investidos")).toBeInTheDocument();
+    expect(screen.getByText("Exige R$ 20 mil")).toBeInTheDocument();
+    expect(
+      screen.getByText("Exige R$ 20 mil investidos na corretora do emissor"),
+    ).toBeInTheDocument();
   });
 
-  it("shows a checking-account requirement line for cards gated by a checking relationship", () => {
+  it("does not show an access-barrier chip for a mere checking-account requirement", () => {
     renderCard(null, { ...card, requiresRelationship: "checking" });
-    expect(screen.getByText("Precisa de conta corrente")).toBeInTheDocument();
+    expect(screen.queryByText(/exige|private banking/i)).not.toBeInTheDocument();
   });
 
   it("does not surface annual-fee-waiver conditions on the card", () => {

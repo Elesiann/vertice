@@ -2,7 +2,6 @@ import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Armchair,
-  BadgeCheck,
   Check,
   Globe,
   Lock,
@@ -52,30 +51,33 @@ const formatBrlShort = (value: number): string => {
   return `R$ ${Math.round(value).toLocaleString("pt-BR")}`;
 };
 
-// Cartões sem anuidade não recebem o bloco de anuidade — "Sem anuidade" entra
-// como o primeiro item da fileira de benefícios. Aqui só os com cobrança.
+// Todo card tem o bloco "Anuidade" (mantém as alturas alinhadas na grade).
+// `null` = sem cobrança ("Sem anuidade"); o valor "R$ X/ano" caso contrário.
 // A condição de isenção fica na página de detalhe, não no card.
 const annualFeeAmount = (card: PublicCatalogCard): string | null =>
   card.annualFeeBrl === 0 ? null : formatBrlShort(card.annualFeeBrl);
 
+// Barreira real para *contratar* o cartão (≠ isenção de anuidade): exigência
+// de investimento alto ou private banking. "Precisa de conta corrente" não
+// entra — é quase universal e não diz nada. Vira um chip sobreposto na imagem
+// (`short` = texto curto do chip; `full` = texto do tooltip/leitor de tela).
 interface AccessBarrier {
-  text: string;
-  tone: "warning" | "muted";
+  short: string;
+  full: string;
 }
 
-// Barreira para *contratar* o cartão (≠ isenção de anuidade). Exigência de
-// investimento ou private banking conta como obstáculo (âmbar); conta corrente
-// é só um pré-requisito leve (neutro). O detalhamento mora na página do cartão.
 const accessBarrier = (card: PublicCatalogCard): AccessBarrier | null => {
   const invested = card.requiredInvestmentBrl ?? card.minInvestmentBrl;
   const rel = card.requiresRelationship;
 
   if ((rel === "investment" || rel === "private") && invested !== undefined && invested > 0) {
-    const where = rel === "private" ? "em private banking" : "investidos";
-    return { text: `Exige ${formatBrlShort(invested)} ${where}`, tone: "warning" };
+    const amount = formatBrlShort(invested);
+    const where = rel === "private" ? "em private banking" : "investidos na corretora do emissor";
+    return { short: `Exige ${amount}`, full: `Exige ${amount} ${where}` };
   }
-  if (rel === "private") return { text: "Exige private banking", tone: "warning" };
-  if (rel === "checking") return { text: "Precisa de conta corrente", tone: "muted" };
+  if (rel === "private") {
+    return { short: "Private banking", full: "Acesso restrito a clientes de private banking" };
+  }
   return null;
 };
 
@@ -86,7 +88,6 @@ interface Perk {
 
 const perks = (card: PublicCatalogCard): Perk[] => {
   const list: Perk[] = [];
-  if (card.annualFeeBrl === 0) list.push({ Icon: BadgeCheck, label: "Sem anuidade" });
   if (card.hasLoungeAccess) list.push({ Icon: Armchair, label: "Sala VIP" });
   if (card.cashbackRatePercent !== undefined && card.cashbackRatePercent > 0) {
     const rate = formatCashbackRate(card.cashbackRatePercent);
@@ -131,7 +132,12 @@ export const CatalogCard = ({
   return (
     <article
       className={cn(
-        "border-line bg-surface-raised hover:border-line-strong relative flex h-[30rem] flex-col overflow-hidden rounded-xl border transition-colors",
+        // Proporção fixa do card (não altura fixa em px): a imagem mantém sua
+        // proporção e a área de conteúdo escala junto com a largura — assim os
+        // cards ficam uniformes em qualquer breakpoint. A barreira de acesso
+        // vira um chip sobreposto na imagem, então o conteúdo abaixo tem sempre
+        // a mesma altura (sem espremer no rodapé).
+        "border-line bg-surface-raised hover:border-line-strong relative flex aspect-[3/4] flex-col overflow-hidden rounded-xl border transition-colors",
         className,
       )}
     >
@@ -143,6 +149,23 @@ export const CatalogCard = ({
           tier={card.tier}
           className="!w-full rounded-b-none border-0"
         />
+
+        {barrier !== null && (
+          <span
+            className="group/barrier border-line/40 bg-surface-raised/85 text-ink-muted absolute top-3 left-3 z-10 inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium backdrop-blur-sm"
+            title={barrier.full}
+          >
+            <Lock size={12} className="text-ink-subtle shrink-0" aria-hidden="true" />
+            <span className="whitespace-nowrap">{barrier.short}</span>
+            <span
+              role="tooltip"
+              className="border-line bg-surface-raised text-ink pointer-events-none invisible absolute top-full left-0 z-30 mt-1.5 w-max max-w-[14rem] rounded-md border px-3 py-2 text-xs leading-relaxed font-normal opacity-0 shadow-md transition group-hover/barrier:visible group-hover/barrier:opacity-100"
+            >
+              {barrier.full}
+            </span>
+          </span>
+        )}
+
         <button
           type="button"
           aria-pressed={inCompare}
@@ -163,7 +186,7 @@ export const CatalogCard = ({
         <div className="flex flex-col gap-0.5">
           <Link
             to={`/cards/${card.id}`}
-            className="text-heading text-ink hover:text-accent focus-visible:ring-accent line-clamp-2 rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
+            className="text-heading text-ink hover:text-accent focus-visible:ring-accent line-clamp-2 min-h-[3.25rem] rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
           >
             {card.name}
           </Link>
@@ -174,34 +197,27 @@ export const CatalogCard = ({
         </div>
 
         <div className="border-line flex flex-col gap-2.5 border-t pt-2.5">
-          {feeAmount !== null && (
-            <div>
-              <p className="text-caption text-ink-subtle">Anuidade</p>
+          <div>
+            <p className="text-caption text-ink-subtle">Anuidade</p>
+            {feeAmount !== null ? (
               <p className="text-num text-ink mt-0.5 text-lg font-semibold">
                 {feeAmount}
                 <span className="text-ink-muted text-sm font-normal"> /ano</span>
               </p>
-            </div>
-          )}
-
-          {barrier !== null && (
-            <p
-              className={cn(
-                "flex items-start gap-1.5 text-xs leading-snug",
-                barrier.tone === "warning" ? "text-warning" : "text-ink-subtle",
-              )}
-            >
-              <Lock size={13} className="mt-0.5 shrink-0" aria-hidden="true" />
-              <span className="line-clamp-2">{barrier.text}</span>
-            </p>
-          )}
+            ) : (
+              <p className="text-ink mt-0.5 text-lg font-semibold">Sem anuidade</p>
+            )}
+          </div>
 
           {perkList.length > 0 && (
-            <ul className="flex flex-wrap gap-x-3 gap-y-1.5">
+            <ul className="flex h-12 flex-wrap content-start gap-x-3 gap-y-1.5 overflow-hidden">
               {perkList.map(({ Icon, label }) => (
-                <li key={label} className="text-ink-muted flex items-center gap-1.5 text-xs">
+                <li
+                  key={label}
+                  className="text-ink-muted flex h-5 max-w-full items-center gap-1.5 text-xs"
+                >
                   <Icon size={14} className="text-ink-subtle shrink-0" aria-hidden="true" />
-                  {label}
+                  <span className="truncate">{label}</span>
                 </li>
               ))}
             </ul>
