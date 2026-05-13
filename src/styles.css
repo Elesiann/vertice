@@ -339,8 +339,8 @@
 
 @media print {
   @page {
-    size: portrait;
-    margin: 1.5cm;
+    size: landscape;
+    margin: 1cm;
   }
 
   body {
@@ -351,5 +351,25 @@
      `print:break-inside-avoid` Tailwind class for redundancy. */
   .compare-print-row {
     break-inside: avoid;
+  }
+
+  /* Force desktop table to display — overrides `hidden md:block` which may
+     hide the table on narrow viewports during print. */
+  .compare-table-desktop {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  /* Hide mobile card layout in print — the desktop table is the canonical
+     output format. */
+  .compare-mobile-cards {
+    display: none !important;
+  }
+
+  /* Preserve comparison winner column background in print (some browsers
+     strip backgrounds by default). */
+  .compare-winner-col {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

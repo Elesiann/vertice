@@ -698,7 +698,7 @@ export const CompareTable = ({
       </div>
 
       {/* Desktop table */}
-      <div className="hidden overflow-x-auto md:block">
+      <div className="compare-table-desktop hidden overflow-x-auto md:block">
         <table className="w-full table-fixed border-collapse">
           <thead>
             <tr className="border-line border-b">

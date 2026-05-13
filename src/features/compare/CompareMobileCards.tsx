@@ -26,7 +26,7 @@ export const CompareMobileCards = ({
   winnerIndexes = new Set<number>(),
   footer,
 }: CompareMobileCardsProps): JSX.Element => (
-  <div className="flex flex-col gap-4 md:hidden">
+  <div className="compare-mobile-cards flex flex-col gap-4 md:hidden">
     {cards.map((card, cardIdx) => {
       const isComparisonWinner = winnerIndexes.has(cardIdx);
       return (
