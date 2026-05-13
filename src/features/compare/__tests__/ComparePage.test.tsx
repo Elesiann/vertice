@@ -1,19 +1,27 @@
+import { useEffect } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { ComparePage } from "@/pages/ComparePage";
-import { SessionProvider } from "@/context/SessionContext";
+import { SessionProvider, useSession } from "@/context/SessionContext";
 import { ok } from "@/lib/result";
 import { useCompareStore } from "@/lib/compare-store";
-import type { CardCatalogResponse, PublicCardDetail } from "@/types";
+import type {
+  CardCatalogResponse,
+  PublicCardDetail,
+  Recommendation,
+  SpendingProfile,
+} from "@/types";
 
 const fetchCardDetail = vi.fn<(id: string) => Promise<ReturnType<typeof ok<PublicCardDetail>>>>();
 const fetchCardCatalog = vi.fn<() => Promise<CardCatalogResponse>>();
+const fetchRecommendation = vi.fn<() => Promise<ReturnType<typeof ok<Recommendation>>>>();
 
 vi.mock("@/lib/api", () => ({
   fetchCardDetail: (id: string) => fetchCardDetail(id),
   fetchCardCatalog: () => fetchCardCatalog(),
+  fetchRecommendation: () => fetchRecommendation(),
 }));
 
 const makeCard = (id: string, name: string): PublicCardDetail => ({
@@ -35,10 +43,75 @@ const LocationProbe = (): React.JSX.Element => {
   return <span data-testid="location">{location.search}</span>;
 };
 
-const renderPage = (entry: string): void => {
+const Seed = ({ profile }: { profile: SpendingProfile | null }): null => {
+  const { setProfile } = useSession();
+  useEffect(() => {
+    if (profile !== null) setProfile(profile);
+  }, [profile, setProfile]);
+  return null;
+};
+
+const profile: SpendingProfile = {
+  monthlyDomesticBrl: 5000,
+  monthlyInternationalUsd: 0,
+  redemption: { kind: "any" },
+};
+
+const makeRecommendation = (
+  recommendedCardId: string,
+  byCardId: Record<string, number>,
+): Recommendation => {
+  const topStack: Recommendation["topStack"] = {
+    cards: [
+      {
+        id: recommendedCardId,
+        name: `Cartão ${recommendedCardId.toUpperCase()}`,
+        bank: "nubank",
+        pointsProgram: "smiles",
+      },
+    ],
+    allocation: [
+      { cardId: recommendedCardId, monthlyDomesticBrl: 5000, monthlyInternationalUsd: 0 },
+    ],
+    liquidity: "high",
+    yearOneAnnualFeeBrl: 0,
+    yearOneWelcomeBonusPoints: 0,
+    yearOneEarnedPoints: 0,
+    yearOneTotalPoints: 0,
+    yearOneTotalValueBrl: 0,
+    yearOneNetValueBrl: byCardId[recommendedCardId] ?? 0,
+    warnings: [],
+    confidence: "high",
+  };
+  return {
+    topStack,
+    alternatives: [],
+    leaderboardsByAxis: [],
+    isReturnDecisionTight: false,
+    travelTranslation: { kind: "cashback", valueBrl: 0 },
+    shoutout: "",
+    scoreLab: {
+      scenarioId: "test",
+      preference: "any",
+      ptaxRate: 5,
+      ptaxSource: "manual",
+      ptaxFetchedAt: "2026-05-09T00:00:00.000Z",
+      scoreLabVersion: "test",
+      evaluatedStacks: Object.keys(byCardId).length,
+      netReturnLeaderDiffers: false,
+      netReturnLeader: topStack,
+      nearUnlocks: [],
+      singleCardNetReturnByCardId: byCardId,
+      notes: [],
+    },
+  };
+};
+
+const renderPage = (entry: string, seededProfile: SpendingProfile | null = null): void => {
   render(
     <MemoryRouter initialEntries={[entry]}>
       <SessionProvider>
+        <Seed profile={seededProfile} />
         <ComparePage />
         <LocationProbe />
       </SessionProvider>
@@ -48,8 +121,10 @@ const renderPage = (entry: string): void => {
 
 describe("ComparePage inline add", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     useCompareStore.setState({ ids: [] });
     fetchCardDetail.mockImplementation((id) => Promise.resolve(ok(makeCard(id, `Cartão ${id}`))));
+    fetchRecommendation.mockResolvedValue(ok(makeRecommendation("r", {})));
     fetchCardCatalog.mockResolvedValue({
       cards: [makeCard("a", "Cartão a"), makeCard("b", "Cartão b"), makeCard("d", "Delta Gold")],
       catalogVersion: "test",
@@ -79,10 +154,12 @@ describe("ComparePage inline add", () => {
 
 describe("ComparePage remove card", () => {
   beforeEach(() => {
+    window.localStorage.clear();
     useCompareStore.setState({ ids: ["a", "b", "c"] });
     fetchCardDetail.mockImplementation((id) =>
       Promise.resolve(ok(makeCard(id, `Cartão ${id.toUpperCase()}`))),
     );
+    fetchRecommendation.mockResolvedValue(ok(makeRecommendation("r", {})));
     fetchCardCatalog.mockResolvedValue({
       cards: [],
       catalogVersion: "test",
@@ -105,5 +182,53 @@ describe("ComparePage remove card", () => {
       expect(screen.getByTestId("location")).toHaveTextContent("?ids=a%2Cc");
     });
     expect(useCompareStore.getState().ids).not.toContain("b");
+  });
+
+  it("does not allow removing a card when only two cards are compared", async () => {
+    renderPage("/compare?ids=a,b");
+
+    await screen.findAllByText("Cartão A");
+
+    expect(screen.queryByRole("button", { name: "Remover Cartão A" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Remover Cartão B" })).not.toBeInTheDocument();
+  });
+});
+
+describe("ComparePage recommended card add", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useCompareStore.setState({ ids: ["a", "b", "c", "d"] });
+    fetchCardDetail.mockImplementation((id) =>
+      Promise.resolve(ok(makeCard(id, `Cartão ${id.toUpperCase()}`))),
+    );
+    fetchRecommendation.mockResolvedValue(
+      ok(makeRecommendation("r", { a: 100, b: 50, c: 300, d: 200, r: 500 })),
+    );
+    fetchCardCatalog.mockResolvedValue({
+      cards: [],
+      catalogVersion: "test",
+      count: 0,
+      filters: {},
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("adds the results recommendation and replaces the worst compared card at the 4-card limit", async () => {
+    renderPage("/compare?ids=a,b,c,d", profile);
+
+    await screen.findAllByText("Cartão A");
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Adicionar cartão recomendado e substituir o pior",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location")).toHaveTextContent("?ids=a%2Cc%2Cd%2Cr");
+    });
+    expect(useCompareStore.getState().ids).toEqual(["a", "c", "d", "r"]);
   });
 });
