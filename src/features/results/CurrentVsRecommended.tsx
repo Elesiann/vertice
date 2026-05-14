@@ -300,7 +300,7 @@ export const CurrentVsRecommended = ({
                   onClick={() => {
                     toggleRow(row.key);
                   }}
-                  className="focus-visible:outline-accent hover:[&_span]:text-accent inline-flex cursor-pointer items-center font-normal transition-colors focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1"
+                  className="focus-visible:ring-accent hover:[&_span]:text-accent inline-flex cursor-pointer items-center font-normal transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
                 >
                   {row.label}
                   <ToggleDisc open={isExpanded} />

@@ -37,7 +37,7 @@ export const PreferencePanel = ({
 }): JSX.Element => (
   <section
     aria-label={`Sobre sua preferência por ${comparison.preferenceLabel}`}
-    className="bg-surface-sunken rounded-lg p-5 sm:p-6"
+    className="border-line bg-surface-sunken rounded-md border p-5 sm:p-6"
   >
     <h3 className="text-heading text-ink">
       Sobre sua preferência por {comparison.preferenceLabel}

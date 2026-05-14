@@ -24,7 +24,7 @@ export const CompareWinnerTooltip = ({
       <span
         tabIndex={0}
         aria-describedby={tooltipId}
-        className="focus-visible:ring-accent cursor-help rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+        className="focus-visible:ring-accent cursor-help rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       >
         {children}
       </span>

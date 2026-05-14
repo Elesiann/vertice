@@ -755,7 +755,7 @@ export const CompareTable = ({
                 {" — "}
                 <button
                   type="button"
-                  className="text-accent underline underline-offset-2 transition-all hover:no-underline"
+                  className="text-accent focus-visible:ring-accent rounded-sm underline underline-offset-2 transition-all outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-offset-2"
                   onClick={() => {
                     setHideEqualRows(false);
                   }}
@@ -769,7 +769,7 @@ export const CompareTable = ({
                 {" — "}
                 <button
                   type="button"
-                  className="text-accent underline underline-offset-2 transition-all hover:no-underline"
+                  className="text-accent focus-visible:ring-accent rounded-sm underline underline-offset-2 transition-all outline-none hover:no-underline focus-visible:ring-2 focus-visible:ring-offset-2"
                   onClick={() => {
                     setHideEqualRows(true);
                   }}

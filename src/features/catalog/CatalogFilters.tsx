@@ -170,7 +170,7 @@ const FeeRangeFields = ({
 // --- pill styling -----------------------------------------------------------
 
 const PILL_BASE =
-  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 cursor-pointer";
+  "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 cursor-pointer";
 const PILL_IDLE =
   "border-line bg-transparent text-ink-muted hover:border-line-strong hover:text-ink";
 const PILL_ACTIVE = "border-ink bg-ink text-surface-raised hover:bg-ink/90";
@@ -180,7 +180,7 @@ const Divider = (): JSX.Element => (
 );
 
 const MOBILE_TOOLBAR_BUTTON =
-  "border-line text-ink-muted bg-transparent hover:border-line-strong hover:text-ink focus-visible:ring-accent inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none";
+  "border-line text-ink-muted bg-transparent hover:border-line-strong hover:text-ink focus-visible:ring-accent inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none";
 
 // --- dropdown ---------------------------------------------------------------
 
@@ -278,7 +278,7 @@ const FilterDropdown = ({
             e.stopPropagation();
           }}
           className={cn(
-            "border-line bg-surface-raised absolute top-[calc(100%+0.5rem)] left-0 z-40 flex min-w-[13rem] flex-col gap-0.5 rounded-xl border p-2 shadow-lg",
+            "border-line bg-surface-raised absolute top-[calc(100%+0.5rem)] left-0 z-40 flex min-w-[13rem] flex-col gap-0.5 rounded-lg border p-2 shadow-lg",
             panelClassName,
           )}
         >

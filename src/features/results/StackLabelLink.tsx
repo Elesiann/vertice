@@ -26,7 +26,7 @@ export const StackLabelLink = ({
           <Link
             to={`/cards/${card.id}`}
             className={cn(
-              "hover:text-accent focus-visible:text-accent focus-visible:outline-accent transition-colors hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2",
+              "hover:text-accent focus-visible:text-accent focus-visible:ring-accent transition-colors hover:underline focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
               cardClassName,
             )}
           >

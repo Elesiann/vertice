@@ -193,7 +193,7 @@ export const CardCombobox = ({
           id={listboxId}
           role="listbox"
           aria-multiselectable="true"
-          className="border-line bg-surface-raised absolute bottom-full z-20 mb-1 max-h-64 w-full overflow-y-auto rounded-md border shadow-lg"
+          className="border-line bg-surface-raised absolute bottom-full z-20 mb-1 max-h-64 w-full overflow-y-auto rounded-lg border shadow-lg"
         >
           {loading ? (
             <p className="text-ink-subtle px-3 py-2 text-sm">Carregando cartões…</p>
