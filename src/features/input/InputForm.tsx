@@ -285,7 +285,7 @@ export const InputForm = (): JSX.Element => {
                     <span className="text-ink-subtle text-xs font-normal"> (opcional)</span>
                   </>
                 }
-                hint="Usado para identificar cartões com isenção via investimento."
+                hint="Valor que você poderia manter investido no banco para eventual isenção de anuidade."
                 error={errors.availableToInvestBrl?.message}
               >
                 <Input
