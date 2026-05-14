@@ -11,7 +11,6 @@ interface DisclosureProps {
   children: ReactNode;
   className?: string;
   summaryClassName?: string;
-  defaultOpen?: boolean;
 }
 
 const PANEL_WRAP = "border-line bg-surface-sunken rounded-md border";
@@ -25,9 +24,8 @@ export const Disclosure = ({
   children,
   className,
   summaryClassName,
-  defaultOpen = false,
 }: DisclosureProps): JSX.Element => {
-  const [open, setOpen] = useState(defaultOpen);
+  const [open, setOpen] = useState(false);
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [height, setHeight] = useState<number>(0);
 
