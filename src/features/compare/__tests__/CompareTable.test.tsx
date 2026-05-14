@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { SessionProvider, useSession } from "@/context/SessionContext";
 import { CompareTable } from "@/features/compare/CompareTable";
-import type { PublicCardDetail, Recommendation, SpendingProfile } from "@/types";
+import type { PublicCardDetail, PublicStackCard, Recommendation, SpendingProfile } from "@/types";
 
 const makeCard = (id: string, name: string, annualFeeBrl: number): PublicCardDetail => ({
   id,
@@ -259,10 +259,10 @@ describe("CompareTable", () => {
         {
           id: "a",
           name: "Cartão Alpha",
-          bank: "nubank",
-          pointsProgram: "nomad-pass",
+          bank: "nubank" as const,
+          pointsProgram: "nomad-pass" as const,
         },
-      ],
+      ] as PublicStackCard[],
       yearOneTotalValueBrl: 900,
       yearOneNetValueBrl: 900,
       scoreLab: {
