@@ -5,19 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Vértice</title>
-    <!--
-      Umami Analytics - To enable after deployment:
-      1. Self-host Umami or use a hosted service
-      2. Get your Website ID from Umami dashboard
-      3. Uncomment the line below and replace:
-         - YOUR_WEBSITE_ID with your actual Umami Website ID
-         - https://umami.example.com/umami.js with your Umami URL
-      Example:
-      <script async defer data-website-id="abc123" src="https://umami.yourdomain.com/umami.js"></script>
-    -->
-    <!--
-    <script async defer data-website-id="YOUR_WEBSITE_ID" src="https://umami.example.com/umami.js"></script>
-    -->
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "9c0c304d549646389a6f176a2ef89132"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
   </head>
   <body>
     <div id="root"></div>
