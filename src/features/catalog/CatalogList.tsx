@@ -386,7 +386,7 @@ export const CatalogList = ({
 
   if (error !== undefined) {
     return (
-      <Panel tone="raised" className="p-6 text-center">
+      <Panel tone="raised" className="p-8 text-center">
         <p className="text-body text-ink-muted">Não foi possível carregar o catálogo.</p>
         <Button
           className="mt-4"
@@ -402,8 +402,8 @@ export const CatalogList = ({
 
   if (cards?.length === 0) {
     return (
-      <Panel tone="sunken" className="p-6 text-center">
-        <p className="text-body text-ink-muted">Nenhum cartão com esses filtros.</p>
+      <Panel tone="raised" className="p-8 text-center">
+        <p className="text-display-3 text-ink">Nenhum cartão com esses filtros.</p>
         <p className="text-body-sm text-ink-subtle mt-2">{emptySuggestion(filters)}</p>
         {onClearFilters !== undefined && (
           <Button variant="ghost" size="sm" className="mt-4" onClick={onClearFilters}>

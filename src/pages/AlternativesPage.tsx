@@ -47,7 +47,7 @@ const AlternativesPageInner = (): JSX.Element => {
   if (profile === null) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-3xl">
+        <div className="app-container max-w-5xl">
           <Panel className="space-y-4 p-6 text-center sm:p-8">
             <h1 className="text-display-3 text-ink">Nada para mostrar ainda</h1>
             <p className="text-ink-muted text-sm">Preencha seus dados para gerar a recomendação.</p>
@@ -63,7 +63,7 @@ const AlternativesPageInner = (): JSX.Element => {
   if (result === null) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-3xl">
+        <div className="app-container max-w-5xl">
           <Panel className="text-ink-muted p-6 text-center sm:p-8">Calculando…</Panel>
         </div>
       </main>
@@ -73,7 +73,7 @@ const AlternativesPageInner = (): JSX.Element => {
   if (!result.ok) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-3xl">
+        <div className="app-container max-w-5xl">
           <Panel className="space-y-4 p-6 text-center sm:p-8">
             <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
             <p className="text-ink-muted text-sm">{result.error.message}</p>
@@ -104,7 +104,7 @@ const AlternativesPageInner = (): JSX.Element => {
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
-      <div className="mx-auto max-w-3xl px-5 py-8 sm:px-6 md:py-12">
+      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12">
         <p className="text-caption text-ink-subtle">Todas as opções</p>
         <h1 className="text-display-3 text-ink mt-2">Catálogo comparado para o seu perfil</h1>
         <p className="text-ink-subtle mt-2 text-sm">

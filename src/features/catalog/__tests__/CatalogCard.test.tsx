@@ -131,12 +131,13 @@ describe("CatalogCard", () => {
 
   it("marks the card as the user's current card when it is in the session profile", () => {
     renderCard(ownedProfile);
-    expect(screen.getByText("Seu cartão hoje")).toBeInTheDocument();
+    expect(screen.getByText("Seu cartão")).toBeInTheDocument();
   });
 
   it("does not mark the card when it is not in the session profile", () => {
-    renderCard(otherCardProfile);
-    expect(screen.queryByText("Seu cartão hoje")).not.toBeInTheDocument();
+    renderCard(null, card);
+
+    expect(screen.queryByText("Seu cartão")).not.toBeInTheDocument();
   });
 
   it("calls onCompare when compare button clicked without a current card", async () => {

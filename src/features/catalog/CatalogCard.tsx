@@ -1,5 +1,6 @@
 import type { JSX } from "react";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/Badge";
 import {
   Armchair,
   Check,
@@ -140,7 +141,7 @@ export const CatalogCard = ({
           name={card.name}
           brand={card.brand}
           tier={card.tier}
-          className="!w-full rounded-b-none border-0"
+          className="!w-full border-0"
         />
 
         {barrier !== null && (
@@ -186,7 +187,11 @@ export const CatalogCard = ({
           <p className="text-caption text-ink-subtle">
             {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
           </p>
-          {isCurrentCard && <span className="text-caption text-accent">Seu cartão hoje</span>}
+          {isCurrentCard && (
+            <Badge tone="neutral" className="mt-1 w-fit">
+              Seu cartão
+            </Badge>
+          )}
         </div>
 
         <div className="border-line flex flex-col gap-2 border-t pt-2">

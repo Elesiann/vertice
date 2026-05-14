@@ -129,7 +129,7 @@ describe("CompareTable", () => {
         <CompareTable cards={cards} />
       </Wrap>,
     );
-    expect(await screen.findByText("Seu cartão")).toBeInTheDocument();
+    expect((await screen.findAllByText("Seu cartão")).length).toBeGreaterThanOrEqual(1);
   });
 
   it("omits current-card badge when no compared card is current", () => {
@@ -138,7 +138,7 @@ describe("CompareTable", () => {
         <CompareTable cards={cards} />
       </Wrap>,
     );
-    expect(screen.queryByText("Seu cartão")).not.toBeInTheDocument();
+    expect(screen.queryAllByText("Seu cartão").length).toBe(0);
   });
 
   it("hides equal rows when the text toggle is enabled", async () => {

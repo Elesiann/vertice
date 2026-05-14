@@ -73,9 +73,9 @@ export const CompareMobileCards = ({
                 </Badge>
               ) : null}
               {currentCardIds.includes(card.id) ? (
-                <p className="text-caption text-accent mt-1 tracking-normal normal-case">
-                  Seu cartão hoje
-                </p>
+                <Badge tone="neutral" className="mt-1 w-fit">
+                  Seu cartão
+                </Badge>
               ) : null}
               {delta !== null ? (
                 <p
