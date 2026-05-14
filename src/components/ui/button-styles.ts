@@ -2,7 +2,7 @@ export const BUTTON_BASE =
   "focus-visible:ring-accent inline-flex items-center justify-center rounded-md font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export const BUTTON_VARIANT = {
-  primary: "bg-accent text-white hover:bg-accent-hover",
+  primary: "bg-action text-action-ink hover:bg-action-hover",
   secondary: "border-line text-ink bg-surface-raised hover:bg-surface-sunken border",
   ghost: "text-ink hover:bg-surface-sunken bg-transparent",
 } as const;

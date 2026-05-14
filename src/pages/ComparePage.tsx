@@ -161,7 +161,7 @@ export const ComparePage = (): JSX.Element => {
         <div className="mb-6">
           <Link
             to="/input"
-            className="bg-accent hover:bg-accent-hover focus-visible:ring-accent inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium text-white transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            className="bg-action text-action-ink hover:bg-action-hover focus-visible:ring-accent inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
           >
             Definir perfil para ver retorno modelado →
           </Link>

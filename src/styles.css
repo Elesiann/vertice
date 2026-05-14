@@ -57,6 +57,10 @@
   --color-accent-muted: #5a6d61;
   --color-accent-light: #cdd6d0;
 
+  --color-action: var(--_color-green-700);
+  --color-action-hover: var(--_color-green-800);
+  --color-action-ink: #ffffff;
+
   --color-danger: var(--_color-rose-700);
   --color-danger-soft: var(--_color-rose-100);
 
@@ -95,31 +99,37 @@
    To activate, set <html data-theme="dark">. Light tokens stay as default.
    ========================================================================== */
 :root[data-theme="dark"] {
-  --color-ink: #e7eee9;
-  --color-ink-muted: #b3bdb6;
-  --color-ink-subtle: #6e7972;
+  color-scheme: dark;
 
-  --color-surface: #0e1411;
-  --color-surface-raised: #161d19;
-  --color-surface-sunken: #0a0f0c;
+  --color-ink: #eef4ef;
+  --color-ink-muted: #b6c2ba;
+  --color-ink-subtle: #7d8a82;
 
-  --color-line: #233028;
-  --color-line-strong: #2f3d34;
+  --color-surface: #0d1511;
+  --color-surface-raised: #151d19;
+  --color-surface-sunken: #09100d;
 
-  --color-accent: #4dba91;
-  --color-accent-hover: #6dcfa9;
-  --color-accent-soft: #163027;
-  --color-accent-muted: #6e9e87;
-  --color-accent-light: #1d362b;
+  --color-line: #26342d;
+  --color-line-strong: #37463d;
 
-  --color-danger: #f87171;
+  --color-accent: #8fb7a2;
+  --color-accent-hover: #a7c7b7;
+  --color-accent-soft: #172820;
+  --color-accent-muted: #8ca998;
+  --color-accent-light: #20372d;
+
+  --color-action: #d7ddd5;
+  --color-action-hover: #eef3ed;
+  --color-action-ink: #0d1511;
+
+  --color-danger: #fb7185;
   --color-danger-soft: #3a1a1d;
 
-  --color-warning: #fbbf24;
-  --color-warning-soft: #3a2a10;
+  --color-warning: #e2b84d;
+  --color-warning-soft: #302710;
 
-  --color-gold: #d9b76a;
-  --color-gold-soft: #2a2110;
+  --color-gold: #d6b56d;
+  --color-gold-soft: #2b2413;
 }
 
 /* =============================================================================

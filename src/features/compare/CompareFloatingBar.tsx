@@ -31,7 +31,7 @@ export const CompareFloatingBar = (): JSX.Element | null => {
             </div>
             <Link
               to={compareHref}
-              className="bg-accent hover:bg-accent-hover focus-visible:ring-accent inline-flex min-h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-medium text-white transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              className="bg-action text-action-ink hover:bg-action-hover focus-visible:ring-accent inline-flex min-h-9 shrink-0 items-center justify-center rounded-md px-3 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             >
               Comparar
             </Link>
