@@ -183,7 +183,7 @@ const ValueCell = ({
         {marked ? <Check size={12} className="text-accent" /> : null}
       </span>
       {formatBrl(value)}
-      {marked ? <span className="sr-only"> — melhor neste item</span> : null}
+      {marked ? <span className="sr-only">, melhor neste item</span> : null}
     </td>
   );
 };

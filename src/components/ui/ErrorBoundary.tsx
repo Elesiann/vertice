@@ -14,8 +14,8 @@ const DefaultFallback = ({ retry }: { retry: () => void }): ReactNode => (
   <div role="alert" className="mx-auto max-w-2xl p-6">
     <h2 className="text-ink text-xl font-semibold">Algo deu errado.</h2>
     <p className="text-ink-muted mt-2">
-      Recarregue a página para continuar. Nada do que você subiu foi enviado a nenhum servidor —
-      tudo acontece localmente no seu navegador.
+      Recarregue a página para continuar. Nada do que você subiu foi enviado a nenhum servidor: tudo
+      acontece localmente no seu navegador.
     </p>
     <Button className="mt-4" onClick={retry}>
       Tentar novamente

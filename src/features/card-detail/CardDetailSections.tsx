@@ -308,7 +308,7 @@ export const CardDetailSections = ({ card, profile }: CardDetailSectionsProps): 
                 className="text-ink-muted font-display flex gap-2.5 text-[0.8125rem] leading-relaxed text-pretty"
               >
                 <span aria-hidden className="text-ink-subtle">
-                  —
+                  ·
                 </span>
                 <span>{note.label}</span>
               </li>

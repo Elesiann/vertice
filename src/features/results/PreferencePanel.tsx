@@ -51,7 +51,7 @@ export const PreferencePanel = ({
               <span className="text-ink font-semibold">
                 {row.label}
                 <span className="text-ink-subtle ml-1.5 text-xs font-normal italic">
-                  — {row.role}
+                  · {row.role}
                 </span>
               </span>
               <span
