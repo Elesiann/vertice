@@ -82,7 +82,7 @@ const HintTooltip = ({ hint }: { hint: ReactNode }): JSX.Element => (
           e.currentTarget.blur();
         }
       }}
-      className="text-ink-subtle hover:text-accent focus-visible:text-accent focus-visible:ring-accent inline-flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px] leading-none font-bold transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+      className="text-ink-subtle hover:text-accent focus-visible:text-accent focus-visible:ring-accent inline-flex size-4 items-center justify-center rounded-full border border-current text-[10px] leading-none font-bold transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       ?
     </button>

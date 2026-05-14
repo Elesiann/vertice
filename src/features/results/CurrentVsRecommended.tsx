@@ -11,6 +11,8 @@ import type {
 } from "@/lib/comparison-narrative";
 import { formatBrl, formatUsd } from "@/lib/format";
 import type { ScoreLabVerdictKind } from "@/types";
+
+const EMPTY_BENEFITS: string[] = [];
 import { PreferencePanel, type PreferenceComparison } from "@/features/results/PreferencePanel";
 
 interface Props {
@@ -107,7 +109,7 @@ const ToggleDisc = ({ open }: { open: boolean }): JSX.Element => (
     aria-hidden
     className={cn(
       "border-line-strong ml-1.5 inline-grid h-[1.05rem] w-[1.05rem] place-items-center rounded-full border text-[0.78rem] leading-none transition-colors",
-      open ? "text-accent" : "text-ink-subtle",
+      open ? "text-accent-muted" : "text-ink-subtle",
     )}
   >
     {open ? "−" : "+"}
@@ -232,7 +234,7 @@ export const CurrentVsRecommended = ({
   narrative,
   currentLabel,
   recommendedLabel,
-  recommendedBenefits = [],
+  recommendedBenefits = EMPTY_BENEFITS,
   accessLabel = "sem exigência financeira",
   preferenceComparison,
 }: Props): JSX.Element => {

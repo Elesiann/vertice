@@ -8,6 +8,7 @@ import { FeeWaiverBadge } from "@/components/domain/FeeWaiverBadge";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
+const EMPTY_SET = new Set<number>();
 import { useSession } from "@/context/SessionContext";
 import { CompareMobileCards, type MobileRow } from "@/features/compare/CompareMobileCards";
 import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
@@ -276,10 +277,10 @@ interface RowProps {
 const Row = ({
   label,
   cells,
-  winners = new Set<number>(),
+  winners = EMPTY_SET,
   tooltips,
   hidden = false,
-  winnerIndexes = new Set<number>(),
+  winnerIndexes = EMPTY_SET,
 }: RowProps): JSX.Element | null => {
   if (hidden) return null;
 
@@ -298,7 +299,7 @@ const Row = ({
         const tooltipText = tooltips?.[i];
         return (
           <td
-            key={i}
+            key={String(i)}
             className={cn(
               "text-body-sm px-3 py-3 align-top transition-colors",
               isOverallWinner ? "compare-winner-col" : "border-l border-transparent",

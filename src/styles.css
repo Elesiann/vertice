@@ -54,6 +54,8 @@
   --color-accent: var(--_color-green-700);
   --color-accent-hover: var(--_color-green-800);
   --color-accent-soft: var(--_color-green-50);
+  --color-accent-muted: #5a6d61;
+  --color-accent-light: #cdd6d0;
 
   --color-danger: var(--_color-rose-700);
   --color-danger-soft: var(--_color-rose-100);
@@ -107,6 +109,8 @@
   --color-accent: #4dba91;
   --color-accent-hover: #6dcfa9;
   --color-accent-soft: #163027;
+  --color-accent-muted: #6e9e87;
+  --color-accent-light: #1d362b;
 
   --color-danger: #f87171;
   --color-danger-soft: #3a1a1d;
@@ -249,6 +253,18 @@
   /* 18px */
   font-weight: 600;
   line-height: 1.4;
+}
+
+@utility text-body {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@utility text-body-sm {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 @utility text-caption {

@@ -66,14 +66,13 @@ export const CompareCardCombobox = ({
             onChange={(event: ChangeEvent<HTMLInputElement>) => {
               setQuery(event.target.value);
             }}
-            autoFocus
           />
           <div className="mt-2 max-h-64 overflow-y-auto">
             {results.map((card) => (
               <button
                 key={card.id}
                 type="button"
-                className="hover:bg-surface-sunken focus-visible:ring-accent flex w-full flex-col rounded-md px-2 py-2 text-left outline-none focus-visible:ring-2"
+                className="hover:bg-surface-sunken focus-visible:ring-accent flex w-full flex-col rounded-md p-2 text-left outline-none focus-visible:ring-2"
                 onClick={() => {
                   handleSelect(card.id);
                 }}

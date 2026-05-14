@@ -84,21 +84,21 @@ const HowItWorks = (): JSX.Element => (
     <SectionHeading eyebrow="Como funciona" title="Como o cálculo funciona" />
     <ol className="text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
       <li className="inline-flex items-center gap-2">
-        <span className="text-accent tabular font-semibold">1.</span>
+        <span className="text-accent-muted tabular font-semibold">1.</span>
         Conte seu gasto
       </li>
       <li aria-hidden className="text-ink-subtle text-xs">
         →
       </li>
       <li className="inline-flex items-center gap-2">
-        <span className="text-accent tabular font-semibold">2.</span>
+        <span className="text-accent-muted tabular font-semibold">2.</span>
         Veja o cálculo
       </li>
       <li aria-hidden className="text-ink-subtle text-xs">
         →
       </li>
       <li className="inline-flex items-center gap-2">
-        <span className="text-accent tabular font-semibold">3.</span>
+        <span className="text-accent-muted tabular font-semibold">3.</span>
         Compare com o seu
       </li>
     </ol>

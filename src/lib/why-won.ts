@@ -49,7 +49,9 @@ export const whyWonSentences = (
 
   const closeAlternative = alternatives
     .filter((alt) => netReturn - alt.yearOneNetValueBrl <= ALTERNATIVE_PROXIMITY_BRL)
-    .sort((a, b) => b.yearOneNetValueBrl - a.yearOneNetValueBrl)[0];
+    .reduce<
+      StackEvaluation | undefined
+    >((best, alt) => (best === undefined || alt.yearOneNetValueBrl > best.yearOneNetValueBrl ? alt : best), undefined);
 
   if (closeAlternative === undefined) {
     return [lead];

@@ -24,8 +24,8 @@ import {
 } from "@/features/results/alternatives";
 import type { SpendingProfile } from "@/types";
 
-const RECOMMENDED_ROW_BG = "bg-line/35";
-const CURRENT_ROW_BG = "bg-line/20";
+const RECOMMENDED_ROW_BG = "bg-accent-light";
+const CURRENT_ROW_BG = "bg-accent-light/50";
 
 const FILTERS: { id: AlternativeTabId; label: string }[] = [
   { id: "highest-return", label: "Maior retorno" },

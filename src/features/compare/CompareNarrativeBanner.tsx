@@ -45,11 +45,11 @@ export const CompareNarrativeBanner = ({
   if (cards.length < 2) return null;
 
   const ranked: RankedEntry[] = cards
-    .map((c) => ({
-      name: c.name,
-      netReturn: modeled.byCardId[c.id],
-    }))
-    .filter((entry): entry is RankedEntry => entry.netReturn !== undefined)
+    .reduce<RankedEntry[]>((acc, c) => {
+      const netReturn = modeled.byCardId[c.id];
+      if (netReturn !== undefined) acc.push({ name: c.name, netReturn });
+      return acc;
+    }, [])
     .sort((a, b) => b.netReturn - a.netReturn);
 
   const sentences = buildSentences(ranked, profile.monthlyDomesticBrl);

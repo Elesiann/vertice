@@ -1,5 +1,6 @@
 import { type JSX, type ReactNode, useCallback, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
+import { m } from "framer-motion";
 import { cn } from "@/lib/cn";
 
 type Variant = "panel" | "inline";
@@ -16,7 +17,7 @@ interface DisclosureProps {
 const PANEL_WRAP = "border-line bg-surface-sunken rounded-md border";
 
 const SUMMARY_PANEL =
-  "text-ink hover:text-accent focus-visible:ring-accent block cursor-pointer list-none px-4 py-3 font-semibold transition outline-none select-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-offset-2";
+  "text-ink hover:text-accent focus-visible:ring-accent cursor-pointer list-none px-4 py-3 font-semibold transition outline-none select-none focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-offset-2";
 
 export const Disclosure = ({
   summary,
@@ -28,30 +29,27 @@ export const Disclosure = ({
 }: DisclosureProps): JSX.Element => {
   const [open, setOpen] = useState(defaultOpen);
   const contentRef = useRef<HTMLDivElement | null>(null);
-  const [height, setHeight] = useState<number | "auto">(defaultOpen ? "auto" : 0);
-
-  const measureRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      contentRef.current = node;
-      if (node && open) {
-        setHeight(node.scrollHeight);
-      }
-    },
-    [open],
-  );
+  const [height, setHeight] = useState<number>(0);
 
   const handleToggle = useCallback(() => {
-    setOpen((prev) => !prev);
-  }, []);
-
-  const handleAnimationComplete = useCallback(() => {
-    if (open) setHeight("auto");
-  }, [open]);
-
-  const handleHeightUpdate = useCallback(() => {
-    if (!open) return;
     const node = contentRef.current;
-    if (node) setHeight(node.scrollHeight);
+    if (!node) {
+      setOpen((prev) => !prev);
+      return;
+    }
+    if (open) {
+      setHeight(node.scrollHeight);
+      requestAnimationFrame(() => {
+        setHeight(0);
+      });
+    } else {
+      setHeight(0);
+      requestAnimationFrame(() => {
+        const n = contentRef.current;
+        if (n) setHeight(n.scrollHeight);
+      });
+    }
+    setOpen((prev) => !prev);
   }, [open]);
 
   return (
@@ -67,30 +65,26 @@ export const Disclosure = ({
         )}
       >
         <span className="flex-1">{summary}</span>
-        <motion.span
+        <ChevronDown
           aria-hidden
-          animate={{ rotate: open ? 180 : 0 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
+          size={16}
           className={cn(
-            "shrink-0 text-xs",
+            "shrink-0 transition-transform duration-200 ease-out",
+            open && "rotate-180",
             variant === "inline" ? "text-ink-subtle" : "text-ink-muted",
           )}
-        >
-          ▼
-        </motion.span>
+        />
       </button>
-      <motion.div
+      <m.div
         initial={false}
         animate={{ height }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        onAnimationComplete={handleAnimationComplete}
-        onUpdate={handleHeightUpdate}
         className="overflow-hidden"
       >
-        <div ref={measureRef} className={variant === "inline" ? "" : "px-4 pb-4"}>
+        <div ref={contentRef} className={variant === "inline" ? "" : "px-4 pb-4"}>
           {children}
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 };

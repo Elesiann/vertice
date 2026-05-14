@@ -59,8 +59,8 @@ export const CardArt = ({
       ) : (
         <>
           <div className="absolute top-1/3 left-4 h-5 w-7 rounded-sm border border-white/20 bg-white/10" />
-          <div className="absolute top-1/4 right-4 h-8 w-8 rounded-full border border-white/15" />
-          <div className="absolute top-[30%] right-5 h-6 w-6 rounded-full border border-white/10" />
+          <div className="absolute top-1/4 right-4 size-8 rounded-full border border-white/15" />
+          <div className="absolute top-[30%] right-5 size-6 rounded-full border border-white/10" />
           <span
             className="absolute bottom-3 left-4 text-xs font-semibold tracking-widest text-white/50 uppercase"
             style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}

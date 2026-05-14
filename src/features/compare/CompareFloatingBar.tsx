@@ -1,6 +1,6 @@
 import type { JSX } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { GitCompareArrows, X } from "lucide-react";
 import { useCompareActions } from "@/features/compare/useCompareActions";
 import { ROUTES } from "@/lib/routes-constants";
@@ -15,7 +15,7 @@ export const CompareFloatingBar = (): JSX.Element | null => {
   return (
     <AnimatePresence>
       {count > 0 && (
-        <motion.div
+        <m.div
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
@@ -44,7 +44,7 @@ export const CompareFloatingBar = (): JSX.Element | null => {
               <X size={16} aria-hidden="true" />
             </button>
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

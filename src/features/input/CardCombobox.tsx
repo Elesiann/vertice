@@ -146,9 +146,9 @@ export const CardCombobox = ({
                 e.stopPropagation();
                 remove(card.id);
               }}
-              className="text-ink-subtle hover:text-danger focus-visible:ring-accent -mr-0.5 grid h-4 w-4 place-items-center rounded-sm transition focus-visible:ring-2 focus-visible:outline-none"
+              className="text-ink-subtle hover:text-danger focus-visible:ring-accent -mr-0.5 grid size-4 place-items-center rounded-sm transition focus-visible:ring-2 focus-visible:outline-none"
             >
-              <svg viewBox="0 0 12 12" className="h-2.5 w-2.5" aria-hidden>
+              <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
                 <path
                   d="M2 2 L10 10 M10 2 L2 10"
                   stroke="currentColor"
@@ -235,7 +235,7 @@ export const CardCombobox = ({
                   )}
                 >
                   {isSelected ? (
-                    <svg viewBox="0 0 16 16" className="h-3 w-3 text-white">
+                    <svg viewBox="0 0 16 16" className="size-3 text-white">
                       <path
                         d="M3 8 L6.5 11.5 L13 4.5"
                         stroke="currentColor"

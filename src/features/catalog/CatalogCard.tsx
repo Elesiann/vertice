@@ -166,7 +166,7 @@ export const CatalogCard = ({
           aria-label={inCompare ? "Tirar da comparação" : "Comparar"}
           onClick={handleCompare}
           className={cn(
-            "focus-visible:ring-accent absolute top-3 right-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border backdrop-blur-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+            "focus-visible:ring-accent absolute top-3 right-3 z-10 inline-flex size-8 items-center justify-center rounded-md border backdrop-blur-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
             inCompare
               ? "border-accent bg-accent text-white"
               : "border-line/60 bg-surface-raised/85 text-ink-muted hover:bg-surface-raised hover:text-ink",

@@ -8,6 +8,9 @@ import { formatBrl } from "@/lib/format";
 import { formatBankLabel } from "@/lib/labels";
 import type { PublicCardDetail } from "@/types";
 
+const EMPTY_WINNER_INDEXES = new Set<number>();
+const EMPTY_STRING_ARRAY: string[] = [];
+const EMPTY_DELTAS: (number | null)[] = [];
 export interface MobileRow {
   label: string;
   cells: (string | JSX.Element)[];
@@ -27,10 +30,10 @@ interface CompareMobileCardsProps {
 export const CompareMobileCards = ({
   cards,
   rows,
-  winnerIndexes = new Set<number>(),
-  currentCardIds = [],
-  cardDeltas = [],
-  cardDeltaLabels = [],
+  winnerIndexes = EMPTY_WINNER_INDEXES,
+  currentCardIds = EMPTY_STRING_ARRAY,
+  cardDeltas = EMPTY_DELTAS,
+  cardDeltaLabels = EMPTY_STRING_ARRAY,
   footer,
 }: CompareMobileCardsProps): JSX.Element => (
   <div className="compare-mobile-cards flex flex-col gap-4 md:hidden">

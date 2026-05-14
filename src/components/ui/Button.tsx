@@ -1,5 +1,5 @@
 import type { JSX, ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   BUTTON_BASE,
   BUTTON_SIZE,
@@ -22,9 +22,9 @@ interface ButtonProps {
 }
 
 const Spinner = (): JSX.Element => (
-  <motion.span
+  <m.span
     aria-hidden="true"
-    className="inline-block h-4 w-4 rounded-full border-2 border-current border-t-transparent"
+    className="inline-block size-4 rounded-full border-2 border-current border-t-transparent"
     animate={{ rotate: 360 }}
     transition={{ repeat: Infinity, duration: 0.75, ease: "linear" }}
   />

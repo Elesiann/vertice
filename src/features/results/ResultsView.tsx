@@ -212,9 +212,7 @@ export const ResultsView = (): JSX.Element => {
     return (
       <main className="app-shell">
         <div className="app-container max-w-3xl">
-          <Panel className="text-ink-muted p-6 text-center sm:p-8">
-            Calculando recomendação...
-          </Panel>
+          <Panel className="text-ink-muted p-6 text-center sm:p-8">Calculando recomendação…</Panel>
         </div>
       </main>
     );
@@ -346,7 +344,7 @@ export const ResultsView = (): JSX.Element => {
                   : "Já é o melhor cartão pro seu gasto."}
               </p>
               {currentCardUpside !== null ? (
-                <p className="bg-line/35 mt-5 max-w-2xl rounded-sm px-4 py-3.5 text-sm leading-relaxed">
+                <p className="bg-accent-light mt-5 max-w-2xl rounded-sm px-4 py-3.5 text-sm leading-relaxed">
                   Você ganharia{" "}
                   <span className="text-accent tabular font-semibold">
                     +{formatAnnualBrl(currentCardUpside.deltaBrl)}
