@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 export interface FieldContextValue {
   id: string;
   invalid: boolean;
+  required?: boolean;
   describedBy?: string;
 }
 

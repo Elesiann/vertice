@@ -19,6 +19,7 @@ export const Stat = ({
   labelClassName,
 }: StatProps): JSX.Element => (
   <div
+    role="group"
     className={cn(
       block ? "flex flex-col gap-1" : "flex items-baseline justify-between gap-4",
       className,

@@ -19,12 +19,14 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const ctx = useFieldContext();
     const finalId = id ?? ctx?.id;
     const finalInvalid = invalid ?? ctx?.invalid ?? false;
+    const finalRequired = ctx?.required ?? false;
     const finalDescribedBy = ariaDescribedBy ?? ctx?.describedBy;
     return (
       <input
         ref={ref}
         id={finalId}
         aria-invalid={finalInvalid ? true : undefined}
+        aria-required={finalRequired ? true : undefined}
         aria-describedby={finalDescribedBy}
         className={cn(
           INPUT_BASE,

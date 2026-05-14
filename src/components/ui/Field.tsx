@@ -8,10 +8,19 @@ interface FieldProps {
   id?: string;
   hint?: ReactNode;
   error?: ReactNode;
+  required?: boolean;
   className?: string;
 }
 
-export const Field = ({ label, children, id, hint, error, className }: FieldProps): JSX.Element => {
+export const Field = ({
+  label,
+  children,
+  id,
+  hint,
+  error,
+  required,
+  className,
+}: FieldProps): JSX.Element => {
   const generatedId = useId();
   const finalId = id ?? generatedId;
   const errorId = `${finalId}-error`;
@@ -27,9 +36,10 @@ export const Field = ({ label, children, id, hint, error, className }: FieldProp
     () => ({
       id: finalId,
       invalid: hasError,
+      ...(required ? { required: true } : {}),
       ...(describedBy !== undefined ? { describedBy } : {}),
     }),
-    [finalId, hasError, describedBy],
+    [finalId, hasError, required, describedBy],
   );
 
   return (
@@ -38,6 +48,11 @@ export const Field = ({ label, children, id, hint, error, className }: FieldProp
         <div className="mb-1.5 flex items-center gap-1.5">
           <label htmlFor={finalId} className="text-ink block text-sm font-semibold">
             {label}
+            {required ? (
+              <span aria-hidden="true" className="text-danger ml-0.5">
+                *
+              </span>
+            ) : null}
           </label>
           {hasHint ? <HintTooltip hint={hint} /> : null}
         </div>
@@ -62,6 +77,11 @@ const HintTooltip = ({ hint }: { hint: ReactNode }): JSX.Element => (
     <button
       type="button"
       aria-label="Mais informação"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.currentTarget.blur();
+        }
+      }}
       className="text-ink-subtle hover:text-accent focus-visible:text-accent focus-visible:ring-accent inline-flex h-4 w-4 items-center justify-center rounded-full border border-current text-[10px] leading-none font-bold transition focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
     >
       ?

@@ -20,12 +20,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const ctx = useFieldContext();
     const finalId = id ?? ctx?.id;
     const finalInvalid = invalid ?? ctx?.invalid ?? false;
+    const finalRequired = ctx?.required ?? false;
     const finalDescribedBy = ariaDescribedBy ?? ctx?.describedBy;
     return (
       <select
         ref={ref}
         id={finalId}
         aria-invalid={finalInvalid ? true : undefined}
+        aria-required={finalRequired ? true : undefined}
         aria-describedby={finalDescribedBy}
         className={cn(
           SELECT_BASE,
