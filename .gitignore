@@ -60,3 +60,9 @@ docs/
 # Operational notes, audits, claims, verifications, handoffs.
 tasks/
 audits/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example

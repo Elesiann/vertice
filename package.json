@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "pnpm typecheck && vite build",
-    "preview": "vite preview",
+    "preview": "pnpm run build && wrangler dev",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
@@ -15,7 +15,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix",
-    "prepare": "husky"
+    "prepare": "husky",
+    "deploy": "pnpm run build && wrangler deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -33,6 +34,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.37.0",
     "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
     "@eslint/js": "^9.17.0",
@@ -59,7 +61,8 @@
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.18.2",
     "vite": "^8.0.13",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "wrangler": "^4.91.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

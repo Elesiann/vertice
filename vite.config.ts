@@ -4,10 +4,12 @@ import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), cloudflare()],
   resolve: {
     alias: {
       "@": path.resolve(here, "src"),
