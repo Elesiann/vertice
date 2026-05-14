@@ -535,6 +535,8 @@ export const CompareTable = ({
     selectedIds.length >= 4
       ? "Adicionar cartão recomendado e substituir o pior"
       : "Adicionar cartão recomendado";
+  const showRecommendedAction =
+    modeledReturns.status === "loading" || modeledReturns.status === "ready";
   const handleAddRecommendedCard = (): void => {
     if (onAddRecommendedCard === undefined || modeledReturns.status !== "ready") return;
     const id = modeledReturns.recommendedCardId;
@@ -678,17 +680,22 @@ export const CompareTable = ({
   return (
     <div className="flex flex-col gap-0">
       {/* Toolbar */}
-      <div className="border-line flex items-center justify-end gap-3 border-b py-3 print:hidden">
-        <Button
-          type="button"
-          disabled={!canAddRecommended}
-          onClick={handleAddRecommendedCard}
-          variant="secondary"
-          size="sm"
-          ariaLabel={recommendedButtonLabel}
-        >
-          Adicionar cartão recomendado
-        </Button>
+      <div className="border-line flex flex-col gap-2 border-b py-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 print:hidden">
+        {showRecommendedAction ? (
+          <Button
+            type="button"
+            disabled={!canAddRecommended}
+            onClick={handleAddRecommendedCard}
+            variant={canAddRecommended ? "primary" : "secondary"}
+            size="sm"
+            ariaLabel={recommendedButtonLabel}
+            className="w-full sm:w-auto"
+          >
+            {modeledReturns.status === "loading"
+              ? "Calculando recomendado"
+              : recommendedButtonLabel}
+          </Button>
+        ) : null}
         <CompareCardCombobox
           cards={catalogCards}
           selectedIds={selectedIds}
@@ -804,6 +811,9 @@ export const CompareTable = ({
         cards={sortedCards}
         rows={visibleRows}
         winnerIndexes={overallWinnerIndexes}
+        currentCardIds={currentCardIds}
+        cardDeltas={cardDeltas}
+        cardDeltaLabels={cardDeltaLabels}
         footer={<CompareSubstituteCTA cards={sortedCards} />}
       />
     </div>

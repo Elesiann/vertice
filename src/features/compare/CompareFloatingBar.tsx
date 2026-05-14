@@ -17,7 +17,7 @@ export const CompareFloatingBar = (): JSX.Element | null => {
         <div className="text-ink flex min-w-0 flex-1 items-center gap-2">
           <GitCompareArrows size={18} className="text-ink-subtle shrink-0" aria-hidden="true" />
           <span className="truncate text-sm font-medium">
-            {count === 1 ? "1 cartão selecionado" : `${String(count)} cartões selecionados`}
+            {count === 1 ? "1 cartão selecionado" : `${String(count)} selecionados`}
           </span>
         </div>
         <Link

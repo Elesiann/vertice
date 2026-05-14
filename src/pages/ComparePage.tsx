@@ -130,41 +130,43 @@ export const ComparePage = (): JSX.Element => {
         Catálogo
       </BackLink>
       <h1 className="text-display-3 text-ink mb-1">Comparar Cartões</h1>
-      {/* Meta-line */}
-      <p className="text-body-sm text-ink-muted mb-4 flex flex-wrap items-center gap-1.5">
-        <span>
-          {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
-        </span>
-        {profile !== null && (
-          <>
-            <span className="text-ink-subtle">·</span>
-            <span>
-              Modelado para gasto de{" "}
-              <span className="text-ink font-semibold">
-                {formatBrl(profile.monthlyDomesticBrl)}/mês
-              </span>
+
+      {profile !== null ? (
+        <p className="text-body-sm text-ink-muted mb-4 flex flex-wrap items-center gap-1.5">
+          <span>
+            {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
+          </span>
+          <span className="text-ink-subtle">·</span>
+          <span>
+            Modelado para gasto de{" "}
+            <span className="text-ink font-semibold">
+              {formatBrl(profile.monthlyDomesticBrl)}/mês
             </span>
-            <span className="text-ink-subtle">·</span>
-            <Link
-              to="/input"
-              className="text-ink-muted hover:text-accent underline underline-offset-2 transition-colors"
-            >
-              ajustar perfil →
-            </Link>
-          </>
-        )}
-        {profile === null && (
-          <>
-            <span className="text-ink-subtle">·</span>
-            <Link
-              to="/input"
-              className="text-ink-muted hover:text-accent underline underline-offset-2 transition-colors"
-            >
-              definir perfil para ver retorno modelado →
-            </Link>
-          </>
-        )}
-      </p>
+          </span>
+          <span className="text-ink-subtle">·</span>
+          <Link
+            to="/input"
+            className="text-ink-muted hover:text-accent underline underline-offset-2 transition-colors"
+          >
+            ajustar perfil →
+          </Link>
+        </p>
+      ) : (
+        <p className="text-body-sm text-ink-muted mb-4">
+          {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
+        </p>
+      )}
+
+      {profile === null && (
+        <div className="mb-6">
+          <Link
+            to="/input"
+            className="bg-accent hover:bg-accent-hover focus-visible:ring-accent inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium text-white transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+          >
+            Definir perfil para ver retorno modelado →
+          </Link>
+        </div>
+      )}
 
       {hasAnyLoading && (
         <div className="flex flex-col gap-4" aria-busy="true" aria-label="Carregando cartões">

@@ -2,8 +2,9 @@ import type { JSX, ReactNode } from "react";
 import { Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/cn";
-import { CardArt } from "@/components/domain/CardArt";
+import { CardImage } from "@/components/domain/CardImage";
 import { Badge } from "@/components/ui/Badge";
+import { formatBrl } from "@/lib/format";
 import { formatBankLabel } from "@/lib/labels";
 import type { PublicCardDetail } from "@/types";
 
@@ -17,6 +18,9 @@ interface CompareMobileCardsProps {
   cards: PublicCardDetail[];
   rows: MobileRow[];
   winnerIndexes?: Set<number>;
+  currentCardIds?: string[];
+  cardDeltas?: (number | null)[];
+  cardDeltaLabels?: string[];
   footer?: ReactNode;
 }
 
@@ -24,11 +28,16 @@ export const CompareMobileCards = ({
   cards,
   rows,
   winnerIndexes = new Set<number>(),
+  currentCardIds = [],
+  cardDeltas = [],
+  cardDeltaLabels = [],
   footer,
 }: CompareMobileCardsProps): JSX.Element => (
   <div className="compare-mobile-cards flex flex-col gap-4 md:hidden">
     {cards.map((card, cardIdx) => {
       const isComparisonWinner = winnerIndexes.has(cardIdx);
+      const delta = cardDeltas[cardIdx] ?? null;
+      const deltaLabel = cardDeltaLabels[cardIdx] ?? "vs. vencedor";
       return (
         <section
           key={card.id}
@@ -39,7 +48,14 @@ export const CompareMobileCards = ({
           aria-label={card.name}
         >
           <header className="flex items-start gap-3">
-            <CardArt brand={card.brand} tier={card.tier} bank={card.bank} size="sm" />
+            <CardImage
+              {...(card.imagePath !== undefined ? { imagePath: card.imagePath } : {})}
+              name={card.name}
+              brand={card.brand}
+              tier={card.tier}
+              size="sm"
+              className="w-20 shrink-0 rounded-md"
+            />
             <div className="min-w-0 flex-1">
               <Link
                 to={`/cards/${card.id}`}
@@ -55,6 +71,22 @@ export const CompareMobileCards = ({
                   <Star size={11} aria-hidden />
                   Vencedor da comparação
                 </Badge>
+              ) : null}
+              {currentCardIds.includes(card.id) ? (
+                <p className="text-caption text-accent mt-1 tracking-normal normal-case">
+                  Seu cartão hoje
+                </p>
+              ) : null}
+              {delta !== null ? (
+                <p
+                  className={cn(
+                    "tabular mt-1 text-xs",
+                    delta >= 0 ? "text-gold" : "text-ink-subtle",
+                  )}
+                >
+                  {delta >= 0 ? "+" : "-"}
+                  {formatBrl(Math.abs(delta))} {deltaLabel}
+                </p>
               ) : null}
             </div>
           </header>
