@@ -44,6 +44,25 @@ pnpm lint
 pnpm test
 ```
 
+### Observabilidade
+
+Vértice inclui as seguintes ferramentas de observabilidade:
+
+- **Sentry**: Rastreamento de erros e desempenho
+- **Umami**: Análise de uso leve, auto-hospedável e respeitosa à privacidade
+- **UptimeRobot**: Monitoramento de disponibilidade
+
+Para configurar em ambiente de produção:
+
+1. Crie contas nos serviços respectivos
+2. Defina as variáveis de ambiente (se aplicável):
+   - `VITE_SENTRY_DSN` - Chave de acesso do Sentry
+3. Para o Umami:
+   - Auto-hospede o Umami ou use um serviço de hospedagem
+   - Obtenha seu Website ID do painel do Umami
+   - Substitua `YOUR_WEBSITE_ID` e `https://umami.example.com/umami.js` no `index.html`
+4. O UptimeRobot é configurado externamente através de seu painel
+
 ### Build
 
 ```bash
