@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-import { Panel } from "@/components/ui/Panel";
 import { fetchCardCatalog } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/routes";
@@ -34,8 +33,8 @@ export const HomePage = (): JSX.Element => {
       <div className="bg-surface min-h-screen">
         <main className="mx-auto flex max-w-5xl flex-col gap-16 px-6 pt-14 pb-24 sm:gap-20 sm:pt-20">
           <Hero catalogSize={catalogSize} />
-          <HowItWorks />
           <Trust catalogSize={catalogSize} />
+          <HowItWorks />
           <Shortcuts />
         </main>
         <SiteFooter />
@@ -51,10 +50,9 @@ interface HeroProps {
 const Hero = ({ catalogSize }: HeroProps): JSX.Element => (
   <section className="flex flex-col gap-6">
     <Badge tone="neutral" className="self-start">
-      <span className="text-accent">●</span>
       {catalogSize !== null
-        ? `${String(catalogSize)} cartões brasileiros · catálogo independente`
-        : "Catálogo de cartões brasileiros · independente"}
+        ? `${String(catalogSize)} cartões · catálogo independente`
+        : "Catálogo independente"}
     </Badge>
 
     <h1 className="text-display-1 text-ink max-w-3xl">
@@ -64,58 +62,46 @@ const Hero = ({ catalogSize }: HeroProps): JSX.Element => (
     </h1>
 
     <p className="text-ink-muted max-w-2xl text-lg leading-relaxed sm:text-xl">
-      O ponto ótimo entre gasto e retorno. O Vértice avalia seus gastos e indica o cartão que
-      maximiza seu retorno anual.
+      O ponto ótimo entre gasto e retorno. Calcule o cartão que rende mais com seu perfil.
     </p>
 
-    <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-3">
+    <div className="flex flex-col items-start gap-3">
       <ButtonLink to={ROUTES.INPUT} size="lg">
         Calcular →
       </ButtonLink>
       <Link
         to={ROUTES.CATALOG}
-        className="text-ink hover:text-accent text-base font-semibold underline-offset-4 transition hover:underline"
+        className="text-ink-muted hover:text-ink text-sm font-medium underline-offset-4 transition hover:underline"
       >
-        ou explorar o catálogo
+        Explorar catálogo
       </Link>
     </div>
   </section>
 );
 
-interface StepProps {
-  index: string;
-  title: string;
-  description: string;
-}
-
-const Step = ({ index, title, description }: StepProps): JSX.Element => (
-  <Panel tone="raised" className="flex flex-col gap-3 p-5 sm:p-6">
-    <span className="text-num text-ink-subtle text-3xl">{index}</span>
-    <h3 className="text-subheading text-ink">{title}</h3>
-    <p className="text-ink-muted text-sm leading-relaxed">{description}</p>
-  </Panel>
-);
-
 const HowItWorks = (): JSX.Element => (
-  <section className="flex flex-col gap-6">
+  <section className="flex flex-col gap-4">
     <SectionHeading eyebrow="Como funciona" title="Como o cálculo funciona" />
-    <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-      <Step
-        index="01"
-        title="Conte seu gasto"
-        description="Você informa quanto gasta por mês no Brasil e em viagens, qual programa de pontos prefere e se já tem cartão hoje."
-      />
-      <Step
-        index="02"
-        title="Veja o cálculo"
-        description="O Vértice avalia o catálogo inteiro e calcula o retorno anual de cada cartão possível, considerando anuidade, pontos, sala VIP, seguro e câmbio."
-      />
-      <Step
-        index="03"
-        title="Compare com o seu"
-        description="Você marca os cartões que já usa e o Vértice mostra exatamente quanto eles deixam na mesa por ano."
-      />
-    </div>
+    <ol className="text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+      <li className="inline-flex items-center gap-2">
+        <span className="text-accent tabular font-semibold">1.</span>
+        Conte seu gasto
+      </li>
+      <li aria-hidden className="text-ink-subtle text-xs">
+        →
+      </li>
+      <li className="inline-flex items-center gap-2">
+        <span className="text-accent tabular font-semibold">2.</span>
+        Veja o cálculo
+      </li>
+      <li aria-hidden className="text-ink-subtle text-xs">
+        →
+      </li>
+      <li className="inline-flex items-center gap-2">
+        <span className="text-accent tabular font-semibold">3.</span>
+        Compare com o seu
+      </li>
+    </ol>
   </section>
 );
 
@@ -192,7 +178,7 @@ const ShortcutTile = ({ to, label, detail }: ShortcutTileProps): JSX.Element => 
 
 const Shortcuts = (): JSX.Element => (
   <section className="flex flex-col gap-6">
-    <SectionHeading eyebrow="Atalhos" />
+    <SectionHeading eyebrow="Não quer calcular agora?" />
     <div className="grid gap-3 sm:grid-cols-2">
       <ShortcutTile
         to={ROUTES.CATALOG}
