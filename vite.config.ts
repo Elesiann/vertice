@@ -17,7 +17,7 @@ export default defineConfig({
             org: process.env.SENTRY_ORG ?? "vertice",
             project: process.env.SENTRY_PROJECT ?? "vertice",
             authToken: process.env.SENTRY_AUTH_TOKEN,
-            sourceMapsUploadOptions: {
+            sourcemaps: {
               filesToDeleteAfterUpload: ["*.js.map"],
             },
           }),
