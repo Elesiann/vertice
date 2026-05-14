@@ -135,12 +135,12 @@ export const CalculationBreakdown = ({
     footnotes.push(`Câmbio: ${formatBrl(ptaxRate)} por US$ 1 — PTAX${asOf}.`);
   }
   footnotes.push(stackAccessibilitySummary(profile, stack));
-  if (lab.breakEvenMonthlySpendBrl !== null || lab.roiMultiple !== null) {
+  if (lab.breakEvenMonthlySpendBrl != null || lab.roiMultiple != null) {
     const bits = [
-      lab.breakEvenMonthlySpendBrl !== null
+      lab.breakEvenMonthlySpendBrl != null
         ? `Se paga a partir de ${formatBrl(lab.breakEvenMonthlySpendBrl)}/mês de gasto`
         : null,
-      lab.roiMultiple !== null
+      lab.roiMultiple != null
         ? `cada R$ 1 de anuidade rende ${formatRoiMultiple(lab.roiMultiple)}`
         : null,
     ].filter((x): x is string => x !== null);
