@@ -49,6 +49,7 @@ const DEFAULT_SORT: CatalogSort = "fee_asc";
 const SORT_VALUES: CatalogSort[] = ["fee_asc", "fee_desc", "name_asc"];
 const VIEW_MODE_VALUES: CatalogViewMode[] = ["grid", "list"];
 const BACK_TO_TOP_SCROLL_THRESHOLD = 480;
+const VIEW_MODE_STORAGE_KEY = "vertice.catalog.viewMode";
 
 const catalogSortFromSearchParams = (searchParams: URLSearchParams): CatalogSort => {
   const value = searchParams.get("sort");
@@ -59,9 +60,11 @@ const catalogSortFromSearchParams = (searchParams: URLSearchParams): CatalogSort
 
 const catalogViewModeFromSearchParams = (searchParams: URLSearchParams): CatalogViewMode => {
   const value = searchParams.get("view");
-  return VIEW_MODE_VALUES.some((candidate) => candidate === value)
-    ? (value as CatalogViewMode)
-    : "grid";
+  if (VIEW_MODE_VALUES.some((candidate) => candidate === value)) return value as CatalogViewMode;
+  const stored =
+    typeof window !== "undefined" ? window.localStorage.getItem(VIEW_MODE_STORAGE_KEY) : null;
+  if (VIEW_MODE_VALUES.some((candidate) => candidate === stored)) return stored as CatalogViewMode;
+  return "grid";
 };
 
 const catalogFilterSearchKey = (searchParams: URLSearchParams): string => {
@@ -223,6 +226,7 @@ export const CatalogPage = (): JSX.Element => {
 
   const handleViewModeChange = useCallback(
     (next: CatalogViewMode) => {
+      window.localStorage.setItem(VIEW_MODE_STORAGE_KEY, next);
       setSearchParams((current) => {
         const params = new URLSearchParams(current);
         if (next === "grid") params.delete("view");
@@ -260,12 +264,12 @@ export const CatalogPage = (): JSX.Element => {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <BackLink className="mb-4" to="/">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+      <BackLink className="mb-3 sm:mb-4" to="/">
         Home
       </BackLink>
-      <div className="border-line border-b">
-        <header className="border-line flex flex-col gap-3 border-b py-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+      <div>
+        <header className="border-line flex flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:border-b sm:py-4">
           <h1 className="text-display-3 text-ink">
             {meta !== undefined && resultCount !== undefined ? (
               <>
@@ -281,7 +285,7 @@ export const CatalogPage = (): JSX.Element => {
             <CatalogSearch value={filters.search ?? ""} onChange={handleSearchChange} />
           </div>
         </header>
-        <div className="py-4">
+        <div className="border-line pt-2 pb-3 sm:border-b sm:py-4">
           <CatalogFilterBar
             filters={filters}
             {...(meta !== undefined ? { counts: meta.counts } : {})}
@@ -295,7 +299,7 @@ export const CatalogPage = (): JSX.Element => {
         </div>
       </div>
 
-      <div className="pt-6">
+      <div className={`pt-6 ${viewMode === "grid" ? "px-4 sm:px-0" : "px-0"}`}>
         <CatalogList
           filters={filters}
           onClearFilters={handleClear}

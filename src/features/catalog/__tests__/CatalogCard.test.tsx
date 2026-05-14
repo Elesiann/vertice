@@ -91,10 +91,10 @@ describe("CatalogCard", () => {
     expect(screen.getByText(/R\$ 1\.200/)).toBeInTheDocument();
   });
 
-  it("shows the annual-fee block reading 'Sem anuidade' for fee-free cards", () => {
+  it("shows 'Zero' for fee-free cards", () => {
     renderCard(null, { ...card, annualFeeBrl: 0 });
     expect(screen.getByText("Anuidade")).toBeInTheDocument();
-    expect(screen.getByText("Sem anuidade")).toBeInTheDocument();
+    expect(screen.getByText("Zero")).toBeInTheDocument();
   });
 
   it("shows an access-barrier chip for cards gated by investing in the issuer's brokerage", () => {

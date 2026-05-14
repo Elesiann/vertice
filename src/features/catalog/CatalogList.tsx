@@ -98,7 +98,7 @@ const formatBrlShort = (value: number): string => {
 };
 
 const annualFeeLabel = (card: PublicCatalogCard): string =>
-  card.annualFeeBrl === 0 ? "Sem anuidade" : `${formatBrlShort(card.annualFeeBrl)}/ano`;
+  card.annualFeeBrl === 0 ? "Zero" : `${formatBrlShort(card.annualFeeBrl)}/ano`;
 
 interface ListDetail {
   Icon: LucideIcon;
@@ -148,8 +148,9 @@ const CatalogListRow = ({
   const details = listDetails(card);
 
   return (
-    <article className="border-line grid gap-4 border-b py-4 last:border-b-0 sm:grid-cols-[5.5rem_minmax(0,1fr)_9rem] sm:items-center">
-      <div className="grid grid-cols-[5rem_minmax(0,1fr)] gap-4 sm:contents">
+    <article className="border-line grid grid-cols-[5rem_minmax(0,1fr)] gap-x-4 gap-y-3 border-b py-4 last:border-b-0 sm:grid-cols-[7.5rem_minmax(0,1fr)_9rem] sm:items-center">
+      {/* Col 1: Image + Anuidade (mobile) */}
+      <div className="flex flex-col items-center gap-3 sm:col-start-1 sm:row-start-1">
         <CardImage
           {...(card.imagePath !== undefined ? { imagePath: card.imagePath } : {})}
           name={card.name}
@@ -158,32 +159,63 @@ const CatalogListRow = ({
           size="sm"
           className="w-full rounded-md"
         />
-
-        <div className="min-w-0">
-          <Link
-            to={`/cards/${card.id}`}
-            className="text-heading text-ink hover:text-accent focus-visible:ring-accent rounded outline-none focus-visible:ring-2"
-          >
-            {card.name}
-          </Link>
-          <p className="text-caption text-ink-subtle mt-0.5">
-            {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
+        {/* Anuidade: mobile only */}
+        <div className="text-center sm:hidden">
+          <p className="text-caption text-ink-subtle">Anuidade</p>
+          <p className="text-num text-ink tabular text-sm leading-tight font-semibold">
+            {annualFeeLabel(card)}
           </p>
-
-          {details.length > 0 && (
-            <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5">
-              {details.map(({ Icon, label }) => (
-                <li key={label} className="text-ink-muted flex items-center gap-1.5 text-xs">
-                  <Icon size={14} className="text-ink-subtle shrink-0" aria-hidden="true" />
-                  <span>{label}</span>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 sm:flex-col sm:items-end sm:justify-center">
+      {/* Col 2: Name + details */}
+      <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <Link
+            to={`/cards/${card.id}`}
+            className="text-heading text-ink hover:text-accent focus-visible:ring-accent block rounded leading-tight outline-none focus-visible:ring-2"
+          >
+            {card.name}
+          </Link>
+          {/* Compare button: mobile only (icon) */}
+          <button
+            type="button"
+            aria-pressed={inCompare}
+            onClick={() => {
+              onToggleCompare(card.id);
+            }}
+            className={cn(
+              "focus-visible:ring-accent inline-flex min-h-8 items-center justify-center rounded-md border px-2 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:hidden",
+              inCompare
+                ? "border-accent bg-accent text-white"
+                : "border-line text-ink bg-surface-raised hover:bg-surface-sunken",
+            )}
+          >
+            {inCompare ? (
+              <Check size={14} aria-hidden="true" />
+            ) : (
+              <Plus size={14} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+        <p className="text-caption text-ink-subtle mt-1">
+          {formatBankLabel(card.bank, card.id)} · {card.tier} · {card.brand}
+        </p>
+
+        {details.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5">
+            {details.map(({ Icon, label }) => (
+              <li key={label} className="text-ink-muted flex min-w-0 items-center gap-1.5 text-xs">
+                <Icon size={14} className="text-ink-subtle shrink-0" aria-hidden="true" />
+                <span className="truncate">{label}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Col 3: Anuidade + Compare (desktop only) */}
+      <div className="hidden sm:col-start-3 sm:row-start-1 sm:flex sm:flex-col sm:items-end sm:gap-3">
         <div className="sm:text-right">
           <p className="text-caption text-ink-subtle">Anuidade</p>
           <p className="text-num text-ink tabular text-sm font-semibold">{annualFeeLabel(card)}</p>
@@ -248,13 +280,12 @@ export const CatalogList = ({
   }, [filters]);
 
   const cacheKey = JSON.stringify(debouncedFilters);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const {
     data: cards,
     error,
     isLoading,
     mutate,
-  } = useSWR(
+  } = useSWR<PublicCatalogCard[], Error>(
     cacheKey,
     async (key: string) => {
       const f = JSON.parse(key) as CatalogFilters;
@@ -357,7 +388,7 @@ export const CatalogList = ({
   return (
     <>
       {viewMode === "list" ? (
-        <div className="border-line border-y">
+        <div>
           {visibleCards.map((card) => (
             <CatalogListRow
               key={card.id}

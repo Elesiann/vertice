@@ -99,7 +99,7 @@ describe("catalog sorting", () => {
       screen.getByRole("button", { name: "Visualização em lista, alternar para grade" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(screen.getAllByRole("button", { name: "Comparar" })).toHaveLength(2);
-    expect(screen.getByText("R$ 900/ano")).toBeInTheDocument();
-    expect(screen.getByText("R$ 1.200/ano")).toBeInTheDocument();
+    expect(screen.getAllByText("R$ 900/ano").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("R$ 1.200/ano").length).toBeGreaterThanOrEqual(1);
   });
 });

@@ -7,7 +7,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { ArrowRight, Check, ChevronDown, Grid2X2, List, Star, X } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Grid2X2,
+  List,
+  SlidersHorizontal,
+  Star,
+  X,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
@@ -115,6 +124,10 @@ const FeeRangeFields = ({
     onChangeRef.current = onChange;
   });
   useEffect(() => {
+    setLocalMin(min !== undefined ? String(min) : "");
+    setLocalMax(max !== undefined ? String(max) : "");
+  }, [min, max]);
+  useEffect(() => {
     const parsedMin = parseFee(localMin);
     const parsedMax = parseFee(localMax);
     if (parsedMin === min && parsedMax === max) return;
@@ -165,6 +178,9 @@ const PILL_ACTIVE = "border-ink bg-ink text-surface-raised hover:bg-ink/90";
 const Divider = (): JSX.Element => (
   <span aria-hidden="true" className="bg-line mx-1 hidden h-5 w-px shrink-0 sm:block" />
 );
+
+const MOBILE_TOOLBAR_BUTTON =
+  "border-line text-ink-muted bg-transparent hover:border-line-strong hover:text-ink focus-visible:ring-accent inline-flex min-h-9 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none";
 
 // --- dropdown ---------------------------------------------------------------
 
@@ -325,7 +341,7 @@ const CheckRow = ({
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 }): JSX.Element => (
   <div className="hover:bg-surface-sunken/60 flex items-center justify-between gap-3 rounded-md px-2.5 py-1.5 transition-colors">
-    <label className="text-ink flex cursor-pointer items-center gap-2.5 text-sm">
+    <label className="text-ink-muted flex cursor-pointer items-center gap-2.5 text-sm">
       <Checkbox checked={checked} onChange={onChange} />
       {label}
     </label>
@@ -425,6 +441,51 @@ const buildActiveChips = (
   return chips;
 };
 
+const MobileSelectRow = ({
+  label,
+  value,
+  options,
+  emptyLabel,
+  onChange,
+}: {
+  label: string;
+  value: string | undefined;
+  options: readonly { value: string; label: string }[];
+  emptyLabel: string;
+  onChange: (value: string | undefined) => void;
+}): JSX.Element => (
+  <label className="border-line flex items-center justify-between gap-4 border-b py-2">
+    <span className="text-ink text-sm font-medium">{label}</span>
+    <select
+      value={value ?? ""}
+      onChange={(event) => {
+        onChange(event.target.value.length > 0 ? event.target.value : undefined);
+      }}
+      className="border-line text-ink bg-surface-raised focus:border-ink/40 min-h-9 w-28 rounded-md border px-2 text-sm outline-none"
+    >
+      <option value="">{emptyLabel}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+const MobileFilterGroup = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}): JSX.Element => (
+  <div className="py-2">
+    <p className="text-ink mb-1.5 text-sm font-medium">{label}</p>
+    <div className="flex flex-col">{children}</div>
+  </div>
+);
+
 // --- the bar ----------------------------------------------------------------
 
 export const CatalogFilterBar = ({
@@ -437,6 +498,7 @@ export const CatalogFilterBar = ({
   onViewModeChange,
   onClear,
 }: CatalogFilterBarProps): JSX.Element => {
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const set = (update: FilterUpdate): void => {
     onChange(mergeFilters(filters, update));
   };
@@ -470,7 +532,185 @@ export const CatalogFilterBar = ({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="relative sm:hidden">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-expanded={mobileFiltersOpen}
+            onClick={() => {
+              setMobileFiltersOpen((open) => !open);
+            }}
+            className={cn(MOBILE_TOOLBAR_BUTTON, "flex-1 justify-between")}
+          >
+            <span className="inline-flex items-center gap-1.5">
+              <SlidersHorizontal size={15} aria-hidden="true" />
+              Filtros
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              {chips.length > 0 ? (
+                <span className="text-ink tabular text-xs">{chips.length}</span>
+              ) : null}
+              <ChevronDown
+                size={14}
+                aria-hidden="true"
+                className={cn("transition-transform", mobileFiltersOpen && "rotate-180")}
+              />
+            </span>
+          </button>
+
+          <label className="relative min-w-0 flex-[1.15]">
+            <span className="sr-only">Ordenar catálogo</span>
+            <select
+              value={sort}
+              onChange={(event) => {
+                onSortChange(event.target.value as CatalogSort);
+              }}
+              className={cn(MOBILE_TOOLBAR_BUTTON, "w-full appearance-none pr-8")}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={14}
+              aria-hidden="true"
+              className="text-ink-subtle pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2"
+            />
+          </label>
+
+          <button
+            type="button"
+            aria-label={
+              viewMode === "grid"
+                ? "Alternar catálogo mobile para lista"
+                : "Alternar catálogo mobile para grade"
+            }
+            aria-pressed={viewMode === "list"}
+            onClick={() => {
+              onViewModeChange(viewMode === "grid" ? "list" : "grid");
+            }}
+            className={cn(MOBILE_TOOLBAR_BUTTON, "px-2.5")}
+          >
+            {viewMode === "grid" ? (
+              <Grid2X2 size={16} aria-hidden="true" />
+            ) : (
+              <List size={16} aria-hidden="true" />
+            )}
+          </button>
+        </div>
+
+        {mobileFiltersOpen ? (
+          <div className="bg-surface absolute right-0 left-0 z-50 overflow-x-hidden border-t border-b border-none p-3 shadow-md">
+            <button
+              type="button"
+              aria-pressed={premiumFreeActive}
+              onClick={handlePremiumFree}
+              className={cn(
+                "border-line my-2 flex min-h-12 w-full items-center justify-between gap-3 rounded-md border px-3 py-2 text-left",
+                premiumFreeActive ? "bg-warning-soft/70" : "bg-surface-raised",
+              )}
+            >
+              <span className="min-w-0">
+                <span className="text-ink inline-flex items-center gap-2 text-sm font-semibold">
+                  <Star
+                    size={14}
+                    aria-hidden="true"
+                    className={cn(
+                      "shrink-0",
+                      premiumFreeActive ? "text-warning" : "text-ink-subtle",
+                    )}
+                  />
+                  Premium grátis
+                </span>
+                <span className="text-ink-subtle block text-xs">Sem anuidade + lounge</span>
+              </span>
+              <span
+                className={cn(
+                  "shrink-0 text-xs font-medium",
+                  premiumFreeActive ? "text-warning" : "text-ink-subtle",
+                )}
+              >
+                {premiumFreeActive ? "Ativo" : "Aplicar"}
+              </span>
+            </button>
+
+            <MobileSelectRow
+              label="Bandeira"
+              value={filters.brand}
+              options={BRAND_OPTIONS}
+              emptyLabel="Todas"
+              onChange={(value) => {
+                set({ brand: value });
+              }}
+            />
+            <MobileSelectRow
+              label="Categoria"
+              value={filters.tier}
+              options={TIER_OPTIONS}
+              emptyLabel="Todas"
+              onChange={(value) => {
+                set({ tier: value });
+              }}
+            />
+
+            <MobileFilterGroup label="Benefícios">
+              <CheckRow
+                label="Acesso a lounge"
+                checked={filters.hasLounge === true}
+                count={counts?.hasLounge}
+                onChange={(event) => {
+                  set({ hasLounge: event.target.checked ? true : undefined });
+                }}
+              />
+              <CheckRow
+                label="Cashback direto"
+                checked={filters.hasCashback === true}
+                count={counts?.hasCashback}
+                onChange={(event) => {
+                  set({ hasCashback: event.target.checked ? true : undefined });
+                }}
+              />
+              <CheckRow
+                label="Investback CDB"
+                checked={filters.hasInvestback === true}
+                count={counts?.hasInvestback}
+                onChange={(event) => {
+                  set({ hasInvestback: event.target.checked ? true : undefined });
+                }}
+              />
+            </MobileFilterGroup>
+
+            <MobileFilterGroup label="Acesso">
+              {RELATIONSHIP_OPTIONS.map((option) => (
+                <CheckRow
+                  key={option.value}
+                  label={option.label}
+                  checked={filters.requiresRelationship?.includes(option.value) ?? false}
+                  count={counts?.requiresRelationship[option.value]}
+                  onChange={(event) => {
+                    setRelationship(option.value, event.target.checked);
+                  }}
+                />
+              ))}
+            </MobileFilterGroup>
+
+            <div className="py-2">
+              <p className="text-ink mb-1.5 text-sm font-medium">Anuidade</p>
+              <FeeRangeFields
+                min={filters.minAnnualFee}
+                max={filters.maxAnnualFee}
+                onChange={(next) => {
+                  set({ minAnnualFee: next.min, maxAnnualFee: next.max });
+                }}
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="hidden flex-wrap items-center gap-x-2 gap-y-2.5 sm:flex sm:gap-2">
         <button
           type="button"
           aria-pressed={premiumFreeActive}

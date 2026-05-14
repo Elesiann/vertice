@@ -52,7 +52,7 @@ const formatBrlShort = (value: number): string => {
 };
 
 // Todo card tem o bloco "Anuidade" (mantém as alturas alinhadas na grade).
-// `null` = sem cobrança ("Sem anuidade"); o valor "R$ X/ano" caso contrário.
+// `null` = sem cobrança ("Zero"); o valor "R$ X/ano" caso contrário.
 // A condição de isenção fica na página de detalhe, não no card.
 const annualFeeAmount = (card: PublicCatalogCard): string | null =>
   card.annualFeeBrl === 0 ? null : formatBrlShort(card.annualFeeBrl);
@@ -130,7 +130,7 @@ export const CatalogCard = ({
         // cards ficam uniformes em qualquer breakpoint. A barreira de acesso
         // vira um chip sobreposto na imagem, então o conteúdo abaixo tem sempre
         // a mesma altura (sem espremer no rodapé).
-        "border-line bg-surface-raised hover:border-line-strong relative flex aspect-[3/4] flex-col overflow-hidden rounded-xl border transition-colors",
+        "border-line bg-surface-raised hover:border-line-strong relative flex flex-col overflow-hidden rounded-xl border transition-colors sm:aspect-[3/4]",
         className,
       )}
     >
@@ -179,7 +179,7 @@ export const CatalogCard = ({
         <div className="flex flex-col gap-0.5">
           <Link
             to={`/cards/${card.id}`}
-            className="text-heading text-ink hover:text-accent focus-visible:ring-accent line-clamp-2 min-h-[3.25rem] rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2"
+            className="text-heading text-ink hover:text-accent focus-visible:ring-accent line-clamp-2 rounded leading-tight after:absolute after:inset-0 after:content-[''] focus:outline-none focus-visible:ring-2 sm:min-h-[3.25rem]"
           >
             {card.name}
           </Link>
@@ -198,7 +198,7 @@ export const CatalogCard = ({
                 <span className="text-ink-muted text-sm font-normal"> /ano</span>
               </p>
             ) : (
-              <p className="text-ink text-lg font-semibold">Sem anuidade</p>
+              <p className="text-ink text-lg font-semibold">Zero</p>
             )}
           </div>
 
