@@ -47,9 +47,11 @@ export const CardCombobox = ({
 
   const selectedOptions = useMemo(
     () =>
-      value
-        .map((cardId) => options.find((o) => o.id === cardId))
-        .filter((o): o is CardOption => o !== undefined),
+      value.reduce<CardOption[]>((acc, cardId) => {
+        const found = options.find((o) => o.id === cardId);
+        if (found !== undefined) acc.push(found);
+        return acc;
+      }, []),
     [value, options],
   );
 
@@ -132,6 +134,11 @@ export const CardCombobox = ({
           "focus-within:border-accent focus-within:ring-accent/20 focus-within:ring-2",
         )}
         onClick={() => inputRef.current?.focus()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") inputRef.current?.focus();
+        }}
+        role="button"
+        tabIndex={-1}
       >
         {selectedOptions.map((card) => (
           <span
@@ -184,7 +191,7 @@ export const CardCombobox = ({
           }}
           onKeyDown={onKeyDown}
           placeholder={selectedOptions.length === 0 ? "Buscar por nome ou banco" : ""}
-          className="text-ink placeholder:text-ink-subtle min-w-[10ch] flex-1 bg-transparent px-1 py-1 text-sm outline-none"
+          className="text-ink placeholder:text-ink-subtle min-w-[10ch] flex-1 bg-transparent p-1 text-sm outline-none"
         />
       </div>
 

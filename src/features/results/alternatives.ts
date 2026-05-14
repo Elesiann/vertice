@@ -613,14 +613,16 @@ export const bestUpsideForCurrentCard = (
 ): CurrentCardUpside | null => {
   const current = recommendation.currentStack;
   if (current === undefined) return null;
-  const candidate = uniqueCandidatePool(recommendation)
-    .filter((stack) => stack.yearOneNetValueBrl > current.yearOneNetValueBrl + 0.01)
-    .filter((stack) => !isAccessibleForProfile(profile, stack))
-    .filter((stack) => {
-      const barrier = stackAccessBarrierBrl(stack);
-      return barrier > 0 && barrier <= UPSIDE_BARRIER_CEILING_BRL;
-    })
-    .sort(compareCandidate)[0];
+  const candidates = uniqueCandidatePool(recommendation).filter((stack) => {
+    if (stack.yearOneNetValueBrl <= current.yearOneNetValueBrl + 0.01) return false;
+    if (isAccessibleForProfile(profile, stack)) return false;
+    const barrier = stackAccessBarrierBrl(stack);
+    return barrier > 0 && barrier <= UPSIDE_BARRIER_CEILING_BRL;
+  });
+  const candidate = candidates.reduce<StackEvaluation | undefined>(
+    (best, s) => (best === undefined || compareCandidate(s, best) < 0 ? s : best),
+    undefined,
+  );
   if (candidate === undefined) return null;
   const phrase = stackAccessBarrierPhrase(candidate);
   if (phrase === null) return null;

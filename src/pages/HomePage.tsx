@@ -210,7 +210,7 @@ const SectionHeading = ({ eyebrow, title, children }: SectionHeadingProps): JSX.
 
 const SiteFooter = (): JSX.Element => (
   <footer className="border-line border-t">
-    <div className="text-ink-subtle mx-auto flex max-w-5xl flex-col gap-2 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
+    <div className="text-ink-subtle mx-auto flex max-w-5xl flex-col gap-2 p-6 text-xs sm:flex-row sm:items-center sm:justify-between">
       <p>
         Catálogo curado mas pode conter imprecisões. Verifique com o emissor antes de contratar.
       </p>

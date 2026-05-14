@@ -115,7 +115,7 @@ export const AlternativesLadder = ({
           );
         case "gap":
           return (
-            <li key="gap" className="text-ink-subtle px-3 py-3 text-xs leading-relaxed">
+            <li key="gap" className="text-ink-subtle p-3 text-xs leading-relaxed">
               {row.count} {row.count === 1 ? "cartão" : "cartões"} — abaixo do recomendado
               {currentLabel !== null ? `, acima do seu ${currentLabel}` : ""}.{" "}
               <Link to={fullListHref} className="plain-link">

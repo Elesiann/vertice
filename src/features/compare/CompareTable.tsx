@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
 const EMPTY_SET = new Set<number>();
+const EMPTY_CARDS: PublicCatalogCard[] = [];
 import { useSession } from "@/context/SessionContext";
 import { CompareMobileCards, type MobileRow } from "@/features/compare/CompareMobileCards";
 import { CompareSubstituteCTA } from "@/features/compare/CompareSubstituteCTA";
@@ -268,6 +269,7 @@ interface CompareRow extends MobileRow {
 interface RowProps {
   label: string;
   cells: (string | JSX.Element)[];
+  cardIds: string[];
   winners?: Set<number>;
   tooltips?: (string | undefined)[];
   hidden?: boolean;
@@ -277,6 +279,7 @@ interface RowProps {
 const Row = ({
   label,
   cells,
+  cardIds,
   winners = EMPTY_SET,
   tooltips,
   hidden = false,
@@ -299,7 +302,7 @@ const Row = ({
         const tooltipText = tooltips?.[i];
         return (
           <td
-            key={String(i)}
+            key={cardIds[i] ?? String(i)}
             className={cn(
               "text-body-sm px-3 py-3 align-top transition-colors",
               isOverallWinner ? "compare-winner-col" : "border-l border-transparent",
@@ -432,7 +435,7 @@ const CardHeaderCell = ({
 
 export const CompareTable = ({
   cards,
-  catalogCards = [],
+  catalogCards = EMPTY_CARDS,
   onAddCard,
   onAddRecommendedCard,
   onRemoveCard,
@@ -568,7 +571,7 @@ export const CompareTable = ({
       label: "Retorno no seu perfil",
       cells: values.map((v, i) =>
         v !== undefined ? (
-          <span key={i} className="flex flex-col">
+          <span key={sortedCards[i]?.id ?? String(i)} className="flex flex-col">
             <span>{formatBrl(v)}</span>
             <span className="text-caption text-ink-subtle tracking-normal normal-case italic">
               /ano
@@ -738,6 +741,7 @@ export const CompareTable = ({
                 key={row.label}
                 label={row.label}
                 cells={row.cells}
+                cardIds={sortedCards.map((c) => c.id)}
                 winners={row.winners}
                 winnerIndexes={overallWinnerIndexes}
                 {...(row.tooltips !== undefined ? { tooltips: row.tooltips } : {})}
