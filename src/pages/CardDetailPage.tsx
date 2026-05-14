@@ -28,7 +28,7 @@ const CardCompareButton = ({ card }: { card: PublicCardDetail }): JSX.Element =>
     <Button
       variant="secondary"
       size="sm"
-      className="w-fit shrink-0"
+      className="w-full shrink-0 sm:w-fit"
       onClick={() => {
         toggleCard(card.id);
       }}
@@ -129,8 +129,10 @@ export const CardDetailPage = (): JSX.Element => {
             <Link to={ROUTES.CATALOG} className="hover:text-accent">
               Catálogo
             </Link>
-            <span className="mx-2">/</span>
-            <span className="text-ink">{state.card.name}</span>
+            <span className="hidden sm:inline">
+              <span className="mx-2">/</span>
+              <span className="text-ink">{state.card.name}</span>
+            </span>
           </nav>
           <CardCompareButton card={state.card} />
         </div>

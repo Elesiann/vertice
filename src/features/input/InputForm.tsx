@@ -131,7 +131,7 @@ const FieldGroup = ({
   return (
     <section className="mt-10 first:mt-0 sm:mt-12">
       <header className="mb-4 flex items-baseline gap-3">
-        <span className="text-num text-ink-subtle text-base">{index}</span>
+        <span className="text-num text-ink-subtle hidden text-base sm:inline">{index}</span>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
           <h2 className="text-heading text-ink">{title}</h2>
           {hint !== undefined ? (
@@ -285,6 +285,7 @@ export const InputForm = (): JSX.Element => {
                     <span className="text-ink-subtle text-xs font-normal">(opcional)</span>
                   </>
                 }
+                hint="Usado para identificar cartões com isenção via investimento."
                 error={errors.availableToInvestBrl?.message}
               >
                 <Input
@@ -354,7 +355,7 @@ export const InputForm = (): JSX.Element => {
               ← Voltar para a home
             </Link>
             <Button type="submit" size="lg" className="w-full cursor-pointer sm:w-auto">
-              Ver análise →
+              Calcular meu cartão →
             </Button>
           </footer>
         </form>

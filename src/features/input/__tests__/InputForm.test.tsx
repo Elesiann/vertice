@@ -72,7 +72,7 @@ describe("InputForm", () => {
     expect(screen.getByLabelText(/Forma de resgate/i)).toBeInTheDocument();
     expect(screen.getByText(/Cartões atuais/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Buscar por nome/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /análise/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /calcular/i })).toBeInTheDocument();
   });
 
   it("selects a card via combobox and renders it as a chip", async () => {
@@ -98,7 +98,7 @@ describe("InputForm", () => {
     await userEvent.type(brl, "8000");
     await userEvent.selectOptions(redemption, "miles:smiles");
 
-    await userEvent.click(screen.getByRole("button", { name: /análise/i }));
+    await userEvent.click(screen.getByRole("button", { name: /calcular/i }));
 
     expect(latest).toEqual({
       monthlyDomesticBrl: 8000,
@@ -117,7 +117,7 @@ describe("InputForm", () => {
     const income = screen.getByLabelText(/Renda mensal/i);
     await userEvent.clear(income);
     await userEvent.type(income, "12000");
-    await userEvent.click(screen.getByRole("button", { name: /análise/i }));
+    await userEvent.click(screen.getByRole("button", { name: /calcular/i }));
 
     expect(latest).toEqual({
       monthlyDomesticBrl: 5000,
@@ -136,7 +136,7 @@ describe("InputForm", () => {
     const availableToInvest = screen.getByLabelText(/Investimentos/i);
     await userEvent.clear(availableToInvest);
     await userEvent.type(availableToInvest, "50000");
-    await userEvent.click(screen.getByRole("button", { name: /análise/i }));
+    await userEvent.click(screen.getByRole("button", { name: /calcular/i }));
 
     expect(latest).toEqual({
       monthlyDomesticBrl: 5000,
@@ -152,7 +152,7 @@ describe("InputForm", () => {
     const brl = screen.getByLabelText(/Gasto mensal \(R\$\)/i);
     await userEvent.clear(brl);
     await userEvent.type(brl, "-1");
-    await userEvent.click(screen.getByRole("button", { name: /análise/i }));
+    await userEvent.click(screen.getByRole("button", { name: /calcular/i }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/negativo/i);
     expect(navigateMock).not.toHaveBeenCalledWith("/results");

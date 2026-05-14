@@ -133,7 +133,7 @@ describe("catalog URL state", () => {
 
     renderCatalog("/cards");
 
-    expect(screen.getByText("2 cartões selecionados")).toBeInTheDocument();
+    expect(screen.getByText("2 selecionados")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Comparar" })).toHaveAttribute(
       "href",
       "/compare?ids=alpha,beta",

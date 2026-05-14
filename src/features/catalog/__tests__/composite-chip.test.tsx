@@ -57,4 +57,20 @@ describe("premium free catalog chip", () => {
     expect(currentSearchParams().get("maxAnnualFee")).toBeNull();
     expect(currentSearchParams().get("hasLounge")).toBeNull();
   });
+
+  it("keeps max annual fee when the mobile premium preset is used with the panel open", async () => {
+    const user = userEvent.setup();
+    renderCatalog("/cards?brand=visa");
+
+    await user.click(screen.getByRole("button", { name: /Filtros/ }));
+    await user.click(screen.getByRole("button", { name: /Premium grátis Sem anuidade \+ lounge/ }));
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, 350);
+    });
+
+    expect(currentSearchParams().get("brand")).toBe("visa");
+    expect(currentSearchParams().get("maxAnnualFee")).toBe("0");
+    expect(currentSearchParams().get("hasLounge")).toBe("true");
+  });
 });

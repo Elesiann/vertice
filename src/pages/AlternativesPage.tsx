@@ -169,7 +169,7 @@ const AlternativesPageInner = (): JSX.Element => {
               <li
                 key={stackId(row.stack)}
                 className={cn(
-                  "grid grid-cols-[2rem_1fr_auto_auto] items-baseline gap-x-4 gap-y-1 px-3 py-3.5",
+                  "grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1.5 px-3 py-3.5 sm:grid-cols-[2rem_1fr_auto_auto] sm:gap-x-4",
                   rowBg !== "" && `${rowBg} rounded-sm`,
                 )}
               >
@@ -183,7 +183,10 @@ const AlternativesPageInner = (): JSX.Element => {
                   />
                 </span>
                 <span
-                  className={cn("text-num tabular font-semibold", above ? aboveTone : "text-ink")}
+                  className={cn(
+                    "text-num tabular col-start-2 row-start-2 font-semibold sm:col-auto sm:row-auto",
+                    above ? aboveTone : "text-ink",
+                  )}
                 >
                   {formatAnnualBrl(row.stack.yearOneNetValueBrl)}
                 </span>
@@ -196,7 +199,7 @@ const AlternativesPageInner = (): JSX.Element => {
                     if (compareCardId !== undefined) toggleCard(compareCardId);
                   }}
                   className={cn(
-                    "focus-visible:ring-accent inline-flex min-h-8 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+                    "focus-visible:ring-accent col-start-3 row-span-2 row-start-1 inline-flex min-h-8 items-center gap-1.5 self-center rounded-md border px-2.5 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:col-auto sm:row-auto sm:self-auto",
                     inCompare
                       ? "border-accent bg-accent text-white"
                       : "border-line text-ink bg-surface-raised hover:bg-surface-sunken",
@@ -207,9 +210,9 @@ const AlternativesPageInner = (): JSX.Element => {
                   ) : (
                     <Plus size={14} aria-hidden="true" />
                   )}
-                  <span className="hidden sm:inline">{inCompare ? "Selecionado" : "Comparar"}</span>
+                  <span>{inCompare ? "Selecionado" : "Comparar"}</span>
                 </button>
-                <p className="text-ink-subtle col-span-4 pl-12 text-xs leading-relaxed">
+                <p className="text-ink-subtle col-span-3 pl-8 text-xs leading-relaxed sm:col-span-4 sm:pl-12">
                   {row.isCurrent && !(anchoredOnCurrentCard && row.isRecommended)
                     ? "seu cartão hoje · "
                     : null}
