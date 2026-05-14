@@ -179,9 +179,8 @@
   /* Inline disclosure summary with +/- chevron. Consumed by
      <Disclosure variant="inline" />. The +/- toggle is CSS-driven
      via the [open] state, so no JS required.                              */
-  .disclosure-inline > summary {
+  .disclosure-inline {
     cursor: pointer;
-    list-style: none;
     color: var(--color-ink-muted);
     font-size: 0.82rem;
     font-weight: 500;
@@ -192,39 +191,8 @@
     transition: color var(--duration-fast) ease-out;
   }
 
-  .disclosure-inline > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .disclosure-inline > summary::after {
-    content: "+";
-    display: inline-grid;
-    place-items: center;
-    width: 1.05rem;
-    height: 1.05rem;
-    border: 1px solid var(--color-line-strong);
-    border-radius: var(--radius-pill);
-    font-size: 0.78rem;
-    line-height: 1;
-    color: var(--color-ink-subtle);
-    transition:
-      transform var(--duration-base) var(--ease-snappy),
-      color var(--duration-fast) ease-out;
-  }
-
-  .disclosure-inline[open] > summary::after {
-    content: "−";
+  .disclosure-inline:hover {
     color: var(--color-accent);
-  }
-
-  .disclosure-inline > summary:hover {
-    color: var(--color-accent);
-  }
-
-  .disclosure-inline > summary:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: 4px;
-    border-radius: var(--radius-sm);
   }
 }
 

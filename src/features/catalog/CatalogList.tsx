@@ -1,6 +1,7 @@
 import { type JSX, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Armchair,
   Check,
@@ -192,9 +193,23 @@ const CatalogListRow = ({
             )}
           >
             {inCompare ? (
-              <Check size={14} aria-hidden="true" />
+              <motion.span
+                key="check"
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+              >
+                <Check size={14} aria-hidden="true" />
+              </motion.span>
             ) : (
-              <Plus size={14} aria-hidden="true" />
+              <motion.span
+                key="plus"
+                initial={{ scale: 0.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+              >
+                <Plus size={14} aria-hidden="true" />
+              </motion.span>
             )}
           </button>
         </div>
@@ -234,9 +249,23 @@ const CatalogListRow = ({
           )}
         >
           {inCompare ? (
-            <Check size={15} aria-hidden="true" />
+            <motion.span
+              key="check-dt"
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 25 }}
+            >
+              <Check size={15} aria-hidden="true" />
+            </motion.span>
           ) : (
-            <Plus size={15} aria-hidden="true" />
+            <motion.span
+              key="plus-dt"
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 25 }}
+            >
+              <Plus size={15} aria-hidden="true" />
+            </motion.span>
           )}
           <span>{inCompare ? "Selecionado" : "Comparar"}</span>
         </button>
@@ -388,27 +417,40 @@ export const CatalogList = ({
   return (
     <>
       {viewMode === "list" ? (
-        <div>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+        >
           {visibleCards.map((card) => (
-            <CatalogListRow
+            <motion.div
               key={card.id}
-              card={card}
-              inCompare={hasCard(card.id)}
-              onToggleCompare={toggleCard}
-            />
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+            >
+              <CatalogListRow
+                card={card}
+                inCompare={hasCard(card.id)}
+                onToggleCompare={toggleCard}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : (
-        <div className={`${GRID} items-start`}>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+          className={`${GRID} items-start`}
+        >
           {visibleCards.map((card) => (
-            <CatalogCard
+            <motion.div
               key={card.id}
-              card={card}
-              inCompare={hasCard(card.id)}
-              onCompare={toggleCard}
-            />
+              variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
+            >
+              <CatalogCard card={card} inCompare={hasCard(card.id)} onCompare={toggleCard} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
       {hasMore ? <div ref={sentinelRef} aria-hidden="true" className="h-1 w-full" /> : null}
     </>

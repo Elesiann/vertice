@@ -1,4 +1,5 @@
-export type ClassValue = string | number | false | null | undefined;
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import type { ClassValue } from "clsx";
 
-export const cn = (...values: ClassValue[]): string =>
-  values.filter((v): v is string | number => Boolean(v)).join(" ");
+export const cn = (...values: ClassValue[]): string => twMerge(clsx(values));
