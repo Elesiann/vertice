@@ -1,43 +1,50 @@
-# Vertice Frontend
+# Vértice
 
-React + Vite frontend for Vertice recommendation flows.
+Pare de deixar dinheiro na mesa.
 
-## Requirements
+Vértice encontra o melhor cartão de crédito para o seu perfil de gastos — calcula retorno real considerando anuidade, pontos, salas VIP, seguro viagem, câmbio e benefícios. Catálogo independente, score auditável, sem viés de venda.
 
-- Node.js 20+
-- pnpm 10+
-- Vertice API running separately (private repo)
+## Stack
 
-## Setup
+- **React 19** + **React Router 7** (SPA)
+- **Tailwind CSS 4** com design tokens personalizados
+- **Vite** (build + dev server)
+- **SWR** (cache de catálogo)
+- **TypeScript** strict
+- **Vitest** + **Testing Library**
+- **pnpm**
+
+## Roteiro
+
+| Rota               | Página                  |
+| ------------------ | ----------------------- |
+| `/`                | Home                    |
+| `/input`           | Perfil de gastos        |
+| `/results`         | Recomendação            |
+| `/results/cartoes` | Alternativas ranqueadas |
+| `/cards`           | Catálogo de cartões     |
+| `/cards/:id`       | Detalhe do cartão       |
+| `/compare`         | Comparação lado a lado  |
+
+## Desenvolvimento
 
 ```bash
 pnpm install
 cp .env.example .env
-```
-
-By default, the frontend calls `http://localhost:3333`.
-
-To use a different API URL, set:
-
-```bash
-VITE_API_URL=https://your-api-host
-```
-
-## Development
-
-```bash
 pnpm dev
 ```
 
-## Quality checks
+A API roda separadamente em `http://localhost:3333` (repositório privado).
+
+### Qualidade
 
 ```bash
 pnpm typecheck
-pnpm test
 pnpm lint
+pnpm test
 ```
 
-## Build
+### Build
 
 ```bash
 pnpm build
