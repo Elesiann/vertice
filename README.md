@@ -1,12 +1,12 @@
-# Stackr Frontend
+# Vertice Frontend
 
-React + Vite frontend for Stackr recommendation flows.
+React + Vite frontend for Vertice recommendation flows.
 
 ## Requirements
 
 - Node.js 20+
 - pnpm 10+
-- Stackr API running separately (private repo)
+- Vertice API running separately (private repo)
 
 ## Setup
 

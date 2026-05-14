@@ -7,6 +7,7 @@ import { Panel } from "@/components/ui/Panel";
 import { fetchCardCatalog } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/routes";
+import packageJson from "../../package.json";
 
 const useCatalogSize = (): number | null => {
   const [count, setCount] = useState<number | null>(null);
@@ -63,8 +64,8 @@ const Hero = ({ catalogSize }: HeroProps): JSX.Element => (
     </h1>
 
     <p className="text-ink-muted max-w-2xl text-lg leading-relaxed sm:text-xl">
-      O Vértice avalia o catálogo de cartões e indica a combinação que maximiza seu retorno anual de
-      acordo com seus gastos.
+      O ponto ótimo entre gasto e retorno. O Vértice avalia seus gastos e indica o cartão que
+      maximiza seu retorno anual.
     </p>
 
     <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -227,7 +228,7 @@ const SiteFooter = (): JSX.Element => (
       <p>
         Catálogo curado mas pode conter imprecisões. Verifique com o emissor antes de contratar.
       </p>
-      <p>Vértice · v0.1 dev</p>
+      <p>Vértice · v{packageJson.version}</p>
     </div>
   </footer>
 );
