@@ -1,7 +1,7 @@
 // URL do repositório usada para abrir issues prefilled. Detectada via
 // `git remote get-url origin`; mantemos como constante exportada porque
 // é referenciada também pela página de detalhe/comparação no futuro.
-export const REPO_URL = "https://github.com/Elesiann/stackr";
+export const REPO_URL = "https://github.com/Elesiann/vertice";
 
 interface ErrorReportMetadata {
   stackLabel?: string | undefined;
@@ -19,7 +19,7 @@ const formatField = (value: string | number | undefined): string => {
 };
 
 export const buildErrorReportUrl = (metadata: ErrorReportMetadata = {}): string => {
-  const title = "[stackr] Erro de dados em recomendação";
+  const title = "[Vértice] Erro de dados em recomendação";
   const body = [
     "<!-- Descreva o erro encontrado: o que aparece, o que esperava, qualquer print/captura. -->",
     "",

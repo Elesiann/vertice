@@ -64,7 +64,7 @@ const CANONICAL_BANK_LABEL: Record<Bank, string> = {
 };
 
 // Para `bank: "other"`, deduzimos a instituição pelo prefixo do `id` —
-// alinhado com o catálogo do `stackr-api` (50 cartões dessa categoria).
+// alinhado com o catálogo do `vertice-api` (50 cartões dessa categoria).
 const OTHER_BANK_PREFIXES: { prefix: string; label: string }[] = [
   { prefix: "btg-", label: "BTG" },
   { prefix: "caixa-", label: "Caixa" },

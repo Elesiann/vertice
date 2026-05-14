@@ -23,7 +23,7 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-const STORAGE_KEY = "stackr.profile.v1";
+const STORAGE_KEY = "vertice.profile.v1";
 
 // Schema permissivo: estrutura coerente é o que importa. Enums abertos
 // (`program`) usam z.string() pra não invalidar storage existente quando

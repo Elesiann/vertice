@@ -63,13 +63,13 @@ const Hero = ({ catalogSize }: HeroProps): JSX.Element => (
     </h1>
 
     <p className="text-ink-muted max-w-2xl text-lg leading-relaxed sm:text-xl">
-      O Stackr avalia o catálogo de cartões e indica a combinação que maximiza seu retorno anual de
+      O Vértice avalia o catálogo de cartões e indica a combinação que maximiza seu retorno anual de
       acordo com seus gastos.
     </p>
 
     <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-3">
       <ButtonLink to={ROUTES.INPUT} size="lg">
-        Calcular meu stack →
+        Calcular →
       </ButtonLink>
       <Link
         to={ROUTES.CATALOG}
@@ -97,7 +97,7 @@ const Step = ({ index, title, description }: StepProps): JSX.Element => (
 
 const HowItWorks = (): JSX.Element => (
   <section className="flex flex-col gap-6">
-    <SectionHeading eyebrow="Como funciona" title="Como o stack é calculado" />
+    <SectionHeading eyebrow="Como funciona" title="Como o cálculo funciona" />
     <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
       <Step
         index="01"
@@ -107,12 +107,12 @@ const HowItWorks = (): JSX.Element => (
       <Step
         index="02"
         title="Veja o cálculo"
-        description="O Stackr avalia o catálogo inteiro e calcula o retorno anual de cada stack possível, considerando anuidade, pontos, sala VIP, seguro e câmbio."
+        description="O Vértice avalia o catálogo inteiro e calcula o retorno anual de cada cartão possível, considerando anuidade, pontos, sala VIP, seguro e câmbio."
       />
       <Step
         index="03"
         title="Compare com o seu"
-        description="Você marca os cartões que já usa e o Stackr mostra exatamente quanto eles deixam na mesa por ano."
+        description="Você marca os cartões que já usa e o Vértice mostra exatamente quanto eles deixam na mesa por ano."
       />
     </div>
   </section>
@@ -138,7 +138,7 @@ const Trust = ({ catalogSize }: TrustProps): JSX.Element => (
   <section className="flex flex-col gap-6">
     <SectionHeading eyebrow="O método" title="Catálogo independente, score em sete dimensões">
       <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">
-        O Stackr não vende a recomendação.
+        O Vértice não vende a recomendação.
       </p>
     </SectionHeading>
     <div className="grid gap-5 sm:grid-cols-3 sm:gap-x-8 sm:gap-y-0">
@@ -227,7 +227,7 @@ const SiteFooter = (): JSX.Element => (
       <p>
         Catálogo curado mas pode conter imprecisões. Verifique com o emissor antes de contratar.
       </p>
-      <p>stackr · v0.1 dev</p>
+      <p>Vértice · v0.1 dev</p>
     </div>
   </footer>
 );

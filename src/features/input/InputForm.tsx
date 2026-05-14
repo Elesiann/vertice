@@ -330,7 +330,7 @@ export const InputForm = (): JSX.Element => {
             <FieldGroup
               index="03"
               title="Cartões atuais"
-              hint="Quando preenchido, o Stackr compara seu setup atual com a recomendação."
+              hint="Quando preenchido, o Vértice compara seu setup atual com a recomendação."
               columns={1}
             >
               <Controller

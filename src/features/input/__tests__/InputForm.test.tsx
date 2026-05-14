@@ -160,7 +160,7 @@ describe("InputForm", () => {
 
   it("hydrates fields from a profile saved in localStorage", async () => {
     window.localStorage.setItem(
-      "stackr.profile.v1",
+      "vertice.profile.v1",
       JSON.stringify({
         profile: {
           monthlyDomesticBrl: 7000,
@@ -183,7 +183,7 @@ describe("InputForm", () => {
 
   it("clears the saved profile when Limpar is clicked", async () => {
     window.localStorage.setItem(
-      "stackr.profile.v1",
+      "vertice.profile.v1",
       JSON.stringify({
         profile: {
           monthlyDomesticBrl: 9999,
@@ -199,7 +199,7 @@ describe("InputForm", () => {
     expect(await screen.findByText(/Última edição/i)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Limpar/i }));
 
-    expect(window.localStorage.getItem("stackr.profile.v1")).toBeNull();
+    expect(window.localStorage.getItem("vertice.profile.v1")).toBeNull();
     expect(screen.queryByText(/Última edição/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Gasto mensal \(R\$\)/i)).toHaveValue(5000);
   });

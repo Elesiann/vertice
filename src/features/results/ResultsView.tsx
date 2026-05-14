@@ -273,7 +273,7 @@ export const ResultsView = (): JSX.Element => {
     ? "Você já está no ótimo"
     : noRecommendationReason !== undefined
       ? "Melhor acionável encontrado"
-      : "Stack recomendado";
+      : "Cartão recomendado";
   const noRecommendationNotice =
     noRecommendationReason === "no-positive-actionable-return"
       ? "Não encontramos uma recomendação acionável com retorno positivo relevante; exibindo o melhor cartão acionável para comparação."
