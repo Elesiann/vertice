@@ -1,5 +1,6 @@
-import { Fragment, useState, type JSX, type ReactNode } from "react";
-import { Check, Star } from "lucide-react";
+import { Fragment, useEffect, useState, type JSX, type ReactNode } from "react";
+import { AnimatePresence, m } from "framer-motion";
+import { Check, Info, Star, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
 import type {
@@ -86,20 +87,19 @@ const feeConditionCell = (detail: FeeDetail | undefined): ReactNode => {
   );
 };
 
-// ─── verdict tag (amber only when there's something to warn about) ────────────
+// ─── verdict pill ────────────────────────────────────────────────────────────
 
-const verdictToneClass = (kind: ScoreLabVerdictKind): string =>
-  kind === "negative" ? "text-warning" : "text-ink-subtle";
+const VERDICT_PILL_LABEL: Record<ScoreLabVerdictKind, string> = {
+  strong: "Forte candidato",
+  viable: "Viável",
+  negative: "Atenção",
+};
 
-const VerdictTag = ({
-  verdict,
-}: {
-  verdict: { kind: ScoreLabVerdictKind; label: string };
-}): JSX.Element => (
-  <span className={cn("mt-1 block text-xs leading-snug", verdictToneClass(verdict.kind))}>
-    {verdict.label}
-  </span>
-);
+const VERDICT_PILL_TONE: Record<ScoreLabVerdictKind, "accent" | "warning" | "danger"> = {
+  strong: "accent",
+  viable: "warning",
+  negative: "danger",
+};
 
 // ─── expand affordance ────────────────────────────────────────────────────────
 
@@ -180,7 +180,9 @@ const ValueCell = ({
       className={cn("tabular pl-6 text-right", isNet ? "py-5 text-base" : "py-3.5", color, weight)}
     >
       <span aria-hidden className="mr-1.5 inline-block w-3 align-middle">
-        {marked ? <Check size={12} className="text-accent" /> : null}
+        {marked ? (
+          <Check size={isNet ? 12 : 10} className={isNet ? "text-accent" : "text-ink-muted"} />
+        ) : null}
       </span>
       {formatBrl(value)}
       {marked ? <span className="sr-only">, melhor neste item</span> : null}
@@ -228,6 +230,108 @@ const BreakdownDetailRows = ({ row }: { row: ComparisonRow }): JSX.Element => (
   </>
 );
 
+// ─── mobile breakdown row ────────────────────────────────────────────────────
+
+const SIDE_WIDTH = "w-[5.5rem]";
+
+const BreakdownMobileRow = ({
+  side,
+  part,
+  benefitLabel,
+}: {
+  side: string;
+  part: BenefitBreakdownPart | undefined;
+  benefitLabel: string;
+}): JSX.Element => {
+  if (part === undefined) {
+    return (
+      <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-2 text-xs leading-snug">
+        <span className={cn("text-ink-subtle", SIDE_WIDTH)}>{side}</span>
+        <span className="text-ink-subtle">—</span>
+      </div>
+    );
+  }
+  const unit = benefitUnit(benefitLabel, part.count);
+  const countStr =
+    part.demanded > part.count
+      ? `${String(part.count)} de ${String(part.demanded)} ${unit}`
+      : `${String(part.count)} ${unit}`;
+  return (
+    <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-2 text-xs leading-snug">
+      <span className={cn("text-ink-subtle", SIDE_WIDTH)}>{side}</span>
+      <span className="text-ink-subtle tabular text-right">{countStr}</span>
+      <span className="text-ink tabular font-medium">{formatBrl(part.totalBrl)}</span>
+    </div>
+  );
+};
+
+// ─── mobile breakdown dialog ─────────────────────────────────────────────────
+
+const BreakdownDialog = ({
+  open,
+  title,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}): JSX.Element => {
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if (e.key === "Escape") onClose();
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open ? (
+        <m.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-5"
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+        >
+          <m.div
+            className="absolute inset-0 bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <m.div
+            className="bg-surface-raised border-line relative w-full max-w-sm rounded-xl border p-5 shadow-lg"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <p className="text-ink text-base font-semibold">{title}</p>
+              <button
+                type="button"
+                aria-label="Fechar"
+                onClick={onClose}
+                className="text-ink-muted hover:text-ink focus-visible:ring-accent inline-flex size-8 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            {children}
+          </m.div>
+        </m.div>
+      ) : null}
+    </AnimatePresence>
+  );
+};
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 export const CurrentVsRecommended = ({
@@ -247,13 +351,14 @@ export const CurrentVsRecommended = ({
       return next;
     });
   };
+  const [breakdownDialogKey, setBreakdownDialogKey] = useState<string | null>(null);
 
   return (
     <section
       aria-label="Comparação com seu cartão atual"
       className="border-line mt-8 space-y-6 border-t border-b py-8 md:py-10"
     >
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[28rem] table-fixed text-sm">
           <thead>
             <tr>
@@ -271,9 +376,6 @@ export const CurrentVsRecommended = ({
               <th scope="col" className="pb-3 pl-6 text-right align-bottom font-normal">
                 <span className="text-caption text-ink-subtle block">SEU CARTÃO</span>
                 <span className="text-ink mt-0.5 block font-semibold">{currentLabel}</span>
-                {narrative.currentVerdict !== undefined ? (
-                  <VerdictTag verdict={narrative.currentVerdict} />
-                ) : null}
               </th>
               <th scope="col" className="pb-3 pl-6 text-right align-bottom font-normal">
                 <Badge tone="gold" className="mt-1">
@@ -283,9 +385,6 @@ export const CurrentVsRecommended = ({
                 <span className="text-ink mt-0.5 block text-[1rem] font-semibold">
                   {recommendedLabel}
                 </span>
-                {narrative.recommendedVerdict !== undefined ? (
-                  <VerdictTag verdict={narrative.recommendedVerdict} />
-                ) : null}
               </th>
             </tr>
           </thead>
@@ -333,6 +432,37 @@ export const CurrentVsRecommended = ({
                     <ValueCell row={row} side="current" value={row.currentValueBrl} />
                     <ValueCell row={row} side="recommended" value={row.recommendedValueBrl} />
                   </tr>
+                  {isNet && narrative.recommendedVerdict !== undefined ? (
+                    <tr className="bg-surface-sunken">
+                      <td colSpan={3} className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2 text-xs">
+                          <Badge tone={VERDICT_PILL_TONE[narrative.recommendedVerdict.kind]}>
+                            {narrative.recommendedVerdict.kind === "strong" ? (
+                              <Check size={10} aria-hidden />
+                            ) : narrative.recommendedVerdict.kind === "negative" ? (
+                              <span aria-hidden>✗</span>
+                            ) : null}
+                            <span>{VERDICT_PILL_LABEL[narrative.recommendedVerdict.kind]}</span>
+                          </Badge>
+                          <span className="text-ink-subtle" aria-hidden>
+                            ·
+                          </span>
+                          <span
+                            className={cn(
+                              "tabular font-medium",
+                              narrative.verdictBrl >= 0 ? "text-accent" : "text-warning",
+                            )}
+                          >
+                            {narrative.verdictBrl >= 0 ? "+" : ""}
+                            {formatBrl(narrative.verdictBrl)}/ano
+                          </span>
+                        </div>
+                        <p className="text-ink-subtle mx-auto mt-1 max-w-md text-xs leading-snug">
+                          {narrative.recommendedVerdict.detail}
+                        </p>
+                      </td>
+                    </tr>
+                  ) : null}
 
                   {isExpanded && row.key === "annual-fee" ? <AnnualFeeDetailRow row={row} /> : null}
                   {isExpanded && row.key === "travel-benefit" ? (
@@ -343,6 +473,242 @@ export const CurrentVsRecommended = ({
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile layout */}
+      <div className="space-y-4 md:hidden">
+        <div>
+          <p className="text-caption text-ink-subtle">Comparação anual</p>
+          {narrative.diagnosis.map((note) => (
+            <p key={note} className="text-ink-subtle mt-1 text-xs leading-snug italic">
+              {note}
+            </p>
+          ))}
+        </div>
+
+        <div className="divide-line border-line divide-y rounded-lg border">
+          <div className="p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="border-line border-r">
+                <Badge className="border-line rounded-full border">
+                  <p className="text-caption text-ink-subtle">SEU CARTÃO</p>
+                </Badge>
+                <p className="text-ink mt-0.5 ml-1 text-sm font-semibold">{currentLabel}</p>
+              </div>
+              <div className="text-right">
+                <Badge tone="gold" className="border-line mb-1 ml-auto rounded-full border">
+                  <Star size={11} aria-hidden />
+                  <span className="text-caption">RECOMENDADO</span>
+                </Badge>
+                <p className="text-ink mt-0.5 text-sm font-semibold">{recommendedLabel}</p>
+              </div>
+            </div>
+          </div>
+          {narrative.rows.map((row) => {
+            const isNet = row.key === "net";
+            const isCostRow = row.key === "annual-fee" || row.key === "fx-iof";
+            const expandable = isExpandableRow(row);
+
+            const currentWinner = isWinningSide(row, "current");
+            const recommendedWinner = isWinningSide(row, "recommended");
+            const currentNegativeNet = isNet && row.currentValueBrl < 0;
+            const recommendedNegativeNet = isNet && row.recommendedValueBrl < 0;
+
+            const currentColor = currentNegativeNet
+              ? "text-warning"
+              : isNet && currentWinner
+                ? "text-accent"
+                : !currentWinner && row.tone !== "tie"
+                  ? "text-ink-muted"
+                  : "text-ink";
+            const recommendedColor = recommendedNegativeNet
+              ? "text-warning"
+              : isNet && recommendedWinner
+                ? "text-accent"
+                : !recommendedWinner && row.tone !== "tie"
+                  ? "text-ink-muted"
+                  : "text-ink";
+            const currentWeight = isNet
+              ? "font-semibold"
+              : currentWinner
+                ? "font-medium"
+                : "font-normal";
+            const recommendedWeight = isNet
+              ? "font-semibold"
+              : recommendedWinner
+                ? "font-medium"
+                : "font-normal";
+            const currentMarked = currentWinner && !currentNegativeNet;
+            const recommendedMarked = recommendedWinner && !recommendedNegativeNet;
+
+            const recommendedVerdict = narrative.recommendedVerdict;
+
+            return (
+              <Fragment key={row.key}>
+                <div
+                  className={cn(
+                    "px-3 py-3.5",
+                    isNet && recommendedVerdict !== undefined && "bg-surface-sunken rounded-b-lg",
+                  )}
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <span
+                      className={cn(
+                        "w-full text-center",
+                        isNet ? "text-ink text-xs font-semibold" : "text-ink-muted text-[0.65rem]",
+                      )}
+                    >
+                      {expandable ? (
+                        <button
+                          type="button"
+                          aria-label={`Detalhes: ${row.label}`}
+                          onClick={() => {
+                            setBreakdownDialogKey(row.key);
+                          }}
+                          className="focus-visible:ring-accent hover:[&_span]:text-accent inline-flex cursor-pointer items-center gap-1 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                        >
+                          {row.label}
+                          <Info size={12} className="text-ink-subtle" />
+                        </button>
+                      ) : (
+                        row.label
+                      )}
+                    </span>
+                    {isCostRow ? (
+                      <span className="text-ink-subtle text-[0.6rem] italic">menor é melhor</span>
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="text-left">
+                      <span className="text-ink-subtle text-xs leading-snug">Atual</span>
+                      <div
+                        className={cn("tabular text-md leading-snug", currentColor, currentWeight)}
+                      >
+                        {currentMarked ? (
+                          <span aria-hidden className="mr-1 inline-block w-2 align-middle">
+                            <Check
+                              size={isNet ? 9 : 7}
+                              className={isNet ? "text-accent" : "text-ink-muted"}
+                            />
+                          </span>
+                        ) : null}
+                        {formatBrl(row.currentValueBrl)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-ink-subtle text-xs leading-snug">Recomendado</span>
+                      <div
+                        className={cn(
+                          "tabular text-md leading-snug",
+                          recommendedColor,
+                          recommendedWeight,
+                        )}
+                      >
+                        <span aria-hidden className="mr-1 inline-block w-2 align-middle">
+                          {recommendedMarked ? (
+                            <Check
+                              size={isNet ? 9 : 7}
+                              className={isNet ? "text-accent" : "text-ink-muted"}
+                            />
+                          ) : null}
+                        </span>
+                        {formatBrl(row.recommendedValueBrl)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {isNet && recommendedVerdict !== undefined ? (
+                    <div className="border-line mt-3 space-y-1.5 border-t pt-2">
+                      <div className="flex items-center justify-center gap-2 text-xs">
+                        <Badge tone={VERDICT_PILL_TONE[recommendedVerdict.kind]}>
+                          {recommendedVerdict.kind === "strong" ? (
+                            <Check size={10} aria-hidden />
+                          ) : recommendedVerdict.kind === "negative" ? (
+                            <span aria-hidden>✗</span>
+                          ) : null}
+                          <span>{VERDICT_PILL_LABEL[recommendedVerdict.kind]}</span>
+                        </Badge>
+                        <span className="text-ink-subtle" aria-hidden>
+                          ·
+                        </span>
+                        <span
+                          className={cn(
+                            "tabular font-medium",
+                            narrative.verdictBrl >= 0 ? "text-accent" : "text-warning",
+                          )}
+                        >
+                          {narrative.verdictBrl >= 0 ? "+" : ""}
+                          {formatBrl(narrative.verdictBrl)}/ano
+                        </span>
+                      </div>
+                      <p className="text-ink-subtle text-center text-xs leading-snug">
+                        {recommendedVerdict.detail}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </Fragment>
+            );
+          })}
+        </div>
+
+        {(() => {
+          const row =
+            breakdownDialogKey !== null
+              ? narrative.rows.find((r) => r.key === breakdownDialogKey)
+              : null;
+          if (row === undefined || row === null) return null;
+          return (
+            <BreakdownDialog
+              open
+              title={row.label}
+              onClose={() => {
+                setBreakdownDialogKey(null);
+              }}
+            >
+              {row.key === "annual-fee" ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-[auto_1fr] items-baseline gap-2 text-sm leading-snug">
+                    <span className={cn("text-ink-muted", SIDE_WIDTH)}>Atual</span>
+                    <span className="text-ink tabular text-right">
+                      {feeConditionCell(row.currentFeeDetail)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-[auto_1fr] items-baseline gap-2 text-sm leading-snug">
+                    <span className={cn("text-ink-muted", SIDE_WIDTH)}>Recomendado</span>
+                    <span className="text-ink tabular text-right">
+                      {feeConditionCell(row.recommendedFeeDetail)}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+              {row.key === "travel-benefit" ? (
+                <div className="space-y-4">
+                  {mergeBreakdownLabels(row).map((label) => {
+                    const current = row.currentBreakdown?.find((p) => p.label === label);
+                    const recommended = row.recommendedBreakdown?.find((p) => p.label === label);
+                    return (
+                      <div key={label}>
+                        <p className="text-ink-muted mb-1.5 text-xs font-medium tracking-wide uppercase">
+                          {label}
+                        </p>
+                        <div className="space-y-1">
+                          <BreakdownMobileRow side="Atual" part={current} benefitLabel={label} />
+                          <BreakdownMobileRow
+                            side="Recomendado"
+                            part={recommended}
+                            benefitLabel={label}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </BreakdownDialog>
+          );
+        })()}
       </div>
 
       {preferenceComparison !== undefined ? (

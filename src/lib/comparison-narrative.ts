@@ -66,8 +66,8 @@ export interface ComparisonNarrative {
   dominantRowKey: DominantKey | null;
   monthlySpendBrl: number;
   monthlyInternationalUsd: number;
-  currentVerdict?: { kind: ScoreLabVerdictKind; label: string };
-  recommendedVerdict?: { kind: ScoreLabVerdictKind; label: string };
+  currentVerdict?: { kind: ScoreLabVerdictKind; label: string; detail: string };
+  recommendedVerdict?: { kind: ScoreLabVerdictKind; label: string; detail: string };
   currentBreakEvenMonthlySpendBrl: number | null;
   currentRoiMultiple: number | null;
 }
@@ -364,13 +364,20 @@ export const buildComparisonNarrative = (
     monthlySpendBrl: topStack.allocation[0]?.monthlyDomesticBrl ?? 0,
     monthlyInternationalUsd: topStack.allocation[0]?.monthlyInternationalUsd ?? 0,
     ...(currentVerdictRaw !== undefined
-      ? { currentVerdict: { kind: currentVerdictRaw.kind, label: currentVerdictRaw.label } }
+      ? {
+          currentVerdict: {
+            kind: currentVerdictRaw.kind,
+            label: currentVerdictRaw.label,
+            detail: currentVerdictRaw.detail,
+          },
+        }
       : {}),
     ...(recommendedVerdictRaw !== undefined
       ? {
           recommendedVerdict: {
             kind: recommendedVerdictRaw.kind,
             label: recommendedVerdictRaw.label,
+            detail: recommendedVerdictRaw.detail,
           },
         }
       : {}),

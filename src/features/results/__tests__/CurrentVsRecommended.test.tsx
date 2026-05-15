@@ -95,8 +95,10 @@ const cappedLoungeNarrative: ComparisonNarrative = {
   ],
 };
 
+const desktopTable = (): HTMLElement => screen.getByRole("table");
+
 const rowEl = (rowLabel: string): HTMLElement =>
-  screen.getByText(rowLabel).closest("tr") as HTMLElement;
+  within(desktopTable()).getByText(rowLabel).closest("tr") as HTMLElement;
 
 describe("CurrentVsRecommended", () => {
   it("renders the dominant-delta note in the table header", () => {
@@ -107,8 +109,10 @@ describe("CurrentVsRecommended", () => {
         recommendedLabel="PicPay Card Black"
       />,
     );
-    expect(screen.getByText("Comparação anual")).toBeInTheDocument();
-    expect(screen.getByText("A maior diferença está em anuidade.")).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("Comparação anual")).toBeInTheDocument();
+    expect(
+      within(desktopTable()).getByText("A maior diferença está em anuidade."),
+    ).toBeInTheDocument();
   });
 
   it("renders the column headers with both card names", () => {
@@ -119,20 +123,21 @@ describe("CurrentVsRecommended", () => {
         recommendedLabel="PicPay Card Black"
       />,
     );
-    expect(screen.getByText("SEU CARTÃO")).toBeInTheDocument();
-    expect(screen.getByText("RECOMENDADO")).toBeInTheDocument();
-    expect(screen.getByText("Nubank Ultravioleta")).toBeInTheDocument();
-    expect(screen.getByText("PicPay Card Black")).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("SEU CARTÃO")).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("RECOMENDADO")).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("Nubank Ultravioleta")).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("PicPay Card Black")).toBeInTheDocument();
   });
 
   it("marks the recommended column with a gold pill, none on the current column", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    // the "RECOMENDADO" eyebrow lives inside a gold pill
-    expect(screen.getByText("RECOMENDADO").closest(".bg-gold-soft")).toHaveClass("text-gold");
-    // the current ("SEU CARTÃO") column carries no gold pill
-    const seuCartaoTh = screen.getByText("SEU CARTÃO").closest("th") as HTMLElement;
+    const recomendadoTh = within(desktopTable())
+      .getByText("RECOMENDADO")
+      .closest("th") as HTMLElement;
+    expect(recomendadoTh.querySelector(".bg-gold-soft")).toHaveClass("text-gold");
+    const seuCartaoTh = within(desktopTable()).getByText("SEU CARTÃO").closest("th") as HTMLElement;
     expect(seuCartaoTh.querySelector(".bg-gold-soft")).toBeNull();
   });
 
@@ -140,17 +145,14 @@ describe("CurrentVsRecommended", () => {
     render(
       <CurrentVsRecommended narrative={variantANarrative} currentLabel="A" recommendedLabel="B" />,
     );
-    expect(screen.getByText("Cashback")).toBeInTheDocument();
-    // the annual-fee row label is a toggle button (it carries expandable detail)
-    expect(screen.getByRole("button", { name: "Anuidade" })).toBeInTheDocument();
-    expect(screen.getByText("Líquido anual")).toBeInTheDocument();
-    expect(screen.getByText(/750,00/)).toBeInTheDocument();
-    // 720 appears in the cashback recommended cell and the net recommended cell.
-    expect(screen.getAllByText(/720,00/).length).toBe(2);
-    expect(screen.getByText(/-R\$\s?1\.068,00/)).toBeInTheDocument();
-    // R$ 0,00 shows once — the annual-fee recommended cell.
-    expect(screen.getByText(/R\$\s?0,00/)).toBeInTheDocument();
-    expect(screen.getByText(/-R\$\s?318,00/)).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("Cashback")).toBeInTheDocument();
+    expect(within(desktopTable()).getByRole("button", { name: "Anuidade" })).toBeInTheDocument();
+    expect(within(desktopTable()).getByText("Líquido anual")).toBeInTheDocument();
+    expect(within(desktopTable()).getByText(/750,00/)).toBeInTheDocument();
+    expect(within(desktopTable()).getAllByText(/720,00/).length).toBe(2);
+    expect(within(desktopTable()).getByText(/-R\$\s?1\.068,00/)).toBeInTheDocument();
+    expect(within(desktopTable()).getByText(/R\$\s?0,00/)).toBeInTheDocument();
+    expect(within(desktopTable()).getByText(/-R\$\s?318,00/)).toBeInTheDocument();
   });
 
   it("shows the recommended net in accent on the bottom-line row", () => {
@@ -159,7 +161,6 @@ describe("CurrentVsRecommended", () => {
     );
     const recommendedNet = within(rowEl("Líquido anual")).getByText(/720,00/);
     expect(recommendedNet).toHaveClass("text-accent");
-    expect(recommendedNet).not.toHaveClass("text-danger");
   });
 
   it("shows the spend assumption and the default access label in the meta line", () => {
@@ -343,8 +344,11 @@ describe("CurrentVsRecommended", () => {
       if (tr === null) throw new Error("annual-fee detail sub-row not found");
       return tr;
     };
+    const desktopAnuidadeBtn = (): HTMLElement =>
+      within(desktopTable()).getByRole("button", { name: "Anuidade" });
+
     const expandAnuidade = async (user: ReturnType<typeof userEvent.setup>): Promise<void> => {
-      await user.click(screen.getByRole("button", { name: "Anuidade" }));
+      await user.click(desktopAnuidadeBtn());
     };
 
     it("hides the fee detail sub-row until the row is expanded", async () => {
@@ -356,7 +360,7 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      const toggle = screen.getByRole("button", { name: "Anuidade" });
+      const toggle = desktopAnuidadeBtn();
       expect(toggle).toHaveAttribute("aria-expanded", "false");
       expect(screen.queryByText("Condições")).not.toBeInTheDocument();
 
@@ -442,6 +446,9 @@ describe("CurrentVsRecommended", () => {
     });
   });
 
+  const desktopTravelBtn = (): HTMLElement =>
+    within(desktopTable()).getByRole("button", { name: /Benefício de viagem/i });
+
   describe("travel-benefit row expandable breakdown", () => {
     it("has a toggle button collapsed by default, breakdown labels not visible", () => {
       render(
@@ -451,7 +458,7 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="Card B"
         />,
       );
-      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      const btn = desktopTravelBtn();
       expect(btn).toHaveAttribute("aria-expanded", "false");
       expect(screen.queryByText("Sala VIP")).not.toBeInTheDocument();
       expect(screen.queryByText("Seguro")).not.toBeInTheDocument();
@@ -466,7 +473,7 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="Card B"
         />,
       );
-      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      const btn = desktopTravelBtn();
       await user.click(btn);
 
       expect(btn).toHaveAttribute("aria-expanded", "true");
@@ -496,7 +503,7 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="Card B"
         />,
       );
-      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      const btn = desktopTravelBtn();
       await user.click(btn);
 
       const salaVipRow = screen.getByText("Sala VIP").closest("tr") as HTMLElement;
@@ -518,7 +525,7 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="Card B"
         />,
       );
-      const btn = screen.getByRole("button", { name: /Benefício de viagem/i });
+      const btn = desktopTravelBtn();
       await user.click(btn);
       await user.click(btn);
 
@@ -541,56 +548,79 @@ describe("CurrentVsRecommended", () => {
     });
   });
 
-  describe("verdict tag under column headers", () => {
+  describe("verdict pill in the net row", () => {
     const verdictNarrative: ComparisonNarrative = {
       ...variantANarrative,
-      currentVerdict: { kind: "negative", label: "Atenção: tende a custar mais que retorna" },
-      recommendedVerdict: { kind: "strong", label: "Forte candidato para este perfil" },
+      verdictBrl: 600,
+      recommendedVerdict: {
+        kind: "strong",
+        label: "Forte candidato para este perfil",
+        detail:
+          "Retorno líquido modelado de R$ 1.200,00 ao ano após anuidade e custo internacional.",
+      },
     };
 
-    it("renders the verdict tag under each column header", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={verdictNarrative}
-          currentLabel="Nubank Ultravioleta"
-          recommendedLabel="PicPay Card Black"
-        />,
-      );
-      const currentTh = screen.getByText("SEU CARTÃO").closest("th") as HTMLElement;
-      expect(
-        within(currentTh).getByText(/Atenção: tende a custar mais que retorna/),
-      ).toBeInTheDocument();
-      const recomendadoTh = screen.getByText("RECOMENDADO").closest("th") as HTMLElement;
-      expect(
-        within(recomendadoTh).getByText(/Forte candidato para este perfil/),
-      ).toBeInTheDocument();
-    });
-
-    it("paints a negative verdict in warning and a non-negative one in subtle ink", () => {
+    it("renders the verdict pill and diff in the net row", () => {
       render(
         <CurrentVsRecommended narrative={verdictNarrative} currentLabel="A" recommendedLabel="B" />,
       );
-      expect(screen.getByText(/Forte candidato para este perfil/)).toHaveClass("text-ink-subtle");
-      expect(screen.getByText(/Atenção: tende a custar mais que retorna/)).toHaveClass(
-        "text-warning",
-      );
+      expect(within(desktopTable()).getByText("Forte candidato")).toBeInTheDocument();
+      expect(within(desktopTable()).getByText(/\+\s*R\$\s*600/)).toBeInTheDocument();
+      expect(within(desktopTable()).getByText(/Retorno líquido modelado/)).toBeInTheDocument();
     });
 
-    it("paints a viable verdict in subtle ink too", () => {
+    it("paints the strong pill with accent tone", () => {
+      render(
+        <CurrentVsRecommended narrative={verdictNarrative} currentLabel="A" recommendedLabel="B" />,
+      );
+      const pill = within(desktopTable()).getByText("Forte candidato").parentElement;
+      expect(pill?.className).toMatch(/bg-accent-soft/);
+    });
+
+    it("paints the negative pill with danger tone", () => {
       render(
         <CurrentVsRecommended
           narrative={{
             ...variantANarrative,
-            currentVerdict: { kind: "viable", label: "Pode compensar dependendo do uso" },
+            verdictBrl: -200,
+            recommendedVerdict: {
+              kind: "negative",
+              label: "Atenção: tende a custar mais que retorna",
+              detail: "Retorno líquido modelado de -R$ 200,00 após anuidade e custo internacional.",
+            },
           }}
           currentLabel="A"
           recommendedLabel="B"
         />,
       );
-      expect(screen.getByText(/Pode compensar dependendo do uso/)).toHaveClass("text-ink-subtle");
+      expect(within(desktopTable()).getByText("Atenção")).toBeInTheDocument();
+      const pill = within(desktopTable()).getByText("Atenção").parentElement;
+      expect(pill?.className).toMatch(/bg-danger-soft/);
     });
 
-    it("renders no verdict tag when the verdict is absent", () => {
+    it("paints the viable pill with warning tone", () => {
+      render(
+        <CurrentVsRecommended
+          narrative={{
+            ...variantANarrative,
+            verdictBrl: 100,
+            recommendedVerdict: {
+              kind: "viable",
+              label: "Pode compensar dependendo do uso",
+              detail:
+                "Retorno líquido modelado de R$ 100,00; verifique se o gasto real bate o cenário simulado.",
+            },
+          }}
+          currentLabel="A"
+          recommendedLabel="B"
+        />,
+      );
+      expect(within(desktopTable()).getByText("Viável")).toBeInTheDocument();
+      const pill = within(desktopTable()).getByText("Viável").parentElement;
+      expect(pill?.className).toMatch(/bg-warning-soft/);
+    });
+
+    it("renders no verdict pill when the verdict is absent", () => {
       render(
         <CurrentVsRecommended
           narrative={variantANarrative}
@@ -598,23 +628,9 @@ describe("CurrentVsRecommended", () => {
           recommendedLabel="B"
         />,
       );
-      expect(screen.queryByText(/Atenção: tende a custar/)).toBeNull();
-      expect(screen.queryByText(/Forte candidato/)).toBeNull();
-    });
-
-    it("renders only the present verdict tag when one side is absent", () => {
-      render(
-        <CurrentVsRecommended
-          narrative={{
-            ...variantANarrative,
-            recommendedVerdict: { kind: "strong", label: "Forte candidato para este perfil" },
-          }}
-          currentLabel="A"
-          recommendedLabel="B"
-        />,
-      );
-      expect(screen.getByText(/Forte candidato para este perfil/)).toBeInTheDocument();
-      expect(screen.queryByText(/Atenção/)).toBeNull();
+      expect(within(desktopTable()).queryByText("Forte candidato")).toBeNull();
+      expect(within(desktopTable()).queryByText("Viável")).toBeNull();
+      expect(within(desktopTable()).queryByText("Atenção")).toBeNull();
     });
   });
 });
