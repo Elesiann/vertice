@@ -555,8 +555,7 @@ describe("CurrentVsRecommended", () => {
       recommendedVerdict: {
         kind: "strong",
         label: "Forte candidato para este perfil",
-        detail:
-          "Retorno líquido modelado de R$ 1.200,00 ao ano após anuidade e custo internacional.",
+        detail: "Retorno líquido modelado de R$ 1.200,00 ao ano após anuidade.",
       },
     };
 
@@ -586,7 +585,7 @@ describe("CurrentVsRecommended", () => {
             recommendedVerdict: {
               kind: "negative",
               label: "Atenção: tende a custar mais que retorna",
-              detail: "Retorno líquido modelado de -R$ 200,00 após anuidade e custo internacional.",
+              detail: "Retorno líquido modelado de -R$ 200,00 após anuidade.",
             },
           }}
           currentLabel="A"
