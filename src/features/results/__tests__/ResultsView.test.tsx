@@ -245,6 +245,7 @@ const mockRecommendation = (recommendation: Recommendation = recommendationFixtu
 
 describe("ResultsView", () => {
   beforeEach(() => {
+    localStorage.clear();
     mockRecommendation();
   });
 
