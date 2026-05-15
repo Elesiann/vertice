@@ -1,9 +1,11 @@
 import { useState, type JSX } from "react";
 import { Link } from "react-router-dom";
+import { m } from "framer-motion";
 import { Check, Plus } from "lucide-react";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { RevealBlock, RevealGroup, revealItemVariants } from "@/components/ui/Reveal";
 import { cn } from "@/lib/cn";
 import { formatBrl } from "@/lib/format";
 import { ROUTES } from "@/lib/routes-constants";
@@ -47,15 +49,19 @@ const AlternativesPageInner = (): JSX.Element => {
   if (profile === null) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-5xl">
-          <Panel className="space-y-4 p-6 text-center sm:p-8">
-            <h1 className="text-display-3 text-ink">Nada para mostrar ainda</h1>
-            <p className="text-ink-muted text-sm">Preencha seus dados para gerar a recomendação.</p>
-            <div>
-              <ButtonLink to={ROUTES.INPUT}>Ir para o formulário</ButtonLink>
-            </div>
-          </Panel>
-        </div>
+        <RevealGroup className="app-container max-w-5xl">
+          <RevealBlock>
+            <Panel className="space-y-4 p-6 text-center sm:p-8">
+              <h1 className="text-display-3 text-ink">Nada para mostrar ainda</h1>
+              <p className="text-ink-muted text-sm">
+                Preencha seus dados para gerar a recomendação.
+              </p>
+              <div>
+                <ButtonLink to={ROUTES.INPUT}>Ir para o formulário</ButtonLink>
+              </div>
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -63,9 +69,11 @@ const AlternativesPageInner = (): JSX.Element => {
   if (result === null) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-5xl">
-          <Panel className="text-ink-muted p-6 text-center sm:p-8">Calculando…</Panel>
-        </div>
+        <RevealGroup className="app-container max-w-5xl">
+          <RevealBlock>
+            <Panel className="text-ink-muted p-6 text-center sm:p-8">Calculando…</Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -73,17 +81,19 @@ const AlternativesPageInner = (): JSX.Element => {
   if (!result.ok) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-5xl">
-          <Panel className="space-y-4 p-6 text-center sm:p-8">
-            <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
-            <p className="text-ink-muted text-sm">{result.error.message}</p>
-            <div>
-              <Link to={ROUTES.INPUT} className="plain-link">
-                Voltar e ajustar os dados
-              </Link>
-            </div>
-          </Panel>
-        </div>
+        <RevealGroup className="app-container max-w-5xl">
+          <RevealBlock>
+            <Panel className="space-y-4 p-6 text-center sm:p-8">
+              <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
+              <p className="text-ink-muted text-sm">{result.error.message}</p>
+              <div>
+                <Link to={ROUTES.INPUT} className="plain-link">
+                  Voltar e ajustar os dados
+                </Link>
+              </div>
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -104,42 +114,53 @@ const AlternativesPageInner = (): JSX.Element => {
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
-      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12">
-        <p className="text-caption text-ink-subtle">Todas as opções</p>
-        <h1 className="text-display-3 text-ink mt-2">Catálogo comparado para o seu perfil</h1>
-        <p className="text-ink-subtle mt-2 text-sm">
-          {total} {total === 1 ? "cartão avaliado" : "cartões avaliados"}, ordenados por líquido
-          anual.
-        </p>
+      <RevealGroup className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12">
+        <RevealBlock>
+          <p className="text-caption text-ink-subtle">Todas as opções</p>
+          <h1 className="text-display-3 text-ink mt-2">Catálogo comparado para o seu perfil</h1>
+          <p className="text-ink-subtle mt-2 text-sm">
+            {total} {total === 1 ? "cartão avaliado" : "cartões avaliados"}, ordenados por líquido
+            anual.
+          </p>
+        </RevealBlock>
 
-        <div
-          role="tablist"
-          aria-label="Filtrar cartões"
-          className="border-line mt-6 flex flex-wrap gap-x-7 border-b"
+        <RevealBlock>
+          <div
+            role="tablist"
+            aria-label="Filtrar cartões"
+            className="border-line mt-6 flex flex-wrap gap-x-7 border-b"
+          >
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                role="tab"
+                aria-selected={f.id === filterId}
+                onClick={() => {
+                  setFilterId(f.id);
+                }}
+                className={cn(
+                  "text-caption focus-visible:ring-accent -mb-px cursor-pointer border-b-2 pb-3 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
+                  f.id === filterId
+                    ? "border-ink text-ink"
+                    : "hover:text-ink text-ink-subtle border-transparent",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-ink-subtle mt-3 text-xs leading-relaxed">
+            {TAB_DESCRIPTIONS[filterId]}
+          </p>
+        </RevealBlock>
+
+        <m.ol
+          initial="hidden"
+          animate="visible"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+          className="divide-line mt-3 divide-y text-sm"
         >
-          {FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              role="tab"
-              aria-selected={f.id === filterId}
-              onClick={() => {
-                setFilterId(f.id);
-              }}
-              className={cn(
-                "text-caption focus-visible:ring-accent -mb-px cursor-pointer border-b-2 pb-3 transition-colors focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
-                f.id === filterId
-                  ? "border-ink text-ink"
-                  : "hover:text-ink text-ink-subtle border-transparent",
-              )}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-ink-subtle mt-3 text-xs leading-relaxed">{TAB_DESCRIPTIONS[filterId]}</p>
-
-        <ol className="divide-line mt-3 divide-y text-sm">
           {visible.map((row, i) => {
             // Number by position in the *visible* list — a filter prunes rows, so the global rank
             // would read as gappy ("3, 6, 11…") and look like the list is missing entries.
@@ -166,8 +187,9 @@ const AlternativesPageInner = (): JSX.Element => {
             const compareCardId = row.stack.cards[0]?.id ?? row.stack.allocation[0]?.cardId;
             const inCompare = compareCardId !== undefined && hasCard(compareCardId);
             return (
-              <li
+              <m.li
                 key={stackId(row.stack)}
+                variants={revealItemVariants}
                 className={cn(
                   "grid grid-cols-[1.5rem_minmax(0,1fr)_auto] items-baseline gap-x-2 gap-y-1.5 px-3 py-3.5 sm:grid-cols-[2rem_1fr_auto_auto] sm:gap-x-4",
                   rowBg !== "" && `${rowBg} rounded-sm`,
@@ -228,17 +250,19 @@ const AlternativesPageInner = (): JSX.Element => {
                     </>
                   ) : null}
                 </p>
-              </li>
+              </m.li>
             );
           })}
-        </ol>
+        </m.ol>
 
-        <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-          <Link to={ROUTES.RESULTS} className="plain-link">
-            ← Voltar para a recomendação
-          </Link>
-        </footer>
-      </div>
+        <RevealBlock>
+          <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
+            <Link to={ROUTES.RESULTS} className="plain-link">
+              ← Voltar para a recomendação
+            </Link>
+          </footer>
+        </RevealBlock>
+      </RevealGroup>
     </main>
   );
 };

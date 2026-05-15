@@ -2,8 +2,17 @@ import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
+import { m } from "framer-motion";
 import { z } from "zod";
-import { Button, Field, Input, Select } from "@/components/ui";
+import {
+  Button,
+  Field,
+  Input,
+  RevealBlock,
+  RevealGroup,
+  Select,
+  revealItemVariants,
+} from "@/components/ui";
 import { useSession } from "@/context/SessionContext";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
@@ -129,7 +138,7 @@ const FieldGroup = ({
 }: FieldGroupProps): JSX.Element => {
   const colsClass = columns === 3 ? "sm:grid-cols-3" : columns === 2 ? "sm:grid-cols-2" : "";
   return (
-    <section className="mt-10 first:mt-0 sm:mt-12">
+    <m.section className="mt-10 first:mt-0 sm:mt-12" variants={revealItemVariants}>
       <header className="mb-4 flex items-baseline gap-3">
         <span className="text-num text-ink-subtle hidden text-base sm:inline">{index}</span>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
@@ -140,7 +149,7 @@ const FieldGroup = ({
         </div>
       </header>
       <div className={`grid gap-3 ${colsClass}`.trim()}>{children}</div>
-    </section>
+    </m.section>
   );
 };
 
@@ -215,149 +224,157 @@ export const InputForm = (): JSX.Element => {
           }}
           noValidate
         >
-          {profileSavedAt !== null ? (
-            <div className="border-line flex items-center gap-3 border-b pb-4">
-              <MobileBackLink />
-              <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
-                <p className="text-ink-muted text-sm">
-                  <span className="text-caption text-ink-subtle mr-2">Última edição</span>
-                  <span className="text-ink font-medium">{formatRelative(profileSavedAt)}</span>
+          <RevealGroup>
+            {profileSavedAt !== null ? (
+              <RevealBlock className="border-line flex items-center gap-3 border-b pb-4">
+                <MobileBackLink />
+                <div className="flex flex-1 flex-wrap items-center justify-between gap-2">
+                  <p className="text-ink-muted text-sm">
+                    <span className="text-caption text-ink-subtle mr-2">Última edição</span>
+                    <span className="text-ink font-medium">{formatRelative(profileSavedAt)}</span>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onClearSavedProfile}
+                    className="text-ink-muted hover:text-accent focus-visible:ring-accent cursor-pointer text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </RevealBlock>
+            ) : (
+              <RevealBlock>
+                <MobileBackLink />
+              </RevealBlock>
+            )}
+
+            <RevealBlock>
+              <header className="mt-6 mb-8 flex flex-col gap-2 sm:mt-8 sm:mb-6">
+                <h1 className="text-display-3 text-ink">Vamos calcular.</h1>
+                <p className="text-ink-muted max-w-xl text-sm leading-relaxed">
+                  O cálculo considera anuidade, retorno por programa, benefícios de viagem e encaixe
+                  das condições com seu perfil.
                 </p>
-                <button
-                  type="button"
-                  onClick={onClearSavedProfile}
-                  className="text-ink-muted hover:text-accent focus-visible:ring-accent cursor-pointer text-xs font-semibold tracking-wide uppercase transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-                >
-                  Limpar
-                </button>
-              </div>
-            </div>
-          ) : (
-            <MobileBackLink />
-          )}
+              </header>
+            </RevealBlock>
 
-          <header className="mt-6 mb-8 flex flex-col gap-2 sm:mt-8 sm:mb-6">
-            <h1 className="text-display-3 text-ink">Vamos calcular.</h1>
-            <p className="text-ink-muted max-w-xl text-sm leading-relaxed">
-              O cálculo considera anuidade, retorno por programa, benefícios de viagem e encaixe das
-              condições com seu perfil.
-            </p>
-          </header>
-
-          <div className="flex flex-col">
-            <FieldGroup index="01" title="Perfil financeiro" columns={3}>
-              <Field label="Gasto mensal (R$)" error={errors.monthlyDomesticBrl?.message}>
-                <Input
-                  type="number"
-                  step="100"
-                  min="0"
-                  inputMode="numeric"
-                  placeholder="5000"
-                  className="tabular"
-                  {...register("monthlyDomesticBrl")}
-                />
-              </Field>
-
-              <Field
-                label={
-                  <>
-                    Renda mensal (R$){" "}
-                    <span className="text-ink-subtle text-xs font-normal">(opcional)</span>
-                  </>
-                }
-                error={errors.monthlyIncomeBrl?.message}
-              >
-                <Input
-                  type="number"
-                  step="500"
-                  min="0"
-                  inputMode="numeric"
-                  placeholder="12000"
-                  className="tabular"
-                  {...register("monthlyIncomeBrl")}
-                />
-              </Field>
-
-              <Field
-                label={
-                  <>
-                    Investimentos
-                    <span className="text-ink-subtle text-xs font-normal"> (opcional)</span>
-                  </>
-                }
-                hint="Valor que você poderia manter investido no banco para eventual isenção de anuidade."
-                error={errors.availableToInvestBrl?.message}
-              >
-                <Input
-                  type="number"
-                  step="1000"
-                  min="0"
-                  inputMode="numeric"
-                  placeholder="50000"
-                  className="tabular"
-                  {...register("availableToInvestBrl")}
-                />
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup index="02" title="Preferências">
-              <Field label="Forma de resgate preferida">
-                <Select {...register("redemptionRaw")}>
-                  {REDEMPTION_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-
-              <Field
-                label="Quantas viagens internacionais por ano?"
-                hint="Conta cada ida e volta como uma viagem. Vazio ou zero = não viaja."
-                error={errors.tripsPerYear?.message}
-              >
-                <Input
-                  type="number"
-                  step="1"
-                  min="0"
-                  inputMode="numeric"
-                  placeholder="0"
-                  className="tabular"
-                  {...register("tripsPerYear")}
-                />
-              </Field>
-            </FieldGroup>
-
-            <FieldGroup
-              index="03"
-              title="Cartões atuais"
-              hint="Quando preenchido, o Vértice compara seu setup atual com a recomendação."
-              columns={1}
-            >
-              <Controller
-                control={control}
-                name="currentCardIds"
-                render={({ field }) => (
-                  <CardCombobox
-                    options={cardOptions}
-                    value={field.value}
-                    onChange={field.onChange}
-                    loading={cardOptionsLoading}
-                    error={cardOptionsError}
+            <div className="flex flex-col">
+              <FieldGroup index="01" title="Perfil financeiro" columns={3}>
+                <Field label="Gasto mensal (R$)" error={errors.monthlyDomesticBrl?.message}>
+                  <Input
+                    type="number"
+                    step="100"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="5000"
+                    className="tabular"
+                    {...register("monthlyDomesticBrl")}
                   />
-                )}
-              />
-            </FieldGroup>
-          </div>
+                </Field>
 
-          <footer className="border-line mt-6 flex flex-col-reverse justify-between gap-4 border-t pt-6 sm:mt-6 sm:flex-row sm:items-center">
-            <Link to={ROUTES.HOME} className="plain-link hidden sm:inline">
-              ← Voltar para a home
-            </Link>
-            <Button type="submit" size="lg" className="w-full cursor-pointer sm:w-auto">
-              Calcular meu cartão →
-            </Button>
-          </footer>
+                <Field
+                  label={
+                    <>
+                      Renda mensal (R$){" "}
+                      <span className="text-ink-subtle text-xs font-normal">(opcional)</span>
+                    </>
+                  }
+                  error={errors.monthlyIncomeBrl?.message}
+                >
+                  <Input
+                    type="number"
+                    step="500"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="12000"
+                    className="tabular"
+                    {...register("monthlyIncomeBrl")}
+                  />
+                </Field>
+
+                <Field
+                  label={
+                    <>
+                      Investimentos
+                      <span className="text-ink-subtle text-xs font-normal"> (opcional)</span>
+                    </>
+                  }
+                  hint="Valor que você poderia manter investido no banco para eventual isenção de anuidade."
+                  error={errors.availableToInvestBrl?.message}
+                >
+                  <Input
+                    type="number"
+                    step="1000"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="50000"
+                    className="tabular"
+                    {...register("availableToInvestBrl")}
+                  />
+                </Field>
+              </FieldGroup>
+
+              <FieldGroup index="02" title="Preferências">
+                <Field label="Forma de resgate preferida">
+                  <Select {...register("redemptionRaw")}>
+                    {REDEMPTION_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+
+                <Field
+                  label="Quantas viagens internacionais por ano?"
+                  hint="Conta cada ida e volta como uma viagem. Vazio ou zero = não viaja."
+                  error={errors.tripsPerYear?.message}
+                >
+                  <Input
+                    type="number"
+                    step="1"
+                    min="0"
+                    inputMode="numeric"
+                    placeholder="0"
+                    className="tabular"
+                    {...register("tripsPerYear")}
+                  />
+                </Field>
+              </FieldGroup>
+
+              <FieldGroup
+                index="03"
+                title="Cartões atuais"
+                hint="Quando preenchido, o Vértice compara seu setup atual com a recomendação."
+                columns={1}
+              >
+                <Controller
+                  control={control}
+                  name="currentCardIds"
+                  render={({ field }) => (
+                    <CardCombobox
+                      options={cardOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      loading={cardOptionsLoading}
+                      error={cardOptionsError}
+                    />
+                  )}
+                />
+              </FieldGroup>
+            </div>
+
+            <RevealBlock>
+              <footer className="border-line mt-6 flex flex-col-reverse justify-between gap-4 border-t pt-6 sm:mt-6 sm:flex-row sm:items-center">
+                <Link to={ROUTES.HOME} className="plain-link hidden sm:inline">
+                  ← Voltar para a home
+                </Link>
+                <Button type="submit" size="lg" className="w-full cursor-pointer sm:w-auto">
+                  Calcular meu cartão →
+                </Button>
+              </footer>
+            </RevealBlock>
+          </RevealGroup>
         </form>
       </div>
     </main>

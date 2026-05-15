@@ -1,8 +1,10 @@
 import type { JSX } from "react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { m } from "framer-motion";
 import { fetchCardCatalog, fetchCardDetail } from "@/lib/api";
 import { BackLink } from "@/components/ui/BackLink";
+import { RevealBlock, RevealGroup, revealItemVariants } from "@/components/ui/Reveal";
 import { CompareTable } from "@/features/compare/CompareTable";
 import { CompareEmpty } from "@/features/compare/CompareEmpty";
 import { useSession } from "@/context/SessionContext";
@@ -125,75 +127,92 @@ export const ComparePage = (): JSX.Element => {
   const hasAnyLoading = results.some((r) => r.status === "loading");
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <BackLink className="mb-4" to="/cards">
-        Catálogo
-      </BackLink>
-      <h1 className="text-display-3 text-ink mb-1">Comparar Cartões</h1>
+    <RevealGroup className="mx-auto max-w-6xl px-4 py-8">
+      <RevealBlock>
+        <BackLink className="mb-4" to="/cards">
+          Catálogo
+        </BackLink>
+        <h1 className="text-display-3 text-ink mb-1">Comparar Cartões</h1>
 
-      {profile !== null ? (
-        <p className="text-body-sm text-ink-muted mb-4 flex flex-wrap items-center gap-1.5">
-          <span>
-            {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
-          </span>
-          <span className="text-ink-subtle">·</span>
-          <span>
-            Modelado para gasto de{" "}
-            <span className="text-ink font-semibold">
-              {formatBrl(profile.monthlyDomesticBrl)}/mês
+        {profile !== null ? (
+          <p className="text-body-sm text-ink-muted mb-4 flex flex-wrap items-center gap-1.5">
+            <span>
+              {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
             </span>
-          </span>
-          <span className="text-ink-subtle">·</span>
-          <Link
-            to="/input"
-            className="text-ink-muted hover:text-accent underline underline-offset-2 transition-colors"
-          >
-            ajustar perfil →
-          </Link>
-        </p>
-      ) : (
-        <p className="text-body-sm text-ink-muted mb-4">
-          {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
-        </p>
-      )}
+            <span className="text-ink-subtle">·</span>
+            <span>
+              Modelado para gasto de{" "}
+              <span className="text-ink font-semibold">
+                {formatBrl(profile.monthlyDomesticBrl)}/mês
+              </span>
+            </span>
+            <span className="text-ink-subtle">·</span>
+            <Link
+              to="/input"
+              className="text-ink-muted hover:text-accent underline underline-offset-2 transition-colors"
+            >
+              ajustar perfil →
+            </Link>
+          </p>
+        ) : (
+          <p className="text-body-sm text-ink-muted mb-4">
+            {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
+          </p>
+        )}
 
-      {profile === null && (
-        <div className="mb-6">
-          <Link
-            to="/input"
-            className="bg-action text-action-ink hover:bg-action-hover focus-visible:ring-accent inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-          >
-            Definir perfil para ver retorno modelado →
-          </Link>
-        </div>
-      )}
+        {profile === null && (
+          <div className="mb-6">
+            <Link
+              to="/input"
+              className="bg-action text-action-ink hover:bg-action-hover focus-visible:ring-accent inline-flex items-center justify-center rounded-md px-4 py-2.5 text-sm font-medium transition outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+            >
+              Definir perfil para ver retorno modelado →
+            </Link>
+          </div>
+        )}
+      </RevealBlock>
 
       {hasAnyLoading && (
-        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Carregando cartões">
+        <m.div
+          variants={revealItemVariants}
+          className="flex flex-col gap-4"
+          aria-busy="true"
+          aria-label="Carregando cartões"
+        >
           {effectiveIds.map((id) => (
             <div key={id} className="bg-surface-sunken h-8 animate-pulse rounded" />
           ))}
-        </div>
+        </m.div>
       )}
       {results.map((result) =>
         result.status === "error" ? (
-          <p key={result.id} className="text-body-sm text-danger mb-2">
+          <m.p
+            key={result.id}
+            variants={revealItemVariants}
+            className="text-body-sm text-danger mb-2"
+          >
             {result.id}: {result.message}
-          </p>
+          </m.p>
         ) : null,
       )}
       {!hasAnyLoading && loadedCards.length >= 2 && (
-        <CompareTable
-          cards={loadedCards}
-          catalogCards={catalogCards}
-          onAddCard={handleAddCard}
-          onAddRecommendedCard={handleAddRecommendedCard}
-          onRemoveCard={handleRemoveCard}
-        />
+        <RevealBlock>
+          <CompareTable
+            cards={loadedCards}
+            catalogCards={catalogCards}
+            onAddCard={handleAddCard}
+            onAddRecommendedCard={handleAddRecommendedCard}
+            onRemoveCard={handleRemoveCard}
+          />
+        </RevealBlock>
       )}
       {!hasAnyLoading && loadedCards.length === 1 && (
-        <p className="text-body-sm text-ink-muted">Selecione pelo menos 2 cartões para comparar.</p>
+        <RevealBlock>
+          <p className="text-body-sm text-ink-muted">
+            Selecione pelo menos 2 cartões para comparar.
+          </p>
+        </RevealBlock>
       )}
-    </div>
+    </RevealGroup>
   );
 };

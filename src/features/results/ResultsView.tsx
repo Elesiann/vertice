@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { Disclosure } from "@/components/ui/Disclosure";
 import { Panel } from "@/components/ui/Panel";
+import { RevealBlock, RevealGroup } from "@/components/ui/Reveal";
 import { Stat } from "@/components/ui/Stat";
 import { useSession } from "@/context/SessionContext";
 import { useRecommendation } from "@/hooks/useRecommendation";
@@ -195,15 +196,19 @@ export const ResultsView = (): JSX.Element => {
   if (profile === null) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-3xl">
-          <Panel className="space-y-4 p-6 text-center sm:p-8">
-            <h1 className="text-display-3 text-ink">Nada para mostrar ainda</h1>
-            <p className="text-ink-muted text-sm">Preencha seus dados para gerar a recomendação.</p>
-            <div>
-              <ButtonLink to={ROUTES.INPUT}>Ir para o formulário</ButtonLink>
-            </div>
-          </Panel>
-        </div>
+        <RevealGroup className="app-container max-w-3xl">
+          <RevealBlock>
+            <Panel className="space-y-4 p-6 text-center sm:p-8">
+              <h1 className="text-display-3 text-ink">Nada para mostrar ainda</h1>
+              <p className="text-ink-muted text-sm">
+                Preencha seus dados para gerar a recomendação.
+              </p>
+              <div>
+                <ButtonLink to={ROUTES.INPUT}>Ir para o formulário</ButtonLink>
+              </div>
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -211,9 +216,13 @@ export const ResultsView = (): JSX.Element => {
   if (result === null) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-3xl">
-          <Panel className="text-ink-muted p-6 text-center sm:p-8">Calculando recomendação…</Panel>
-        </div>
+        <RevealGroup className="app-container max-w-3xl">
+          <RevealBlock>
+            <Panel className="text-ink-muted p-6 text-center sm:p-8">
+              Calculando recomendação…
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -221,17 +230,19 @@ export const ResultsView = (): JSX.Element => {
   if (!result.ok) {
     return (
       <main className="app-shell">
-        <div className="app-container max-w-3xl">
-          <Panel className="space-y-4 p-6 text-center sm:p-8">
-            <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
-            <p className="text-ink-muted text-sm">{result.error.message}</p>
-            <div>
-              <Link to={ROUTES.INPUT} className="plain-link">
-                Voltar e ajustar os dados
-              </Link>
-            </div>
-          </Panel>
-        </div>
+        <RevealGroup className="app-container max-w-3xl">
+          <RevealBlock>
+            <Panel className="space-y-4 p-6 text-center sm:p-8">
+              <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
+              <p className="text-ink-muted text-sm">{result.error.message}</p>
+              <div>
+                <Link to={ROUTES.INPUT} className="plain-link">
+                  Voltar e ajustar os dados
+                </Link>
+              </div>
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -329,249 +340,267 @@ export const ResultsView = (): JSX.Element => {
       : undefined;
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
-      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
-        <BackLink className="mb-6" to="/input">
-          Perfil
-        </BackLink>
-        <header className="max-w-4xl">
-          <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
-          <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
-          {isCurrentCardBest ? (
-            <>
-              <p className="text-ink-muted mt-4 text-base leading-relaxed">
-                {profile.monthlyDomesticBrl > 0
-                  ? `Já é o melhor cartão pro seu gasto de ${formatBrl(profile.monthlyDomesticBrl)}/mês.`
-                  : "Já é o melhor cartão pro seu gasto."}
-              </p>
-              {currentCardUpside !== null ? (
-                <p className="bg-accent-light mt-5 max-w-2xl rounded-sm px-4 py-3.5 text-sm leading-relaxed">
-                  Você ganharia{" "}
-                  <span className="text-accent tabular font-semibold">
-                    +{formatAnnualBrl(currentCardUpside.deltaBrl)}
-                  </span>
-                  {currentCardUpside.gainPct > 0 ? (
-                    <span className="text-ink-subtle"> (+{currentCardUpside.gainPct}%)</span>
-                  ) : null}{" "}
-                  com{" "}
-                  <span className="text-ink font-semibold">
-                    {currentCardUpside.requirementPhrase}
-                  </span>{" "}
-                  <span aria-hidden>→</span>{" "}
-                  <StackLabelLink
-                    stack={currentCardUpside.stack}
-                    cardClassName="text-ink font-semibold"
-                    separatorClassName="text-ink-subtle"
-                  />
+      <RevealGroup className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
+        <RevealBlock>
+          <BackLink className="mb-6" to="/input">
+            Perfil
+          </BackLink>
+          <header className="max-w-4xl">
+            <p className="text-caption text-ink-subtle">{recommendationEyebrow}</p>
+            <h1 className="text-display-2 text-ink mt-2 leading-[1.05]">{stackLabel(topStack)}</h1>
+            {isCurrentCardBest ? (
+              <>
+                <p className="text-ink-muted mt-4 text-base leading-relaxed">
+                  {profile.monthlyDomesticBrl > 0
+                    ? `Já é o melhor cartão pro seu gasto de ${formatBrl(profile.monthlyDomesticBrl)}/mês.`
+                    : "Já é o melhor cartão pro seu gasto."}
                 </p>
-              ) : null}
-            </>
-          ) : comparisonNarrative !== null ? (
-            <p className="mt-4">
-              <span className="text-display-3 text-accent tabular">
-                +{formatBrl(comparisonNarrative.verdictBrl)}
-              </span>
-              <span className="text-ink-muted ml-1.5 text-base">/ano</span>
-              <span className="text-ink-subtle ml-3 text-sm">vs. seu {currentLabel} atual</span>
-            </p>
-          ) : null}
-          <HeroDetailLinks stack={topStack} />
-          {heroRedemption !== null ? (
-            <div className="mt-3 space-y-1" data-testid="travel-hero-teaser">
-              <p className="text-ink-muted text-sm">
-                Os pontos de um ano equivalem a{" "}
-                {heroRedemption.trips === 1 ? (
-                  "uma passagem"
-                ) : (
-                  <>{heroRedemption.trips} passagens</>
-                )}{" "}
-                {heroRedemption.roundTrip ? "ida e volta " : "só ida "}
-                {heroRedemption.fromLabel} → {heroRedemption.toLabel}.
-              </p>
-              {heroRedemption.viaProgram !== undefined ? (
-                <p className="text-ink-subtle text-xs">
-                  Transferindo 1:1 para {formatPointsProgram(heroRedemption.viaProgram)}.
-                </p>
-              ) : null}
-              <p className="text-ink-subtle text-xs">
-                Pontos compatíveis: {formatPoints(heroRedemption.compatiblePoints)}
-                {heroRedemption.remainingPoints > 0 ? (
-                  <> · sobra {formatPoints(heroRedemption.remainingPoints)} pontos</>
+                {currentCardUpside !== null ? (
+                  <p className="bg-accent-light mt-5 max-w-2xl rounded-sm px-4 py-3.5 text-sm leading-relaxed">
+                    Você ganharia{" "}
+                    <span className="text-accent tabular font-semibold">
+                      +{formatAnnualBrl(currentCardUpside.deltaBrl)}
+                    </span>
+                    {currentCardUpside.gainPct > 0 ? (
+                      <span className="text-ink-subtle"> (+{currentCardUpside.gainPct}%)</span>
+                    ) : null}{" "}
+                    com{" "}
+                    <span className="text-ink font-semibold">
+                      {currentCardUpside.requirementPhrase}
+                    </span>{" "}
+                    <span aria-hidden>→</span>{" "}
+                    <StackLabelLink
+                      stack={currentCardUpside.stack}
+                      cardClassName="text-ink font-semibold"
+                      separatorClassName="text-ink-subtle"
+                    />
+                  </p>
                 ) : null}
+              </>
+            ) : comparisonNarrative !== null ? (
+              <p className="mt-4">
+                <span className="text-display-3 text-accent tabular">
+                  +{formatBrl(comparisonNarrative.verdictBrl)}
+                </span>
+                <span className="text-ink-muted ml-1.5 text-base">/ano</span>
+                <span className="text-ink-subtle ml-3 text-sm">vs. seu {currentLabel} atual</span>
               </p>
-            </div>
-          ) : null}
-        </header>
+            ) : null}
+            <HeroDetailLinks stack={topStack} />
+            {heroRedemption !== null ? (
+              <div className="mt-3 space-y-1" data-testid="travel-hero-teaser">
+                <p className="text-ink-muted text-sm">
+                  Os pontos de um ano equivalem a{" "}
+                  {heroRedemption.trips === 1 ? (
+                    "uma passagem"
+                  ) : (
+                    <>{heroRedemption.trips} passagens</>
+                  )}{" "}
+                  {heroRedemption.roundTrip ? "ida e volta " : "só ida "}
+                  {heroRedemption.fromLabel} → {heroRedemption.toLabel}.
+                </p>
+                {heroRedemption.viaProgram !== undefined ? (
+                  <p className="text-ink-subtle text-xs">
+                    Transferindo 1:1 para {formatPointsProgram(heroRedemption.viaProgram)}.
+                  </p>
+                ) : null}
+                <p className="text-ink-subtle text-xs">
+                  Pontos compatíveis: {formatPoints(heroRedemption.compatiblePoints)}
+                  {heroRedemption.remainingPoints > 0 ? (
+                    <> · sobra {formatPoints(heroRedemption.remainingPoints)} pontos</>
+                  ) : null}
+                </p>
+              </div>
+            ) : null}
+          </header>
+        </RevealBlock>
 
         {comparisonNarrative !== null ? (
-          <CurrentVsRecommended
-            narrative={comparisonNarrative}
-            currentLabel={currentLabel}
-            recommendedLabel={recommendedLabel}
-            recommendedBenefits={recommendedBenefits ?? []}
-            accessLabel={recommendedAccessLabel}
-            {...(divergenceComparison !== null
-              ? { preferenceComparison: divergenceComparison }
-              : {})}
-          />
+          <RevealBlock>
+            <CurrentVsRecommended
+              narrative={comparisonNarrative}
+              currentLabel={currentLabel}
+              recommendedLabel={recommendedLabel}
+              recommendedBenefits={recommendedBenefits ?? []}
+              accessLabel={recommendedAccessLabel}
+              {...(divergenceComparison !== null
+                ? { preferenceComparison: divergenceComparison }
+                : {})}
+            />
+          </RevealBlock>
         ) : (
-          <section
-            aria-label="Resumo da recomendação"
-            className="border-line mt-8 grid grid-cols-1 gap-y-8 border-t border-b py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10"
-          >
-            <div>
-              <p className="text-caption text-ink-subtle flex items-center gap-3">
-                <span aria-hidden className="bg-line-strong h-px w-6" />
-                Líquido estimado em 12 meses
-              </p>
-              <p className="text-kpi text-accent tabular mt-3">
-                {formatBrl(topStack.yearOneNetValueBrl)}
-              </p>
-              {(() => {
-                const optimisticNetBrl = transferBonusOptimisticNetBrl(topStack);
-                return optimisticNetBrl !== null ? (
-                  <p className="text-ink-subtle mt-1.5 text-xs leading-relaxed">
-                    Com bônus de transferência de pontos, pode chegar a{" "}
-                    <span className="tabular">{formatBrl(optimisticNetBrl)}</span>/ano.
-                  </p>
-                ) : null;
-              })()}
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                {scoreLab?.verdict !== undefined && scoreLab.verdict.kind !== "viable" ? (
-                  <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
-                    {verdictLabel(scoreLab.verdict.kind)}
-                  </Badge>
-                ) : null}
-                {recommendation.isReturnDecisionTight ? (
-                  <Badge tone="warning">Decisão apertada</Badge>
-                ) : null}
-                <FeeTierBadge
-                  annualFeeBrl={topStack.yearOneAnnualFeeBrl}
-                  yearOneNetValueBrl={topStack.yearOneNetValueBrl}
-                  waived={heroWaiverHint !== undefined}
-                  {...(heroWaiverHint !== undefined ? { waiverHint: heroWaiverHint } : {})}
-                />
-              </div>
-              {heroNotes.length > 0 ? (
-                <div className="text-ink-muted mt-5 space-y-2 text-sm leading-relaxed">
-                  {heroNotes.map((note) => (
-                    <p key={note}>{note}</p>
-                  ))}
+          <RevealBlock>
+            <section
+              aria-label="Resumo da recomendação"
+              className="border-line mt-8 grid grid-cols-1 gap-y-8 border-t border-b py-8 md:grid-cols-[1.45fr_1fr] md:gap-x-14 md:py-10"
+            >
+              <div>
+                <p className="text-caption text-ink-subtle flex items-center gap-3">
+                  <span aria-hidden className="bg-line-strong h-px w-6" />
+                  Líquido estimado em 12 meses
+                </p>
+                <p className="text-kpi text-accent tabular mt-3">
+                  {formatBrl(topStack.yearOneNetValueBrl)}
+                </p>
+                {(() => {
+                  const optimisticNetBrl = transferBonusOptimisticNetBrl(topStack);
+                  return optimisticNetBrl !== null ? (
+                    <p className="text-ink-subtle mt-1.5 text-xs leading-relaxed">
+                      Com bônus de transferência de pontos, pode chegar a{" "}
+                      <span className="tabular">{formatBrl(optimisticNetBrl)}</span>/ano.
+                    </p>
+                  ) : null;
+                })()}
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  {scoreLab?.verdict !== undefined && scoreLab.verdict.kind !== "viable" ? (
+                    <Badge tone={VERDICT_TONE[scoreLab.verdict.kind]}>
+                      {verdictLabel(scoreLab.verdict.kind)}
+                    </Badge>
+                  ) : null}
+                  {recommendation.isReturnDecisionTight ? (
+                    <Badge tone="warning">Decisão apertada</Badge>
+                  ) : null}
+                  <FeeTierBadge
+                    annualFeeBrl={topStack.yearOneAnnualFeeBrl}
+                    yearOneNetValueBrl={topStack.yearOneNetValueBrl}
+                    waived={heroWaiverHint !== undefined}
+                    {...(heroWaiverHint !== undefined ? { waiverHint: heroWaiverHint } : {})}
+                  />
                 </div>
-              ) : null}
-            </div>
+                {heroNotes.length > 0 ? (
+                  <div className="text-ink-muted mt-5 space-y-2 text-sm leading-relaxed">
+                    {heroNotes.map((note) => (
+                      <p key={note}>{note}</p>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
 
-            <dl className="grid content-end gap-0 self-center text-sm">
-              <Stat
-                label="Anuidade total"
-                value={formatBrl(topStack.yearOneAnnualFeeBrl)}
-                labelClassName="text-ink-subtle"
-                className="border-line border-b py-3"
-              />
-              {scoreLab ? (
+              <dl className="grid content-end gap-0 self-center text-sm">
                 <Stat
-                  label="Custo FX/IOF"
-                  value={formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                  label="Anuidade total"
+                  value={formatBrl(topStack.yearOneAnnualFeeBrl)}
                   labelClassName="text-ink-subtle"
                   className="border-line border-b py-3"
                 />
-              ) : null}
-              {scoreLab !== undefined && scoreLab.modeledAnnual.benefitUtilityBrl > 0 ? (
-                <div className="border-line border-b py-3">
-                  <div className="flex items-baseline justify-between gap-4">
-                    <dt className="text-ink-subtle text-sm">Benefício de viagem</dt>
-                    <dd className="text-num text-ink text-sm font-semibold">
-                      {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
-                    </dd>
+                {scoreLab ? (
+                  <Stat
+                    label="Custo FX/IOF"
+                    value={formatBrl(scoreLab.modeledAnnual.internationalCostBrl)}
+                    labelClassName="text-ink-subtle"
+                    className="border-line border-b py-3"
+                  />
+                ) : null}
+                {scoreLab !== undefined && scoreLab.modeledAnnual.benefitUtilityBrl > 0 ? (
+                  <div className="border-line border-b py-3">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <dt className="text-ink-subtle text-sm">Benefício de viagem</dt>
+                      <dd className="text-num text-ink text-sm font-semibold">
+                        {formatBrl(scoreLab.modeledAnnual.benefitUtilityBrl)}
+                      </dd>
+                    </div>
+                    {benefitParts.length > 0 ? (
+                      <p className="text-ink-subtle mt-1 text-xs leading-snug">
+                        {benefitParts.join(" · ")}
+                      </p>
+                    ) : null}
                   </div>
-                  {benefitParts.length > 0 ? (
-                    <p className="text-ink-subtle mt-1 text-xs leading-snug">
-                      {benefitParts.join(" · ")}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-            </dl>
-          </section>
+                ) : null}
+              </dl>
+            </section>
+          </RevealBlock>
         )}
 
         {comparisonNarrative === null && divergenceComparison !== null ? (
-          <div className="border-line border-b py-8">
-            <PreferencePanel comparison={divergenceComparison} />
-          </div>
+          <RevealBlock>
+            <div className="border-line border-b py-8">
+              <PreferencePanel comparison={divergenceComparison} />
+            </div>
+          </RevealBlock>
         ) : null}
 
         {comparisonNarrative !== null && heroNotes.length > 0 ? (
-          <section
-            aria-label="Avisos sobre a recomendação"
-            className="border-line text-ink-muted space-y-2 border-b py-8 text-sm leading-relaxed"
-          >
-            {heroNotes.map((note) => (
-              <p key={note}>{note}</p>
-            ))}
-          </section>
+          <RevealBlock>
+            <section
+              aria-label="Avisos sobre a recomendação"
+              className="border-line text-ink-muted space-y-2 border-b py-8 text-sm leading-relaxed"
+            >
+              {heroNotes.map((note) => (
+                <p key={note}>{note}</p>
+              ))}
+            </section>
+          </RevealBlock>
         ) : null}
 
         {whyWonNarrative !== null && !hasCurrentComparison ? (
-          <section className="border-line border-b" aria-label="Por que venceu">
-            <article className="py-8">
-              <h2 className="text-heading text-ink">Por que venceu</h2>
-              <p className="text-ink-muted mt-6 space-y-1 text-sm leading-relaxed">
-                {whyWonNarrative.map((sentence, i) => (
-                  <span key={sentence} className={i > 0 ? "ml-1" : undefined}>
-                    {sentence}
-                  </span>
-                ))}
-              </p>
-            </article>
-          </section>
+          <RevealBlock>
+            <section className="border-line border-b" aria-label="Por que venceu">
+              <article className="py-8">
+                <h2 className="text-heading text-ink">Por que venceu</h2>
+                <p className="text-ink-muted mt-6 space-y-1 text-sm leading-relaxed">
+                  {whyWonNarrative.map((sentence, i) => (
+                    <span key={sentence} className={i > 0 ? "ml-1" : undefined}>
+                      {sentence}
+                    </span>
+                  ))}
+                </p>
+              </article>
+            </section>
+          </RevealBlock>
         ) : null}
 
-        <AlternativesSection
-          tabs={alternativeTabs}
-          topStack={topStack}
-          currentStack={ladderCurrentStack}
-          anchoredOnCurrentCard={isCurrentCardBest}
-          fullListHref={ROUTES.ALTERNATIVES}
-        />
+        <RevealBlock>
+          <AlternativesSection
+            tabs={alternativeTabs}
+            topStack={topStack}
+            currentStack={ladderCurrentStack}
+            anchoredOnCurrentCard={isCurrentCardBest}
+            fullListHref={ROUTES.ALTERNATIVES}
+          />
+        </RevealBlock>
 
-        <section className="mt-8" aria-label="Como chegamos ao líquido">
-          <Disclosure summary="Como chegamos ao líquido">
-            <CalculationBreakdown
-              stack={topStack}
-              profile={profile}
-              ptaxRate={scoreLabMeta?.ptaxRate}
-              ptaxAsOf={scoreLabMeta?.ptaxFetchedAt}
-            />
-          </Disclosure>
-        </section>
+        <RevealBlock>
+          <section className="mt-8" aria-label="Como chegamos ao líquido">
+            <Disclosure summary="Como chegamos ao líquido">
+              <CalculationBreakdown
+                stack={topStack}
+                profile={profile}
+                ptaxRate={scoreLabMeta?.ptaxRate}
+                ptaxAsOf={scoreLabMeta?.ptaxFetchedAt}
+              />
+            </Disclosure>
+          </section>
+        </RevealBlock>
 
-        <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <Link to={ROUTES.INPUT} className="plain-link">
-              Ajustar dados
-            </Link>
-            <Link to={ROUTES.CATALOG} className="plain-link">
-              Explorar catálogo →
-            </Link>
-          </div>
-          <a
-            href={buildErrorReportUrl({
-              stackLabel: stackLabel(topStack),
-              scenarioId: scoreLabMeta?.scenarioId,
-              scoreLabVersion: scoreLabMeta?.scoreLabVersion,
-              ptaxRate: scoreLabMeta?.ptaxRate,
-              ptaxSource: scoreLabMeta?.ptaxSource,
-              ptaxFetchedAt: scoreLabMeta?.ptaxFetchedAt,
-            })}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-ink-subtle hover:text-accent focus-visible:ring-accent text-xs transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
-          >
-            Encontrou um erro nos dados?{" "}
-            <span className="underline underline-offset-4">Reportar no GitHub →</span>
-          </a>
-        </footer>
-      </div>
+        <RevealBlock>
+          <footer className="border-line mt-8 flex flex-wrap items-center justify-between gap-4 border-t pt-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <Link to={ROUTES.INPUT} className="plain-link">
+                Ajustar dados
+              </Link>
+              <Link to={ROUTES.CATALOG} className="plain-link">
+                Explorar catálogo →
+              </Link>
+            </div>
+            <a
+              href={buildErrorReportUrl({
+                stackLabel: stackLabel(topStack),
+                scenarioId: scoreLabMeta?.scenarioId,
+                scoreLabVersion: scoreLabMeta?.scoreLabVersion,
+                ptaxRate: scoreLabMeta?.ptaxRate,
+                ptaxSource: scoreLabMeta?.ptaxSource,
+                ptaxFetchedAt: scoreLabMeta?.ptaxFetchedAt,
+              })}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-ink-subtle hover:text-accent focus-visible:ring-accent text-xs transition focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+            >
+              Encontrou um erro nos dados?{" "}
+              <span className="underline underline-offset-4">Reportar no GitHub →</span>
+            </a>
+          </footer>
+        </RevealBlock>
+      </RevealGroup>
     </main>
   );
 };

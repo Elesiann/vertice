@@ -9,6 +9,7 @@ import {
 } from "@/features/catalog/CatalogFilters";
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { BackLink } from "@/components/ui/BackLink";
+import { RevealBlock, RevealGroup } from "@/components/ui/Reveal";
 import { fetchCardCatalog } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -264,42 +265,44 @@ export const CatalogPage = (): JSX.Element => {
   }, []);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
-      <BackLink className="mb-3 sm:mb-4" to="/">
-        Home
-      </BackLink>
-      <div>
-        <header className="border-line flex flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:border-b sm:py-4">
-          <h1 className="text-display-3 text-ink">
-            {meta !== undefined && resultCount !== undefined ? (
-              <>
-                <span className="tabular">{resultCount}</span> <span className="tabular">de</span>{" "}
-                <span className="tabular">{meta.total}</span>{" "}
-                <span className="tabular">cartões</span>
-              </>
-            ) : (
-              "Catálogo de cartões"
-            )}
-          </h1>
-          <div className="flex items-center gap-3 sm:shrink-0">
-            <CatalogSearch value={filters.search ?? ""} onChange={handleSearchChange} />
+    <RevealGroup className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+      <RevealBlock>
+        <BackLink className="mb-3 sm:mb-4" to="/">
+          Home
+        </BackLink>
+        <div>
+          <header className="border-line flex flex-col gap-3 py-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6 sm:border-b sm:py-4">
+            <h1 className="text-display-3 text-ink">
+              {meta !== undefined && resultCount !== undefined ? (
+                <>
+                  <span className="tabular">{resultCount}</span> <span className="tabular">de</span>{" "}
+                  <span className="tabular">{meta.total}</span>{" "}
+                  <span className="tabular">cartões</span>
+                </>
+              ) : (
+                "Catálogo de cartões"
+              )}
+            </h1>
+            <div className="flex items-center gap-3 sm:shrink-0">
+              <CatalogSearch value={filters.search ?? ""} onChange={handleSearchChange} />
+            </div>
+          </header>
+          <div className="border-line pt-2 pb-3 sm:border-b sm:py-4">
+            <CatalogFilterBar
+              filters={filters}
+              {...(meta !== undefined ? { counts: meta.counts } : {})}
+              sort={sort}
+              viewMode={viewMode}
+              onChange={handleFiltersChange}
+              onSortChange={handleSortChange}
+              onViewModeChange={handleViewModeChange}
+              onClear={handleClear}
+            />
           </div>
-        </header>
-        <div className="border-line pt-2 pb-3 sm:border-b sm:py-4">
-          <CatalogFilterBar
-            filters={filters}
-            {...(meta !== undefined ? { counts: meta.counts } : {})}
-            sort={sort}
-            viewMode={viewMode}
-            onChange={handleFiltersChange}
-            onSortChange={handleSortChange}
-            onViewModeChange={handleViewModeChange}
-            onClear={handleClear}
-          />
         </div>
-      </div>
+      </RevealBlock>
 
-      <div className={`pt-6 ${viewMode === "grid" ? "px-4 sm:px-0" : "px-0"}`}>
+      <RevealBlock className={`pt-6 ${viewMode === "grid" ? "px-4 sm:px-0" : "px-0"}`}>
         <CatalogList
           filters={filters}
           onClearFilters={handleClear}
@@ -307,7 +310,7 @@ export const CatalogPage = (): JSX.Element => {
           viewMode={viewMode}
           onResultCount={setResultCount}
         />
-      </div>
+      </RevealBlock>
 
       {showBackToTop && (
         <Button
@@ -326,6 +329,6 @@ export const CatalogPage = (): JSX.Element => {
           <ArrowUp size={20} aria-hidden="true" />
         </Button>
       )}
-    </div>
+    </RevealGroup>
   );
 };

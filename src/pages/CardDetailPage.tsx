@@ -7,6 +7,7 @@ import { CardDetailSections } from "@/features/card-detail/CardDetailSections";
 import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
+import { RevealBlock, RevealGroup } from "@/components/ui/Reveal";
 import { useCompareActions } from "@/features/compare/useCompareActions";
 import { useSession } from "@/context/SessionContext";
 import { categoryLinks } from "@/features/card-detail/detail-model";
@@ -94,17 +95,19 @@ export const CardDetailPage = (): JSX.Element => {
   if (state.status === "not-found") {
     return (
       <main className="bg-surface text-ink-muted min-h-screen">
-        <div className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
-          <Panel tone="raised" className="p-8">
-            <p className="text-heading text-ink text-balance">Cartão não encontrado</p>
-            <p className="text-body-sm text-ink-muted mt-2 text-pretty">
-              O cartão que você está procurando não existe no catálogo.
-            </p>
-            <ButtonLink to={ROUTES.CATALOG} className="mt-6 inline-flex">
-              Voltar ao catálogo
-            </ButtonLink>
-          </Panel>
-        </div>
+        <RevealGroup className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
+          <RevealBlock>
+            <Panel tone="raised" className="p-8">
+              <p className="text-heading text-ink text-balance">Cartão não encontrado</p>
+              <p className="text-body-sm text-ink-muted mt-2 text-pretty">
+                O cartão que você está procurando não existe no catálogo.
+              </p>
+              <ButtonLink to={ROUTES.CATALOG} className="mt-6 inline-flex">
+                Voltar ao catálogo
+              </ButtonLink>
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
@@ -112,34 +115,44 @@ export const CardDetailPage = (): JSX.Element => {
   if (state.status === "error") {
     return (
       <main className="bg-surface text-ink-muted min-h-screen">
-        <div className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
-          <Panel tone="raised" className="p-8">
-            <p className="text-body text-ink-muted text-pretty">{state.message}</p>
-          </Panel>
-        </div>
+        <RevealGroup className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
+          <RevealBlock>
+            <Panel tone="raised" className="p-8">
+              <p className="text-body text-ink-muted text-pretty">{state.message}</p>
+            </Panel>
+          </RevealBlock>
+        </RevealGroup>
       </main>
     );
   }
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
-      <div className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
-        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <nav aria-label="Breadcrumb" className="text-body-sm text-ink-muted">
-            <Link to={ROUTES.CATALOG} className="hover:text-accent">
-              Catálogo
-            </Link>
-            <span className="hidden sm:inline">
-              <span className="mx-2">/</span>
-              <span className="text-ink">{state.card.name}</span>
-            </span>
-          </nav>
-          <CardCompareButton card={state.card} />
-        </div>
-        <CardDetailHero card={state.card} profile={profile} />
-        <CardDetailSections card={state.card} profile={profile} />
-        <CardCategoryLinks card={state.card} />
-      </div>
+      <RevealGroup className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
+        <RevealBlock>
+          <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <nav aria-label="Breadcrumb" className="text-body-sm text-ink-muted">
+              <Link to={ROUTES.CATALOG} className="hover:text-accent">
+                Catálogo
+              </Link>
+              <span className="hidden sm:inline">
+                <span className="mx-2">/</span>
+                <span className="text-ink">{state.card.name}</span>
+              </span>
+            </nav>
+            <CardCompareButton card={state.card} />
+          </div>
+        </RevealBlock>
+        <RevealBlock>
+          <CardDetailHero card={state.card} profile={profile} />
+        </RevealBlock>
+        <RevealBlock>
+          <CardDetailSections card={state.card} profile={profile} />
+        </RevealBlock>
+        <RevealBlock>
+          <CardCategoryLinks card={state.card} />
+        </RevealBlock>
+      </RevealGroup>
     </main>
   );
 };
