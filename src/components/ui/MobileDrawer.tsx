@@ -38,13 +38,17 @@ export const MobileDrawer = ({
   }, [onClose, open]);
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>): void => {
-    touchStartY.current = e.touches[0].clientY;
+    const touch = e.touches[0];
+    if (!touch) return;
+    touchStartY.current = touch.clientY;
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>): void => {
     if (touchStartY.current === null) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
 
-    const delta = e.changedTouches[0].clientY - touchStartY.current;
+    const delta = touch.clientY - touchStartY.current;
     touchStartY.current = null;
 
     const swipedUpEnough = delta < -SWIPE_UP_PX || delta < -(window.innerHeight * SWIPE_UP_RATIO);
