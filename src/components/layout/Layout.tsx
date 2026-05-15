@@ -1,9 +1,10 @@
 import { type JSX, useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { LazyMotion, domAnimation, m } from "framer-motion";
-import { Menu, Moon, Sun, X } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { SWRConfig } from "swr";
 import { CompareFloatingBar } from "@/features/compare/CompareFloatingBar";
+import { MobileDrawer } from "@/components/ui/MobileDrawer";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/routes-constants";
 
@@ -137,48 +138,68 @@ const AppHeader = (): JSX.Element => {
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <button
               type="button"
-              aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+              aria-label="Abrir menu"
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-navigation"
               onClick={() => {
-                setMobileMenuOpen((open) => !open);
+                setMobileMenuOpen(true);
               }}
               className="border-line text-ink-muted hover:bg-surface-sunken hover:text-ink focus-visible:ring-accent inline-flex size-9 shrink-0 items-center justify-center rounded-md border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2 sm:hidden"
             >
-              {mobileMenuOpen ? (
-                <X size={18} aria-hidden="true" />
-              ) : (
-                <Menu size={18} aria-hidden="true" />
-              )}
+              <Menu size={18} aria-hidden="true" />
             </button>
           </div>
         </div>
-
-        {mobileMenuOpen ? (
-          <nav id="mobile-navigation" aria-label="Navegação principal" className="sm:hidden">
-            <div className="border-line mt-3 flex flex-col border-t pt-2">
-              {NAV_ITEMS.map((item) => {
-                const active = isRouteActive(pathname, item.to);
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    onClick={closeMobileMenu}
-                    aria-current={active ? "page" : undefined}
-                    className={cn(
-                      "focus-visible:ring-accent flex min-h-11 items-center justify-between rounded-md px-1 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-                      active ? "text-ink" : "text-ink-muted hover:text-ink",
-                    )}
-                  >
-                    {item.label}
-                    {active ? <span className="bg-accent h-px w-5" aria-hidden="true" /> : null}
-                  </NavLink>
-                );
-              })}
-            </div>
-          </nav>
-        ) : null}
       </div>
+      <MobileDrawer open={mobileMenuOpen} onClose={closeMobileMenu} labelledBy="mobile-menu-title">
+        <nav id="mobile-navigation" aria-label="Navegação principal" className="flex-1 px-4 py-6">
+          <div className="flex flex-col gap-1">
+            {NAV_ITEMS.map((item) => {
+              const active = isRouteActive(pathname, item.to);
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={closeMobileMenu}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "focus-visible:ring-accent relative flex min-h-14 items-center justify-between rounded-md px-4 text-xl font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+                    active
+                      ? "bg-accent-soft text-accent"
+                      : "text-ink-muted hover:bg-surface-sunken hover:text-ink",
+                  )}
+                >
+                  {active && (
+                    <span
+                      className="bg-accent absolute top-3 bottom-3 left-0 w-1 rounded-full"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="pl-2">{item.label}</span>
+                  {active && (
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 18 18"
+                      fill="none"
+                      aria-hidden="true"
+                      className="text-accent shrink-0 opacity-70"
+                    >
+                      <path
+                        d="M6.75 4.5L11.25 9L6.75 13.5"
+                        stroke="currentColor"
+                        strokeWidth="1.75"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </NavLink>
+              );
+            })}
+          </div>
+        </nav>
+      </MobileDrawer>
     </header>
   );
 };
