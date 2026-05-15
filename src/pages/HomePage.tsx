@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { RevealBlock, RevealMain } from "@/components/ui/Reveal";
 import { fetchCardCatalog } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/routes";
@@ -31,12 +32,23 @@ export const HomePage = (): JSX.Element => {
   return (
     <ErrorBoundary>
       <div className="bg-surface min-h-screen">
-        <main className="mx-auto flex max-w-5xl flex-col gap-16 px-6 pt-14 pb-24 sm:gap-20 sm:pt-20">
-          <Hero catalogSize={catalogSize} />
-          <Trust catalogSize={catalogSize} />
-          <HowItWorks />
-          <Shortcuts />
-        </main>
+        <RevealMain
+          className="mx-auto flex max-w-5xl flex-col gap-16 px-6 pt-14 pb-24 sm:gap-20 sm:pt-20"
+          delayChildren={0.03}
+        >
+          <RevealBlock>
+            <Hero catalogSize={catalogSize} />
+          </RevealBlock>
+          <RevealBlock>
+            <Trust catalogSize={catalogSize} />
+          </RevealBlock>
+          <RevealBlock>
+            <HowItWorks />
+          </RevealBlock>
+          <RevealBlock>
+            <Shortcuts />
+          </RevealBlock>
+        </RevealMain>
         <SiteFooter />
       </div>
     </ErrorBoundary>
@@ -80,24 +92,30 @@ const Hero = ({ catalogSize }: HeroProps): JSX.Element => (
 );
 
 const HowItWorks = (): JSX.Element => (
-  <section className="flex flex-col gap-4">
+  <section className="flex flex-col items-center gap-4 text-center sm:items-start sm:text-left">
     <SectionHeading eyebrow="Como funciona" title="Como o cálculo funciona" />
-    <ol className="text-ink-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-      <li className="inline-flex items-center gap-2">
+    <ol className="text-ink-muted flex flex-col items-center gap-1 text-sm sm:flex-row sm:flex-wrap sm:gap-x-2 sm:gap-y-1">
+      <li className="inline-flex items-center justify-center gap-2">
         <span className="text-accent-muted tabular font-semibold">1.</span>
         Conte seu gasto
       </li>
-      <li aria-hidden className="text-ink-subtle text-xs">
+      <li aria-hidden className="text-ink-subtle text-xs sm:hidden">
+        ↓
+      </li>
+      <li aria-hidden className="text-ink-subtle hidden text-xs sm:block">
         →
       </li>
-      <li className="inline-flex items-center gap-2">
+      <li className="inline-flex items-center justify-center gap-2">
         <span className="text-accent-muted tabular font-semibold">2.</span>
         Veja o cálculo
       </li>
-      <li aria-hidden className="text-ink-subtle text-xs">
+      <li aria-hidden className="text-ink-subtle text-xs sm:hidden">
+        ↓
+      </li>
+      <li aria-hidden className="text-ink-subtle hidden text-xs sm:block">
         →
       </li>
-      <li className="inline-flex items-center gap-2">
+      <li className="inline-flex items-center justify-center gap-2">
         <span className="text-accent-muted tabular font-semibold">3.</span>
         Compare com o seu
       </li>
