@@ -37,8 +37,7 @@ test.describe("golden path", () => {
 
   test("results page surfaces a structured error from the API", async ({ page }) => {
     await page.goto("/input");
-    await page.getByLabel(/quanto você gasta por mês no brasil/i).fill("5000");
-    await page.getByLabel(/quanto você gasta por mês no exterior/i).fill("200");
+    await page.getByLabel(/gasto mensal \(r\$\)/i).fill("5000");
     await page.getByRole("button", { name: /calcular/i }).click();
     await expect(page).toHaveURL(/\/results$/);
     await expect(page.getByText(/nenhum cartão se encaixa nessas condições/i)).toBeVisible({
