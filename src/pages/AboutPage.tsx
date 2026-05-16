@@ -22,14 +22,14 @@ export const AboutPage = (): JSX.Element => (
       <section>
         <h2 className="text-heading text-ink mt-10 mb-3">Como funciona</h2>
         <p>
-          Sete campos no{" "}
+          Seis campos no{" "}
           <Link to={ROUTES.INPUT} className="text-ink underline underline-offset-4">
             formulário
           </Link>
-          : gasto doméstico, gasto internacional, renda, valor investível, programa preferido,
-          cartões atuais, viagens por ano. A partir disso, o solver avalia todas as combinações
-          válidas do catálogo, decompõe o retorno em anuidade, pontos, cashback, sala VIP, seguro e
-          IOF, e ordena por líquido anual.
+          : gasto doméstico, renda, valor investível, programa preferido, cartões atuais, viagens
+          por ano. A partir disso, o algorítmo avalia todas as combinações válidas do catálogo,
+          decompõe o retorno em anuidade, pontos, cashback, sala VIP, seguro e IOF, e ordena por
+          líquido anual.
         </p>
       </section>
 
@@ -45,49 +45,16 @@ export const AboutPage = (): JSX.Element => (
       </section>
 
       <section>
-        <h2 className="text-heading text-ink mt-10 mb-3">Stack</h2>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>Frontend em React 18, Vite, TypeScript e Tailwind, em Cloudflare Pages.</li>
-          <li>API em Hono sobre Cloudflare Workers, com cálculo determinístico.</li>
-          <li>Catálogo curado em YAML, validado por zod no build.</li>
-        </ul>
-        <p className="mt-4">
-          Sem login, sem cookies de marketing, sem afiliação a emissor. Detalhes em{" "}
-          <Link to={ROUTES.PRIVACY} className="text-ink underline underline-offset-4">
-            Privacidade
-          </Link>
-          .
-        </p>
-      </section>
-
-      <section>
-        <h2 className="text-heading text-ink mt-10 mb-3">Código</h2>
-        <p>
-          Frontend open-source:{" "}
-          <a
-            href="https://github.com/Elesiann/vertice"
-            className="text-ink underline underline-offset-4"
-            target="_blank"
-            rel="noreferrer noopener"
-          >
-            github.com/Elesiann/vertice
-          </a>
-          .
-        </p>
-      </section>
-
-      <section>
         <h2 className="text-heading text-ink mt-10 mb-3">Quem fez</h2>
-        {/* TODO: nome + LinkedIn ou similar. */}
         <p>
           Construído por{" "}
           <a
-            href="https://www.linkedin.com/in/gcorrea-vee"
+            href="https://www.linkedin.com/in/giovanimachado/"
             className="text-ink underline underline-offset-4"
             target="_blank"
             rel="noreferrer noopener"
           >
-            Gio Corrêa
+            Giovani Corrêa
           </a>
           .
         </p>
