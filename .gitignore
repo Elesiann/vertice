@@ -32,6 +32,11 @@ yarn-error.log*
 coverage
 .nyc_output
 
+# Playwright
+playwright-report
+test-results
+playwright/.cache
+
 # Env
 .env
 .env.local
