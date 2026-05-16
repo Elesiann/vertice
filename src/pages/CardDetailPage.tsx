@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { RevealBlock, RevealGroup } from "@/components/ui/Reveal";
+import { PageMeta } from "@/components/seo/PageMeta";
 import { useCompareActions } from "@/features/compare/useCompareActions";
 import { useSession } from "@/context/SessionContext";
 import { categoryLinks } from "@/features/card-detail/detail-model";
@@ -95,6 +96,11 @@ export const CardDetailPage = (): JSX.Element => {
   if (state.status === "not-found") {
     return (
       <main className="bg-surface text-ink-muted min-h-screen">
+        <PageMeta
+          title="Cartão não encontrado — Vértice"
+          description="O cartão solicitado não consta no catálogo Vértice."
+          noindex
+        />
         <RevealGroup className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
           <RevealBlock>
             <Panel tone="raised" className="p-8">
@@ -128,6 +134,10 @@ export const CardDetailPage = (): JSX.Element => {
 
   return (
     <main className="bg-surface text-ink-muted min-h-screen">
+      <PageMeta
+        title={`${state.card.name} — Vértice`}
+        description={`Anuidade, retorno modelado, programa de pontos e benefícios do ${state.card.name}. Cálculo aberto, sem viés.`}
+      />
       <RevealGroup className="mx-auto max-w-5xl px-5 py-8 sm:px-6 md:py-12 lg:px-10">
         <RevealBlock>
           <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/Badge";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { RevealBlock, RevealMain } from "@/components/ui/Reveal";
+import { PageMeta } from "@/components/seo/PageMeta";
 import { fetchCardCatalog } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/routes";
@@ -31,6 +32,10 @@ export const HomePage = (): JSX.Element => {
   const catalogSize = useCatalogSize();
   return (
     <ErrorBoundary>
+      <PageMeta
+        title="Vértice — Ache o melhor cartão de crédito para o seu perfil"
+        description="Compare cartões de crédito e descubra qual oferece o maior retorno real para seus gastos. Anuidade, pontos, cashback, salas VIP e benefícios calculados sem viés."
+      />
       <div className="bg-surface min-h-screen">
         <RevealMain
           className="mx-auto flex max-w-5xl flex-col gap-16 px-6 pt-14 pb-24 sm:gap-20 sm:pt-20"

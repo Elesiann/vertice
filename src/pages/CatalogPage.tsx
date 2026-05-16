@@ -10,6 +10,7 @@ import {
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { BackLink } from "@/components/ui/BackLink";
 import { RevealBlock, RevealGroup } from "@/components/ui/Reveal";
+import { PageMeta } from "@/components/seo/PageMeta";
 import { fetchCardCatalog } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -266,6 +267,10 @@ export const CatalogPage = (): JSX.Element => {
 
   return (
     <RevealGroup className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+      <PageMeta
+        title="Catálogo de cartões — Vértice"
+        description="Catálogo independente de cartões brasileiros. Filtros por banco, anuidade, programa, sala VIP e cashback."
+      />
       <RevealBlock>
         <BackLink className="mb-3 sm:mb-4" to="/">
           Home

@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { Panel } from "@/components/ui/Panel";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { RevealBlock, RevealGroup, revealItemVariants } from "@/components/ui/Reveal";
+import { PageMeta } from "@/components/seo/PageMeta";
 import { cn } from "@/lib/cn";
 import { formatBrl } from "@/lib/format";
 import { ROUTES } from "@/lib/routes-constants";
@@ -269,6 +270,11 @@ const AlternativesPageInner = (): JSX.Element => {
 
 export const AlternativesPage = (): JSX.Element => (
   <ErrorBoundary>
+    <PageMeta
+      title="Alternativas — Vértice"
+      description="Alternativas de cartão calculadas para seu perfil."
+      noindex
+    />
     <AlternativesPageInner />
   </ErrorBoundary>
 );

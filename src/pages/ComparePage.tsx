@@ -5,6 +5,7 @@ import { m } from "framer-motion";
 import { fetchCardCatalog, fetchCardDetail } from "@/lib/api";
 import { BackLink } from "@/components/ui/BackLink";
 import { RevealBlock, RevealGroup, revealItemVariants } from "@/components/ui/Reveal";
+import { PageMeta } from "@/components/seo/PageMeta";
 import { CompareTable } from "@/features/compare/CompareTable";
 import { CompareEmpty } from "@/features/compare/CompareEmpty";
 import { useSession } from "@/context/SessionContext";
@@ -164,12 +165,26 @@ export const ComparePage = (): JSX.Element => {
 
   const hasAnyLoading = results.some((r) => r.status === "loading");
 
+  const compareMeta = (
+    <PageMeta
+      title="Comparar cartões — Vértice"
+      description="Compare até 4 cartões lado a lado: anuidade, programa, cashback, sala VIP, IOF e seguros."
+      noindex
+    />
+  );
+
   if (ids.length === 0) {
-    return <CompareEmpty />;
+    return (
+      <>
+        {compareMeta}
+        <CompareEmpty />
+      </>
+    );
   }
 
   return (
     <RevealGroup className="mx-auto max-w-6xl px-4 py-8">
+      {compareMeta}
       <RevealBlock>
         <BackLink className="mb-4" to="/cards">
           Catálogo
