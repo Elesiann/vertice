@@ -398,7 +398,13 @@ describe("CompareTable", () => {
     await act(async () => {
       resolveFetch({
         ok: true,
-        json: () => Promise.resolve({ ok: true, data: recommendation() }),
+        json: () =>
+          Promise.resolve({
+            ok: true,
+            data: recommendation(),
+            catalogVersion: "test",
+            solverVersion: "test",
+          }),
       });
       await Promise.resolve();
     });

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { CatalogPage } from "@/pages/CatalogPage";
@@ -65,8 +65,10 @@ describe("premium free catalog chip", () => {
     await user.click(screen.getByRole("button", { name: /Filtros/ }));
     await user.click(screen.getByRole("button", { name: /Premium grátis Sem anuidade \+ lounge/ }));
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 350);
+    await act(async () => {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 350);
+      });
     });
 
     expect(currentSearchParams().get("brand")).toBe("visa");
