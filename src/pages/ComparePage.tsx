@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { m } from "framer-motion";
 import { fetchCardCatalog, fetchCardDetail } from "@/lib/api";
@@ -17,114 +17,156 @@ type CardResult =
   | { status: "ok"; card: PublicCardDetail }
   | { status: "error"; id: string; message: string };
 
+const MAX_COMPARE = 4;
+
+const parseIdsParam = (raw: string | null): string[] =>
+  (raw ?? "")
+    .split(",")
+    .filter((id) => id.length > 0)
+    .slice(0, MAX_COMPARE);
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === "AbortError";
+
 export const ComparePage = (): JSX.Element => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { ids: storeIds, setCards } = useCompareActions();
+  const { ids, setCards } = useCompareActions();
   const { profile } = useSession();
   const [results, setResults] = useState<CardResult[]>([]);
   const [catalogCards, setCatalogCards] = useState<PublicCatalogCard[]>([]);
 
-  const urlIds = (searchParams.get("ids") ?? "")
-    .split(",")
-    .filter((id) => id.length > 0)
-    .slice(0, 4);
-  const effectiveIds = urlIds.length > 0 ? urlIds : storeIds;
+  // One-shot reconciliation between URL and store on mount.
+  //   - URL wins if it carries ids (shareable link, browser back).
+  //   - Otherwise seed URL from store so the address bar stays canonical.
+  // After mount, the store is the single source of truth and writeIds mirrors
+  // the new state back into the URL.
+  useEffect(() => {
+    const urlIds = parseIdsParam(searchParams.get("ids"));
+    if (urlIds.length > 0) {
+      if (urlIds.join(",") !== ids.join(",")) {
+        setCards(urlIds);
+      }
+    } else if (ids.length > 0) {
+      setSearchParams({ ids: ids.join(",") }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const writeIds = useCallback(
-    (ids: string[]) => {
-      const next = Array.from(new Set(ids)).slice(0, 4);
-      setCards(next);
-      setSearchParams({ ids: next.join(",") });
+    (next: string[]) => {
+      const deduped = Array.from(new Set(next)).slice(0, MAX_COMPARE);
+      setCards(deduped);
+      if (deduped.length > 0) {
+        setSearchParams({ ids: deduped.join(",") }, { replace: true });
+      } else {
+        setSearchParams({}, { replace: true });
+      }
     },
     [setCards, setSearchParams],
   );
 
   const handleAddCard = useCallback(
     (id: string) => {
-      if (effectiveIds.includes(id) || effectiveIds.length >= 4) return;
-      writeIds([...effectiveIds, id]);
+      if (ids.includes(id) || ids.length >= MAX_COMPARE) return;
+      writeIds([...ids, id]);
     },
-    [effectiveIds, writeIds],
+    [ids, writeIds],
   );
 
   const handleRemoveCard = useCallback(
     (id: string) => {
-      if (effectiveIds.length <= 2) return;
-      const next = effectiveIds.filter((cardId) => cardId !== id);
-      writeIds(next);
+      if (ids.length <= 2) return;
+      writeIds(ids.filter((cardId) => cardId !== id));
     },
-    [effectiveIds, writeIds],
+    [ids, writeIds],
   );
 
   const handleAddRecommendedCard = useCallback(
     (id: string, replaceId?: string) => {
-      if (effectiveIds.includes(id)) return;
-      const fallbackReplaceId = effectiveIds.at(-1);
+      if (ids.includes(id)) return;
+      const fallbackReplaceId = ids.at(-1);
       const idToReplace = replaceId ?? fallbackReplaceId;
       const baseIds =
-        effectiveIds.length >= 4 && idToReplace !== undefined
-          ? effectiveIds.filter((cardId) => cardId !== idToReplace)
-          : effectiveIds;
+        ids.length >= MAX_COMPARE && idToReplace !== undefined
+          ? ids.filter((cardId) => cardId !== idToReplace)
+          : ids;
       writeIds([...baseIds, id]);
     },
-    [effectiveIds, writeIds],
+    [ids, writeIds],
   );
 
   useEffect(() => {
-    if (urlIds.length > 0) {
-      setCards(urlIds);
-    } else if (storeIds.length > 0) {
-      setSearchParams({ ids: storeIds.join(",") }, { replace: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const controller = new AbortController();
+    fetchCardCatalog({}, { signal: controller.signal })
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        setCatalogCards(response.cards);
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) return;
+        // soft-fail: comparator still renders without catalogCards
+      });
+    return () => {
+      controller.abort();
+    };
   }, []);
 
-  useEffect(() => {
-    void fetchCardCatalog({}).then((response) => {
-      setCatalogCards(response.cards);
-    });
-  }, []);
+  const idsKey = ids.join(",");
 
   useEffect(() => {
-    if (effectiveIds.length === 0) {
+    if (ids.length === 0) {
       setResults([]);
       return;
     }
-    setResults(effectiveIds.map((id) => ({ status: "loading" as const, id })));
+    setResults(ids.map((id) => ({ status: "loading" as const, id })));
 
-    let cancelled = false;
-    const requestIds = [...effectiveIds];
+    const controller = new AbortController();
+    const requestIds = [...ids];
+
     requestIds.forEach((id, i) => {
-      void fetchCardDetail(id).then((result) => {
-        setResults((prev) => {
-          if (cancelled) return prev;
-          const next = [...prev];
-          if (result.ok) {
-            next[i] = { status: "ok", card: result.value };
-          } else {
-            next[i] = { status: "error", id, message: result.error.message };
-          }
-          return next;
+      fetchCardDetail(id, { signal: controller.signal })
+        .then((result) => {
+          if (controller.signal.aborted) return;
+          setResults((prev) => {
+            const next = [...prev];
+            if (result.ok) {
+              next[i] = { status: "ok", card: result.value };
+            } else {
+              next[i] = { status: "error", id, message: result.error.message };
+            }
+            return next;
+          });
+        })
+        .catch((error: unknown) => {
+          if (isAbortError(error)) return;
+          setResults((prev) => {
+            const next = [...prev];
+            next[i] = { status: "error", id, message: "Falha ao carregar o cartão." };
+            return next;
+          });
         });
-        return undefined;
-      });
     });
+
     return () => {
-      cancelled = true;
+      controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveIds.join(",")]);
+  }, [idsKey]);
 
-  if (effectiveIds.length === 0) {
-    return <CompareEmpty />;
-  }
-
-  const loadedCards = results.reduce<PublicCardDetail[]>((cards, result) => {
-    if (result.status === "ok") cards.push(result.card);
-    return cards;
-  }, []);
+  const loadedCards = useMemo(
+    () =>
+      results.reduce<PublicCardDetail[]>((cards, result) => {
+        if (result.status === "ok") cards.push(result.card);
+        return cards;
+      }, []),
+    [results],
+  );
 
   const hasAnyLoading = results.some((r) => r.status === "loading");
+
+  if (ids.length === 0) {
+    return <CompareEmpty />;
+  }
 
   return (
     <RevealGroup className="mx-auto max-w-6xl px-4 py-8">
@@ -137,7 +179,7 @@ export const ComparePage = (): JSX.Element => {
         {profile !== null ? (
           <p className="text-body-sm text-ink-muted mb-4 flex flex-wrap items-center gap-1.5">
             <span>
-              {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
+              {ids.length} {ids.length === 1 ? "cartão" : "cartões"} em comparação
             </span>
             <span className="text-ink-subtle">·</span>
             <span>
@@ -156,7 +198,7 @@ export const ComparePage = (): JSX.Element => {
           </p>
         ) : (
           <p className="text-body-sm text-ink-muted mb-4">
-            {effectiveIds.length} {effectiveIds.length === 1 ? "cartão" : "cartões"} em comparação
+            {ids.length} {ids.length === 1 ? "cartão" : "cartões"} em comparação
           </p>
         )}
 
@@ -179,7 +221,7 @@ export const ComparePage = (): JSX.Element => {
           aria-busy="true"
           aria-label="Carregando cartões"
         >
-          {effectiveIds.map((id) => (
+          {ids.map((id) => (
             <div key={id} className="bg-surface-sunken h-8 animate-pulse rounded" />
           ))}
         </m.div>

@@ -1,38 +1,31 @@
 import { fail, ok, type Result } from "@/lib/result";
+import {
+  cardCatalogResponseSchema,
+  cardsOptionsResponseSchema,
+  publicCardDetailSchema,
+  recommendationResponseSchema,
+} from "@/lib/api-schemas";
 import type {
   CardCatalogResponse,
   CardOption,
   CatalogFilters,
+  RecommendationEnvelope,
   PublicCardDetail,
   PublicCatalogCard,
-  Recommendation,
   SolverError,
   SpendingProfile,
 } from "@/types";
 
 const getApiUrl = (): string => {
   const value: unknown = Reflect.get(import.meta.env, "VITE_API_URL");
-  return typeof value === "string" && value.length > 0 ? value : "http://localhost:3333";
+  if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  if (import.meta.env.PROD) {
+    throw new Error("VITE_API_URL is required for production builds.");
+  }
+  return "http://localhost:3333";
 };
 
 const API_URL = getApiUrl();
-
-interface CardsOptionsResponse {
-  cards: CardOption[];
-  catalogVersion: string;
-}
-
-interface RecommendationSuccessResponse {
-  ok: true;
-  data: Recommendation;
-  catalogVersion: string;
-  solverVersion: string;
-}
-
-interface RecommendationErrorResponse {
-  ok: false;
-  error: SolverError;
-}
 
 const apiUrl = (path: string): string => `${API_URL}${path}`;
 
@@ -41,42 +34,149 @@ const networkError = (): SolverError => ({
   message: "Não foi possível conectar à API de recomendação.",
 });
 
-export const fetchCardOptions = async (): Promise<CardOption[]> => {
-  const response = await fetch(apiUrl("/cards/options"));
+const contractError = (): SolverError => ({
+  code: "CONTRACT_ERROR",
+  message:
+    "A API respondeu com um formato inesperado. A recomendação não foi exibida para evitar um resultado parcial.",
+});
+
+const readJson = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json();
+  } catch {
+    throw new Error("Invalid JSON response");
+  }
+};
+
+const isAbortError = (error: unknown): boolean =>
+  error instanceof DOMException && error.name === "AbortError";
+
+interface RetryOptions {
+  retries?: number | undefined;
+  timeoutMs?: number | undefined;
+  baseDelayMs?: number | undefined;
+  signal?: AbortSignal | undefined;
+}
+
+const sleep = (ms: number, signal?: AbortSignal): Promise<void> =>
+  new Promise((resolve, reject) => {
+    if (signal?.aborted === true) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+    const onAbort = (): void => {
+      clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+
+const combineSignals = (signals: AbortSignal[]): AbortSignal => {
+  if (signals.length === 1 && signals[0] !== undefined) return signals[0];
+  const controller = new AbortController();
+  for (const source of signals) {
+    if (source.aborted) {
+      controller.abort(source.reason);
+      return controller.signal;
+    }
+    source.addEventListener(
+      "abort",
+      () => {
+        controller.abort(source.reason);
+      },
+      { once: true },
+    );
+  }
+  return controller.signal;
+};
+
+/**
+ * fetch with retry + per-attempt timeout. Retries on network failure and 5xx
+ * (with exponential backoff). Aborts immediately if the caller's signal fires.
+ * 4xx and 2xx responses are returned to the caller without retry.
+ */
+export const fetchWithRetry = async (
+  url: string,
+  init: RequestInit = {},
+  opts: RetryOptions = {},
+): Promise<Response> => {
+  const { retries = 2, timeoutMs = 8000, baseDelayMs = 300, signal } = opts;
+  const attemptRequest = async (attempt: number): Promise<Response> => {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    const signals: AbortSignal[] = [timeoutSignal];
+    if (signal !== undefined) signals.push(signal);
+    const requestSignal = combineSignals(signals);
+    try {
+      const response = await fetch(url, { ...init, signal: requestSignal });
+      const status = response.status;
+      const isServerError = typeof status === "number" && status >= 500 && status < 600;
+      if (!isServerError || attempt >= retries) {
+        return response;
+      }
+    } catch (error) {
+      if (signal?.aborted === true) throw error;
+      if (attempt >= retries) throw error;
+      if (!isAbortError(error) && !(error instanceof TypeError)) throw error;
+    }
+    await sleep(baseDelayMs * 2 ** attempt, signal);
+    return attemptRequest(attempt + 1);
+  };
+  return attemptRequest(0);
+};
+
+interface RequestOptions {
+  signal?: AbortSignal | undefined;
+}
+
+export const fetchCardOptions = async (opts: RequestOptions = {}): Promise<CardOption[]> => {
+  const response = await fetchWithRetry(apiUrl("/cards/options"), {}, { signal: opts.signal });
   if (!response.ok) throw new Error("Failed to fetch card options");
-  const body = (await response.json()) as CardsOptionsResponse;
-  return body.cards;
+  const parsed = cardsOptionsResponseSchema.safeParse(await readJson(response));
+  if (!parsed.success) throw new Error("Invalid /cards/options response");
+  return parsed.data.cards;
 };
 
 export const fetchRecommendation = async (
   profile: SpendingProfile,
   ptaxRate?: number,
-): Promise<Result<Recommendation, SolverError>> => {
+  opts: RequestOptions = {},
+): Promise<Result<RecommendationEnvelope, SolverError>> => {
   try {
-    const response = await fetch(apiUrl("/score-lab/recommendations"), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
+    const response = await fetchWithRetry(
+      apiUrl("/score-lab/recommendations"),
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          profile,
+          ...(ptaxRate !== undefined ? { ptaxRate } : {}),
+        }),
       },
-      body: JSON.stringify({
-        profile,
-        ...(ptaxRate !== undefined ? { ptaxRate } : {}),
-      }),
-    });
-    const body = (await response.json()) as
-      | RecommendationSuccessResponse
-      | RecommendationErrorResponse;
-    if (!response.ok || !body.ok) {
-      return fail(!body.ok ? body.error : networkError());
+      { signal: opts.signal },
+    );
+    const parsed = recommendationResponseSchema.safeParse(await readJson(response));
+    if (!parsed.success) return fail(contractError());
+    if (!parsed.data.ok) {
+      return fail(parsed.data.error);
     }
-    return ok(body.data);
-  } catch {
+    if (!response.ok) return fail(networkError());
+    return ok(parsed.data.envelope);
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    if (error instanceof Error && error.message === "Invalid JSON response") {
+      return fail(contractError());
+    }
     return fail(networkError());
   }
 };
 
 export const fetchCardCatalog = async (
   filters: CatalogFilters = {},
+  opts: RequestOptions = {},
 ): Promise<CardCatalogResponse> => {
   const params = new URLSearchParams();
   if (filters.bank !== undefined) params.set("bank", filters.bank);
@@ -95,9 +195,15 @@ export const fetchCardCatalog = async (
   if (filters.search !== undefined && filters.search.length > 0)
     params.set("search", filters.search);
   const qs = params.toString();
-  const response = await fetch(apiUrl(`/cards/catalog${qs ? `?${qs}` : ""}`));
+  const response = await fetchWithRetry(
+    apiUrl(`/cards/catalog${qs ? `?${qs}` : ""}`),
+    {},
+    { signal: opts.signal },
+  );
   if (!response.ok) throw new Error("Failed to fetch card catalog");
-  const body = (await response.json()) as CardCatalogResponse;
+  const parsed = cardCatalogResponseSchema.safeParse(await readJson(response));
+  if (!parsed.success) throw new Error("Invalid /cards/catalog response");
+  const body = parsed.data;
   const cards = applyClientSideCatalogFilters(body.cards, filters);
   return {
     ...body,
@@ -139,18 +245,28 @@ const applyClientSideCatalogFilters = (
 
 export const fetchCardDetail = async (
   id: string,
+  opts: RequestOptions = {},
 ): Promise<Result<PublicCardDetail, SolverError>> => {
   try {
-    const response = await fetch(apiUrl(`/cards/${encodeURIComponent(id)}`));
+    const response = await fetchWithRetry(
+      apiUrl(`/cards/${encodeURIComponent(id)}`),
+      {},
+      { signal: opts.signal },
+    );
     if (response.status === 404) {
       return fail({ code: "CARD_NOT_FOUND", message: "Cartão não encontrado." });
     }
     if (!response.ok) {
       return fail({ code: "NETWORK_ERROR", message: "Não foi possível carregar o cartão." });
     }
-    const data = (await response.json()) as PublicCardDetail;
-    return ok(data);
-  } catch {
+    const parsed = publicCardDetailSchema.safeParse(await readJson(response));
+    if (!parsed.success) return fail(contractError());
+    return ok(parsed.data);
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    if (error instanceof Error && error.message === "Invalid JSON response") {
+      return fail(contractError());
+    }
     return fail({ code: "NETWORK_ERROR", message: "Não foi possível conectar à API." });
   }
 };
