@@ -8,6 +8,7 @@ import {
   type JSX,
   type KeyboardEvent,
 } from "react";
+import { useFieldContext } from "@/components/ui/field-context";
 import { cn } from "@/lib/cn";
 import { formatBankLabel } from "@/lib/labels";
 import type { CardOption } from "@/types";
@@ -40,8 +41,11 @@ export const CardCombobox = ({
   const [highlighted, setHighlighted] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const field = useFieldContext();
   const listboxId = useId();
-  const finalId = id ?? `${listboxId}-input`;
+  const statusId = `${listboxId}-status`;
+  const finalId = id ?? field?.id ?? `${listboxId}-input`;
+  const describedBy = [field?.describedBy, statusId].filter(Boolean).join(" ") || undefined;
 
   const selectedSet = useMemo(() => new Set(value), [value]);
 
@@ -125,6 +129,13 @@ export const CardCombobox = ({
   };
 
   const showEmptyState = !loading && !error && filtered.length === 0;
+  const statusText = loading
+    ? "Carregando cartões."
+    : error
+      ? "Não foi possível carregar a lista de cartões."
+      : showEmptyState
+        ? "Nenhum cartão encontrado."
+        : `${String(filtered.length)} cartões disponíveis.`;
 
   return (
     <div ref={containerRef} className="relative">
@@ -133,12 +144,6 @@ export const CardCombobox = ({
           "border-line bg-surface-raised flex flex-wrap items-center gap-1.5 rounded-md border px-2 py-1.5 transition",
           "focus-within:border-accent focus-within:ring-accent/20 focus-within:ring-2",
         )}
-        onClick={() => inputRef.current?.focus()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") inputRef.current?.focus();
-        }}
-        role="button"
-        tabIndex={-1}
       >
         {selectedOptions.map((card) => (
           <span
@@ -174,6 +179,9 @@ export const CardCombobox = ({
           aria-expanded={open}
           aria-controls={listboxId}
           aria-autocomplete="list"
+          aria-invalid={field?.invalid ? true : undefined}
+          aria-required={field?.required ? true : undefined}
+          aria-describedby={describedBy}
           aria-activedescendant={
             open && filtered[highlighted] !== undefined
               ? `${listboxId}-${filtered[highlighted].id}`
@@ -194,6 +202,9 @@ export const CardCombobox = ({
           className="text-ink placeholder:text-ink-subtle min-w-[10ch] flex-1 bg-transparent p-1 text-sm outline-none"
         />
       </div>
+      <p id={statusId} role="status" aria-live="polite" className="sr-only">
+        {statusText}
+      </p>
 
       {open ? (
         <div
@@ -217,6 +228,7 @@ export const CardCombobox = ({
             const isSelected = selectedSet.has(card.id);
             const isHighlighted = idx === highlighted;
             return (
+              // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- combobox uses aria-activedescendant; focus stays on the input and the highlighted option is signalled via aria-activedescendant, not focus.
               <div
                 key={card.id}
                 id={`${listboxId}-${card.id}`}

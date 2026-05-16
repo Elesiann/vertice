@@ -270,6 +270,7 @@ const FilterDropdown = ({
         />
       </button>
       {open && (
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- stopPropagation keeps the popover from closing when the user clicks an empty area inside it. No user interaction is implied.
         <div
           id={panelId}
           role="group"

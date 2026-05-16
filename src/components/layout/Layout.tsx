@@ -204,17 +204,30 @@ const AppHeader = (): JSX.Element => {
   );
 };
 
+const SkipLink = (): JSX.Element => (
+  <a
+    href="#main-content"
+    className="bg-action text-action-ink focus-visible:ring-accent sr-only rounded-md px-3 py-2 text-sm font-semibold focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus-visible:ring-2 focus-visible:ring-offset-2"
+  >
+    Pular para o conteúdo
+  </a>
+);
+
 export const Layout = (): JSX.Element => {
   const location = useLocation();
   return (
     <LazyMotion features={domAnimation}>
       <SWRConfig value={{ revalidateOnFocus: false, dedupingInterval: 10 * 60 * 1000 }}>
+        <SkipLink />
         <AppHeader />
         <m.div
+          id="main-content"
+          tabIndex={-1}
           key={location.pathname}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.12 }}
+          className="focus:outline-none"
         >
           <Outlet />
         </m.div>

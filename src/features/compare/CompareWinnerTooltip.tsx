@@ -22,6 +22,7 @@ export const CompareWinnerTooltip = ({
   return (
     <span className={cn("group relative inline-flex", className)}>
       <span
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- tooltip trigger needs to be keyboard-focusable so the help text shows on Tab; aria-describedby links it to the tooltip content.
         tabIndex={0}
         aria-describedby={tooltipId}
         className="focus-visible:ring-accent cursor-help rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
