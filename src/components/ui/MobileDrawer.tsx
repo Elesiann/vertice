@@ -1,6 +1,7 @@
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
-import { useEffect, useRef, type JSX, type ReactNode } from "react";
+import { useRef, type JSX, type ReactNode } from "react";
+import { Dialog } from "@/components/ui/Dialog";
 
 interface MobileDrawerProps {
   children: ReactNode;
@@ -20,22 +21,8 @@ export const MobileDrawer = ({
   open,
 }: MobileDrawerProps): JSX.Element => {
   const touchStartY = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleKeyDown = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") onClose();
-    };
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose, open]);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const reduceMotion = useReducedMotion();
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>): void => {
     const touch = e.touches[0];
@@ -59,30 +46,28 @@ export const MobileDrawer = ({
   return (
     <AnimatePresence>
       {open ? (
-        <m.div
+        <Dialog
+          open={open}
+          onClose={onClose}
+          labelledBy={labelledBy}
+          initialFocusRef={closeButtonRef}
           className="text-ink fixed inset-0 z-50 flex flex-col sm:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={labelledBy}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
         >
           <m.div
             className="flex min-h-screen flex-col bg-[var(--color-surface)]"
-            initial={{ y: "-6%" }}
+            initial={reduceMotion ? false : { y: "-6%" }}
             animate={{ y: 0 }}
-            exit={{ y: "-100%" }}
+            {...(reduceMotion ? {} : { exit: { y: "-100%" } })}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
           >
             <div className="border-line flex min-h-16 items-center justify-between border-b px-4">
               <p id={labelledBy} className="text-lg font-bold">
-                Vértice
+                <span className="sr-only">Menu de navegação — </span>Vértice
               </p>
               <button
+                ref={closeButtonRef}
                 type="button"
                 aria-label="Fechar menu"
                 onClick={onClose}
@@ -93,7 +78,7 @@ export const MobileDrawer = ({
             </div>
             {children}
           </m.div>
-        </m.div>
+        </Dialog>
       ) : null}
     </AnimatePresence>
   );

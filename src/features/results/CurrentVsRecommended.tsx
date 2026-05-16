@@ -1,8 +1,9 @@
-import { Fragment, useEffect, useState, type JSX, type ReactNode } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { Fragment, useRef, useState, type JSX, type ReactNode } from "react";
+import { AnimatePresence, m, useReducedMotion } from "framer-motion";
 import { Check, Info, Star, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/Badge";
+import { Dialog } from "@/components/ui/Dialog";
 import type {
   BenefitBreakdownPart,
   ComparisonNarrative,
@@ -247,7 +248,7 @@ const BreakdownMobileRow = ({
     return (
       <div className="grid grid-cols-[auto_1fr_auto] items-baseline gap-2 text-xs leading-snug">
         <span className={cn("text-ink-subtle", SIDE_WIDTH)}>{side}</span>
-        <span className="text-ink-subtle">—</span>
+        <span className="text-ink-subtle">Sem valor</span>
       </div>
     );
   }
@@ -278,55 +279,47 @@ const BreakdownDialog = ({
   onClose: () => void;
   children: ReactNode;
 }): JSX.Element => {
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if (e.key === "Escape") onClose();
-    };
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, onClose]);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const reduceMotion = useReducedMotion();
 
   return (
     <AnimatePresence>
       {open ? (
-        <m.div
+        <Dialog
+          open={open}
+          onClose={onClose}
+          ariaLabel={title}
+          initialFocusRef={closeButtonRef}
           className="fixed inset-0 z-50 flex items-center justify-center p-5"
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
         >
           <m.div
             className="absolute inset-0 bg-black/40"
-            initial={{ opacity: 0 }}
+            initial={reduceMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            {...(reduceMotion ? {} : { exit: { opacity: 0 } })}
             onClick={onClose}
           />
           <m.div
             className="bg-surface-raised border-line relative w-full max-w-sm rounded-xl border p-5 shadow-lg"
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={reduceMotion ? false : { opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
+            {...(reduceMotion ? {} : { exit: { opacity: 0, scale: 0.95 } })}
           >
             <div className="mb-4 flex items-center justify-between">
               <p className="text-ink text-base font-semibold">{title}</p>
               <button
+                ref={closeButtonRef}
                 type="button"
                 aria-label="Fechar"
                 onClick={onClose}
                 className="text-ink-muted hover:text-ink focus-visible:ring-accent inline-flex size-8 items-center justify-center rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
               >
-                <X size={16} />
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
             {children}
           </m.div>
-        </m.div>
+        </Dialog>
       ) : null}
     </AnimatePresence>
   );

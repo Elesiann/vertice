@@ -1,4 +1,4 @@
-import { m, type Variants } from "framer-motion";
+import { m, useReducedMotion, type Variants } from "framer-motion";
 import type { JSX, ReactNode } from "react";
 
 export const revealItemVariants: Variants = {
@@ -22,46 +22,59 @@ export const RevealGroup = ({
   className,
   delayChildren = 0,
   staggerChildren = 0.055,
-}: RevealGroupProps): JSX.Element => (
-  <m.div
-    initial="hidden"
-    animate="visible"
-    variants={{
-      hidden: {},
-      visible: { transition: { delayChildren, staggerChildren } },
-    }}
-    className={className}
-  >
-    {children}
-  </m.div>
-);
+}: RevealGroupProps): JSX.Element => {
+  const reduceMotion = useReducedMotion();
+  return (
+    <m.div
+      initial={reduceMotion ? false : "hidden"}
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: { transition: { delayChildren, staggerChildren } },
+      }}
+      className={className}
+    >
+      {children}
+    </m.div>
+  );
+};
 
 export const RevealMain = ({
   children,
   className,
   delayChildren = 0,
   staggerChildren = 0.055,
-}: RevealGroupProps): JSX.Element => (
-  <m.main
-    initial="hidden"
-    animate="visible"
-    variants={{
-      hidden: {},
-      visible: { transition: { delayChildren, staggerChildren } },
-    }}
-    className={className}
-  >
-    {children}
-  </m.main>
-);
+}: RevealGroupProps): JSX.Element => {
+  const reduceMotion = useReducedMotion();
+  return (
+    <m.main
+      initial={reduceMotion ? false : "hidden"}
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: { transition: { delayChildren, staggerChildren } },
+      }}
+      className={className}
+    >
+      {children}
+    </m.main>
+  );
+};
 
 interface RevealBlockProps {
   children: ReactNode;
   className?: string;
 }
 
-export const RevealBlock = ({ children, className }: RevealBlockProps): JSX.Element => (
-  <m.div variants={revealItemVariants} className={className}>
-    {children}
-  </m.div>
-);
+export const RevealBlock = ({ children, className }: RevealBlockProps): JSX.Element => {
+  const reduceMotion = useReducedMotion();
+  return (
+    <m.div
+      variants={revealItemVariants}
+      {...(reduceMotion === true ? { initial: false as const } : {})}
+      className={className}
+    >
+      {children}
+    </m.div>
+  );
+};

@@ -1,7 +1,7 @@
 import { type JSX, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { Link } from "react-router-dom";
-import { m } from "framer-motion";
+import { m, useReducedMotion } from "framer-motion";
 import {
   Armchair,
   Check,
@@ -284,6 +284,7 @@ export const CatalogList = ({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const { hasCard, toggleCard } = useCompareActions();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const reduceMotion = useReducedMotion();
   const onResultCountRef = useRef(onResultCount);
   useEffect(() => {
     onResultCountRef.current = onResultCount;
@@ -416,7 +417,7 @@ export const CatalogList = ({
     <>
       {viewMode === "list" ? (
         <m.div
-          initial="hidden"
+          initial={reduceMotion ? false : "hidden"}
           animate="visible"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
         >
@@ -435,7 +436,7 @@ export const CatalogList = ({
         </m.div>
       ) : (
         <m.div
-          initial="hidden"
+          initial={reduceMotion ? false : "hidden"}
           animate="visible"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
           className={`${GRID} items-start`}
