@@ -1,13 +1,14 @@
 # Cloudflare Pages headers — applied to every response served by Pages.
 # Reference: https://developers.cloudflare.com/pages/configuration/headers/
 #
-# IMPORTANT: connect-src lists the API origin in production. If the API moves,
-# update both `connect-src` and `DEPLOYMENT.md`. The Sentry ingest host is
-# scoped to *.sentry.io; tighten to the specific ingest subdomain if you know
-# it (e.g. https://o123.ingest.us.sentry.io).
+# IMPORTANT: connect-src must include the production API origin. The frontend
+# fetches /score-lab and /cards from VITE_API_URL (set in Cloudflare Pages env
+# vars). If the API host changes, update both `connect-src` here and the env
+# var. The Sentry ingest host is scoped to *.sentry.io; tighten to the
+# specific ingest subdomain if you know it (e.g. https://o123.ingest.us.sentry.io).
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://vertice.cards; connect-src 'self' https://api.vertice.cards https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://cloudflareinsights.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://vertice.cards; connect-src 'self' https://vertice-api-itzh.onrender.com https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://cloudflareinsights.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
