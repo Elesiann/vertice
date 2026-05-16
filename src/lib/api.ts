@@ -1,4 +1,5 @@
 import { fail, ok, type Result } from "@/lib/result";
+import { log } from "@/lib/log";
 import {
   cardCatalogResponseSchema,
   cardsOptionsResponseSchema,
@@ -115,11 +116,23 @@ export const fetchWithRetry = async (
       const status = response.status;
       const isServerError = typeof status === "number" && status >= 500 && status < 600;
       if (!isServerError || attempt >= retries) {
+        if (isServerError) {
+          log.error(new Error(`API responded ${String(status)}`), {
+            surface: "api-fetch",
+            extra: { url, method: init.method ?? "GET", status, attempts: attempt + 1 },
+          });
+        }
         return response;
       }
     } catch (error) {
       if (signal?.aborted === true) throw error;
-      if (attempt >= retries) throw error;
+      if (attempt >= retries) {
+        log.error(error, {
+          surface: "api-fetch",
+          extra: { url, method: init.method ?? "GET", attempts: attempt + 1 },
+        });
+        throw error;
+      }
       if (!isAbortError(error) && !(error instanceof TypeError)) throw error;
     }
     await sleep(baseDelayMs * 2 ** attempt, signal);
@@ -136,7 +149,13 @@ export const fetchCardOptions = async (opts: RequestOptions = {}): Promise<CardO
   const response = await fetchWithRetry(apiUrl("/cards/options"), {}, { signal: opts.signal });
   if (!response.ok) throw new Error("Failed to fetch card options");
   const parsed = cardsOptionsResponseSchema.safeParse(await readJson(response));
-  if (!parsed.success) throw new Error("Invalid /cards/options response");
+  if (!parsed.success) {
+    log.error(new Error("Schema mismatch"), {
+      surface: "api-contract",
+      extra: { endpoint: "/cards/options", issues: parsed.error.issues },
+    });
+    throw new Error("Invalid /cards/options response");
+  }
   return parsed.data.cards;
 };
 
@@ -159,7 +178,13 @@ export const fetchRecommendation = async (
       { signal: opts.signal },
     );
     const parsed = recommendationResponseSchema.safeParse(await readJson(response));
-    if (!parsed.success) return fail(contractError());
+    if (!parsed.success) {
+      log.error(new Error("Schema mismatch"), {
+        surface: "api-contract",
+        extra: { endpoint: "/score-lab/recommendations", issues: parsed.error.issues },
+      });
+      return fail(contractError());
+    }
     if (!parsed.data.ok) {
       return fail(parsed.data.error);
     }
@@ -202,7 +227,13 @@ export const fetchCardCatalog = async (
   );
   if (!response.ok) throw new Error("Failed to fetch card catalog");
   const parsed = cardCatalogResponseSchema.safeParse(await readJson(response));
-  if (!parsed.success) throw new Error("Invalid /cards/catalog response");
+  if (!parsed.success) {
+    log.error(new Error("Schema mismatch"), {
+      surface: "api-contract",
+      extra: { endpoint: "/cards/catalog", issues: parsed.error.issues },
+    });
+    throw new Error("Invalid /cards/catalog response");
+  }
   const body = parsed.data;
   const cards = applyClientSideCatalogFilters(body.cards, filters);
   return {
@@ -260,7 +291,13 @@ export const fetchCardDetail = async (
       return fail({ code: "NETWORK_ERROR", message: "Não foi possível carregar o cartão." });
     }
     const parsed = publicCardDetailSchema.safeParse(await readJson(response));
-    if (!parsed.success) return fail(contractError());
+    if (!parsed.success) {
+      log.error(new Error("Schema mismatch"), {
+        surface: "api-contract",
+        extra: { endpoint: `/cards/${id}`, issues: parsed.error.issues },
+      });
+      return fail(contractError());
+    }
     return ok(parsed.data);
   } catch (error) {
     if (isAbortError(error)) throw error;

@@ -10,6 +10,7 @@ import {
   type SetStateAction,
 } from "react";
 import { z } from "zod";
+import { log } from "@/lib/log";
 import type { SpendingProfile } from "@/types";
 
 interface SessionContextValue {
@@ -58,7 +59,8 @@ const readStorage = (): StoredProfileEntry | null => {
     const parsed = StoredProfileSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) return null;
     return parsed.data as StoredProfileEntry;
-  } catch {
+  } catch (error) {
+    log.error(error, { surface: "session-storage-read" });
     return null;
   }
 };
@@ -68,8 +70,8 @@ const writeStorage = (profile: SpendingProfile): string => {
   if (typeof window === "undefined") return savedAt;
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, savedAt }));
-  } catch {
-    // storage indisponível (quota, modo privado): falha silenciosa.
+  } catch (error) {
+    log.error(error, { surface: "session-storage-write" });
   }
   return savedAt;
 };
@@ -78,8 +80,8 @@ const clearStorage = (): void => {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // idem.
+  } catch (error) {
+    log.error(error, { surface: "session-storage-clear" });
   }
 };
 

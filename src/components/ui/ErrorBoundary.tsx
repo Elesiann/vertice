@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/Button";
+import { log } from "@/lib/log";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -14,13 +15,13 @@ interface ErrorBoundaryState {
 const clearClientData = (): void => {
   try {
     window.localStorage.clear();
-  } catch {
-    /* storage unavailable */
+  } catch (error) {
+    log.error(error, { surface: "error-boundary-clear-local" });
   }
   try {
     window.sessionStorage.clear();
-  } catch {
-    /* storage unavailable */
+  } catch (error) {
+    log.error(error, { surface: "error-boundary-clear-session" });
   }
   window.location.reload();
 };

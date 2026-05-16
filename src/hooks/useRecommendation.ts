@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSession } from "@/context/SessionContext";
 import { fetchRecommendation } from "@/lib/api";
+import { log } from "@/lib/log";
 import type { Recommendation, RecommendationEnvelope, SolverError, SpendingProfile } from "@/types";
 import type { Result } from "@/lib/result";
 
@@ -30,7 +31,8 @@ const readCache = (profile: SpendingProfile, ptaxOverride?: number): Recommendat
       return null;
     }
     return data.recommendation;
-  } catch {
+  } catch (error) {
+    log.error(error, { surface: "recommendation-cache-read" });
     return null;
   }
 };
@@ -50,8 +52,8 @@ const writeCache = (
       savedAt: new Date().toISOString(),
     };
     localStorage.setItem(CACHE_KEY, JSON.stringify(data));
-  } catch {
-    /* storage unavailable */
+  } catch (error) {
+    log.error(error, { surface: "recommendation-cache-write" });
   }
 };
 
@@ -59,8 +61,8 @@ export const clearRecommendationCache = (): void => {
   try {
     localStorage.removeItem(CACHE_KEY);
     localStorage.removeItem("vertice.recommendation.v1");
-  } catch {
-    /* storage unavailable */
+  } catch (error) {
+    log.error(error, { surface: "recommendation-cache-clear" });
   }
 };
 
