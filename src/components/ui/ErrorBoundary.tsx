@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/Button";
 
 interface ErrorBoundaryProps {
@@ -10,16 +11,33 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
+const clearClientData = (): void => {
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* storage unavailable */
+  }
+  try {
+    window.sessionStorage.clear();
+  } catch {
+    /* storage unavailable */
+  }
+  window.location.reload();
+};
+
 const DefaultFallback = ({ retry }: { retry: () => void }): ReactNode => (
   <div role="alert" className="mx-auto max-w-2xl p-6">
     <h2 className="text-ink text-xl font-semibold">Algo deu errado.</h2>
     <p className="text-ink-muted mt-2">
-      Recarregue a página para continuar. Nada do que você subiu foi enviado a nenhum servidor: tudo
-      acontece localmente no seu navegador.
+      Recarregue a página para continuar. Seu perfil fica salvo no navegador, mas o cálculo de
+      recomendação usa a API do Vértice.
     </p>
-    <Button className="mt-4" onClick={retry}>
-      Tentar novamente
-    </Button>
+    <div className="mt-4 flex flex-wrap gap-3">
+      <Button onClick={retry}>Tentar novamente</Button>
+      <Button variant="ghost" onClick={clearClientData}>
+        Limpar dados e recarregar
+      </Button>
+    </div>
   </div>
 );
 
@@ -31,7 +49,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("UI error caught by boundary:", error, info);
+    if (import.meta.env.DEV) {
+      console.error("UI error caught by boundary:", error, info);
+    }
+    Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: info.componentStack ?? "",
+        },
+      },
+    });
   }
 
   private handleRetry = (): void => {
