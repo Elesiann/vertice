@@ -633,7 +633,7 @@ export const CompareTable = ({
     {
       label: "Anuidade",
       cells: sortedCards.map((c) => (
-        <span key={c.id} className="flex flex-col items-start gap-1">
+        <span key={c.id} className="flex flex-col items-end gap-1 sm:items-start">
           {formatBrl(c.annualFeeBrl)}
           <FeeTierBadge annualFeeBrl={c.annualFeeBrl} />
           <FeeWaiverBadge
