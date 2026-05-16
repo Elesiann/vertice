@@ -14,6 +14,7 @@ import {
   revealItemVariants,
 } from "@/components/ui";
 import { useSession } from "@/context/SessionContext";
+import { clearRecommendationCache } from "@/hooks/useRecommendation";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
 import { CardCombobox } from "@/features/input/CardCombobox";
@@ -212,6 +213,7 @@ export const InputForm = (): JSX.Element => {
 
   const onClearSavedProfile = (): void => {
     sessionReset();
+    clearRecommendationCache();
     resetForm(FORM_DEFAULTS);
   };
 
@@ -366,9 +368,11 @@ export const InputForm = (): JSX.Element => {
 
             <RevealBlock>
               <footer className="border-line mt-6 flex flex-col-reverse justify-between gap-4 border-t pt-6 sm:mt-6 sm:flex-row sm:items-center">
-                <Link to={ROUTES.HOME} className="plain-link hidden sm:inline">
-                  ← Voltar para a home
-                </Link>
+                <div className="flex max-w-md flex-col gap-2">
+                  <Link to={ROUTES.HOME} className="plain-link hidden sm:inline">
+                    ← Voltar para a home
+                  </Link>
+                </div>
                 <Button type="submit" size="lg" className="w-full cursor-pointer sm:w-auto">
                   Calcular meu cartão →
                 </Button>

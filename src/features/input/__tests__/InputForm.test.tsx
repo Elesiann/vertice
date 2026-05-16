@@ -43,6 +43,7 @@ const mockCardsResponse = (): void => {
       json: () =>
         Promise.resolve({
           cards: [{ id: "sample-card", name: "Sample Card", bank: "other" }],
+          catalogVersion: "test",
         }),
     }),
   );
@@ -171,6 +172,14 @@ describe("InputForm", () => {
         savedAt: new Date().toISOString(),
       }),
     );
+    window.localStorage.setItem(
+      "vertice.recommendation.v2",
+      JSON.stringify({ version: 2, profileKey: "old", savedAt: new Date().toISOString() }),
+    );
+    window.localStorage.setItem(
+      "vertice.recommendation.v1",
+      JSON.stringify({ profileKey: "old", savedAt: new Date().toISOString() }),
+    );
 
     renderForm(() => undefined);
 
@@ -200,6 +209,8 @@ describe("InputForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /Limpar/i }));
 
     expect(window.localStorage.getItem("vertice.profile.v1")).toBeNull();
+    expect(window.localStorage.getItem("vertice.recommendation.v2")).toBeNull();
+    expect(window.localStorage.getItem("vertice.recommendation.v1")).toBeNull();
     expect(screen.queryByText(/Última edição/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/Gasto mensal \(R\$\)/i)).toHaveValue(5000);
   });
