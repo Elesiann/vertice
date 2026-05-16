@@ -7,7 +7,7 @@
 # it (e.g. https://o123.ingest.us.sentry.io).
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://vertice.cards; connect-src 'self' https://api.vertice.cards https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://vertice.cards; connect-src 'self' https://api.vertice.cards https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://cloudflareinsights.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
