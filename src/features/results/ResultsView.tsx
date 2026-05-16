@@ -232,7 +232,7 @@ export const ResultsView = (): JSX.Element => {
       <main className="app-shell">
         <RevealGroup className="app-container max-w-3xl">
           <RevealBlock>
-            <Panel className="space-y-4 p-6 text-center sm:p-8">
+            <div className="space-y-4 p-6 text-center sm:p-8">
               <h1 className="text-display-3 text-ink">Não conseguimos recomendar</h1>
               <p className="text-ink-muted text-sm">{result.error.message}</p>
               <div>
@@ -240,7 +240,7 @@ export const ResultsView = (): JSX.Element => {
                   Voltar e ajustar os dados
                 </Link>
               </div>
-            </Panel>
+            </div>
           </RevealBlock>
         </RevealGroup>
       </main>

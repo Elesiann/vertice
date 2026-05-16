@@ -285,6 +285,46 @@ describe("ResultsView", () => {
     );
   });
 
+  it("does not render a recommendation when the API contract is invalid", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ ok: true, data: { broken: true } }),
+      }),
+    );
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    expect(await screen.findByText(/formato inesperado/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Domestic Rewards Card/i)).not.toBeInTheDocument();
+  });
+
+  it("ignores legacy recommendation cache when the API is offline", async () => {
+    localStorage.setItem(
+      "vertice.recommendation.v1",
+      JSON.stringify({
+        profileKey: "legacy",
+        recommendation: recommendationFixture,
+        savedAt: new Date().toISOString(),
+      }),
+    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+
+    renderResults({
+      monthlyDomesticBrl: 5000,
+      monthlyInternationalUsd: 200,
+      redemption: { kind: "any" },
+    });
+
+    expect(await screen.findByText(/Não foi possível conectar/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Domestic Rewards Card/i)).not.toBeInTheDocument();
+  });
+
   it("renders the comparison view (variant B) when currentCardIds is set and current net is positive", async () => {
     mockRecommendation({
       ...recommendationFixture,
