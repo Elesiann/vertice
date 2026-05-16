@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA fallback — every unknown path returns index.html with
+# HTTP 200 so React Router can resolve the route on the client.
+# Reference: https://developers.cloudflare.com/pages/configuration/redirects/
+/*  /index.html  200

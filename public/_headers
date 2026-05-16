@@ -1,0 +1,32 @@
+# Cloudflare Pages headers — applied to every response served by Pages.
+# Reference: https://developers.cloudflare.com/pages/configuration/headers/
+#
+# IMPORTANT: connect-src lists the API origin in production. If the API moves,
+# update both `connect-src` and `DEPLOYMENT.md`. The Sentry ingest host is
+# scoped to *.sentry.io; tighten to the specific ingest subdomain if you know
+# it (e.g. https://o123.ingest.us.sentry.io).
+
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://vertice.cards; connect-src 'self' https://api.vertice.cards https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Resource-Policy: same-origin
+
+# Long-lived caching for fingerprinted assets emitted by Vite.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Card images change rarely; cache aggressively but allow revalidation.
+/card-images/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+
+# HTML shell must always revalidate so deploys take effect immediately.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
