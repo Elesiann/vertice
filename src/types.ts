@@ -308,13 +308,20 @@ export interface Recommendation {
   };
 }
 
+export interface RecommendationEnvelope {
+  recommendation: Recommendation;
+  catalogVersion: string;
+  solverVersion: string;
+}
+
 export type SolverErrorCode =
   | "EMPTY_CATALOG"
   | "NO_ELIGIBLE_CARDS"
   | "INVALID_PROFILE"
   | "INVALID_REQUEST"
   | "NETWORK_ERROR"
-  | "CARD_NOT_FOUND";
+  | "CARD_NOT_FOUND"
+  | "CONTRACT_ERROR";
 
 export interface SolverError {
   code: SolverErrorCode;
