@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { m } from "framer-motion";
 import { fetchCardCatalog, fetchCardDetail } from "@/lib/api";
 import { BackLink } from "@/components/ui/BackLink";
-import { RevealBlock, RevealGroup, revealItemVariants } from "@/components/ui/Reveal";
+import { RevealBlock, RevealMain, revealItemVariants } from "@/components/ui/Reveal";
 import { PageMeta } from "@/components/seo/PageMeta";
 import { CompareTable } from "@/features/compare/CompareTable";
 import { CompareEmpty } from "@/features/compare/CompareEmpty";
@@ -183,7 +183,7 @@ export const ComparePage = (): JSX.Element => {
   }
 
   return (
-    <RevealGroup className="mx-auto max-w-6xl px-4 py-8">
+    <RevealMain className="mx-auto max-w-6xl px-4 py-8">
       {compareMeta}
       <RevealBlock>
         <BackLink className="mb-4" to="/cards">
@@ -270,6 +270,6 @@ export const ComparePage = (): JSX.Element => {
           </p>
         </RevealBlock>
       )}
-    </RevealGroup>
+    </RevealMain>
   );
 };

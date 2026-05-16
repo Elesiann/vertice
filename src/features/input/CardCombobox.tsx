@@ -176,6 +176,7 @@ export const CardCombobox = ({
           id={finalId}
           type="text"
           role="combobox"
+          aria-label="Cartões atuais"
           aria-expanded={open}
           aria-controls={listboxId}
           aria-autocomplete="list"

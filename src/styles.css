@@ -26,7 +26,12 @@
   --_color-sand-300: #d7ddd5;
   --_color-sand-400: #bcc8bf;
 
-  --_color-slate-300: #8a978f;
+  /* slate-300 darkened from #8a978f to #5d6962 (~5.5:1 theoretical contrast
+     on cream surface). Previous value computed 2.83:1 in axe scans; the new
+     value carries safety margin for sub-pixel anti-aliasing on small text.
+     slate-500 kept at original — darkening it cascaded into disabled-state
+     button text combos that need their own fix. */
+  --_color-slate-300: #5d6962;
   --_color-slate-500: #5f6f65;
   --_color-slate-900: #1f2a24;
 

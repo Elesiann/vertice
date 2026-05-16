@@ -9,7 +9,7 @@ import {
 } from "@/features/catalog/CatalogFilters";
 import { CatalogList } from "@/features/catalog/CatalogList";
 import { BackLink } from "@/components/ui/BackLink";
-import { RevealBlock, RevealGroup } from "@/components/ui/Reveal";
+import { RevealBlock, RevealMain } from "@/components/ui/Reveal";
 import { PageMeta } from "@/components/seo/PageMeta";
 import { fetchCardCatalog } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
@@ -266,7 +266,7 @@ export const CatalogPage = (): JSX.Element => {
   }, []);
 
   return (
-    <RevealGroup className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
+    <RevealMain className="mx-auto max-w-7xl px-4 py-6 sm:py-8">
       <PageMeta
         title="Catálogo de cartões — Vértice"
         description="Catálogo independente de cartões brasileiros. Filtros por banco, anuidade, programa, sala VIP e cashback."
@@ -334,6 +334,6 @@ export const CatalogPage = (): JSX.Element => {
           <ArrowUp size={20} aria-hidden="true" />
         </Button>
       )}
-    </RevealGroup>
+    </RevealMain>
   );
 };
