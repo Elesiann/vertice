@@ -5,18 +5,31 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { ComparePage } from "@/pages/ComparePage";
 import { SessionProvider, useSession } from "@/context/SessionContext";
-import { ok } from "@/lib/result";
+import { fail, ok } from "@/lib/result";
 import { useCompareStore } from "@/lib/compare-store";
 import type {
   CardCatalogResponse,
   PublicCardDetail,
   Recommendation,
+  RecommendationEnvelope,
+  SolverError,
   SpendingProfile,
 } from "@/types";
 
-const fetchCardDetail = vi.fn<(id: string) => Promise<ReturnType<typeof ok<PublicCardDetail>>>>();
+const fetchCardDetail =
+  vi.fn<
+    (
+      id: string,
+    ) => Promise<ReturnType<typeof ok<PublicCardDetail>> | ReturnType<typeof fail<SolverError>>>
+  >();
 const fetchCardCatalog = vi.fn<() => Promise<CardCatalogResponse>>();
-const fetchRecommendation = vi.fn<() => Promise<ReturnType<typeof ok<Recommendation>>>>();
+const fetchRecommendation = vi.fn<() => Promise<ReturnType<typeof ok<RecommendationEnvelope>>>>();
+
+const recommendationEnvelope = (recommendation: Recommendation): RecommendationEnvelope => ({
+  recommendation,
+  catalogVersion: "test",
+  solverVersion: "test",
+});
 
 vi.mock("@/lib/api", () => ({
   fetchCardDetail: (id: string) => fetchCardDetail(id),
@@ -119,12 +132,87 @@ const renderPage = (entry: string, seededProfile: SpendingProfile | null = null)
   );
 };
 
+describe("ComparePage empty state", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useCompareStore.setState({ ids: [] });
+    fetchCardDetail.mockImplementation((id) => Promise.resolve(ok(makeCard(id, `Cartão ${id}`))));
+    fetchRecommendation.mockResolvedValue(ok(recommendationEnvelope(makeRecommendation("r", {}))));
+    fetchCardCatalog.mockResolvedValue({
+      cards: [],
+      catalogVersion: "test",
+      count: 0,
+      filters: {},
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows empty state when no ids are present", () => {
+    renderPage("/compare");
+    expect(screen.getByText(/Nenhum cartão para comparar/i)).toBeInTheDocument();
+  });
+});
+
+describe("ComparePage no profile", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useCompareStore.setState({ ids: ["a", "b"] });
+    fetchCardDetail.mockImplementation((id) =>
+      Promise.resolve(ok(makeCard(id, `Cartão ${id.toUpperCase()}`))),
+    );
+    fetchRecommendation.mockResolvedValue(ok(recommendationEnvelope(makeRecommendation("r", {}))));
+    fetchCardCatalog.mockResolvedValue({
+      cards: [],
+      catalogVersion: "test",
+      count: 0,
+      filters: {},
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows CTA button when no profile is set", async () => {
+    renderPage("/compare?ids=a,b");
+    expect(await screen.findByRole("link", { name: /Definir perfil/i })).toBeInTheDocument();
+    await screen.findAllByText(/Cartão [AB]/);
+  });
+});
+
+describe("ComparePage card fetch error", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    useCompareStore.setState({ ids: ["a"] });
+    fetchCardDetail.mockResolvedValue(fail({ code: "NETWORK_ERROR", message: "Falha na rede" }));
+    fetchRecommendation.mockResolvedValue(ok(recommendationEnvelope(makeRecommendation("r", {}))));
+    fetchCardCatalog.mockResolvedValue({
+      cards: [],
+      catalogVersion: "test",
+      count: 0,
+      filters: {},
+    });
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("shows error message when card fetch fails", async () => {
+    renderPage("/compare?ids=a");
+    expect(await screen.findByText(/Falha na rede/i)).toBeInTheDocument();
+  });
+});
+
 describe("ComparePage inline add", () => {
   beforeEach(() => {
     window.localStorage.clear();
     useCompareStore.setState({ ids: [] });
     fetchCardDetail.mockImplementation((id) => Promise.resolve(ok(makeCard(id, `Cartão ${id}`))));
-    fetchRecommendation.mockResolvedValue(ok(makeRecommendation("r", {})));
+    fetchRecommendation.mockResolvedValue(ok(recommendationEnvelope(makeRecommendation("r", {}))));
     fetchCardCatalog.mockResolvedValue({
       cards: [makeCard("a", "Cartão a"), makeCard("b", "Cartão b"), makeCard("d", "Delta Gold")],
       catalogVersion: "test",
@@ -143,7 +231,7 @@ describe("ComparePage inline add", () => {
     await screen.findAllByText("Cartão a");
     await userEvent.click(screen.getByRole("button", { name: "Adicionar cartão" }));
     await userEvent.type(screen.getByPlaceholderText("Buscar cartão…"), "delta");
-    await userEvent.click(screen.getByRole("button", { name: /Delta Gold/i }));
+    await userEvent.click(screen.getByRole("option", { name: /Delta Gold/i }));
 
     await waitFor(() => {
       expect(screen.getByTestId("location")).toHaveTextContent("?ids=a%2Cb%2Cd");
@@ -159,7 +247,7 @@ describe("ComparePage remove card", () => {
     fetchCardDetail.mockImplementation((id) =>
       Promise.resolve(ok(makeCard(id, `Cartão ${id.toUpperCase()}`))),
     );
-    fetchRecommendation.mockResolvedValue(ok(makeRecommendation("r", {})));
+    fetchRecommendation.mockResolvedValue(ok(recommendationEnvelope(makeRecommendation("r", {}))));
     fetchCardCatalog.mockResolvedValue({
       cards: [],
       catalogVersion: "test",
@@ -202,7 +290,9 @@ describe("ComparePage recommended card add", () => {
       Promise.resolve(ok(makeCard(id, `Cartão ${id.toUpperCase()}`))),
     );
     fetchRecommendation.mockResolvedValue(
-      ok(makeRecommendation("r", { a: 100, b: 50, c: 300, d: 200, r: 500 })),
+      ok(
+        recommendationEnvelope(makeRecommendation("r", { a: 100, b: 50, c: 300, d: 200, r: 500 })),
+      ),
     );
     fetchCardCatalog.mockResolvedValue({
       cards: [],

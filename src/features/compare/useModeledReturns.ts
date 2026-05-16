@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useSession } from "@/context/SessionContext";
-import { fetchRecommendation } from "@/lib/api";
+import { useRecommendation } from "@/hooks/useRecommendation";
 import { firstDisplayCardId } from "@/features/results/display-recommendation";
 import type { Recommendation, StackEvaluation } from "@/types";
 
@@ -71,43 +71,36 @@ const singleCardRewardsByCardId = (
   return out;
 };
 
+const buildReadyState = (
+  recommendation: Recommendation,
+  profile: NonNullable<ReturnType<typeof useSession>["profile"]>,
+): ModeledReturnsState => ({
+  status: "ready",
+  byCardId: recommendation.scoreLab?.singleCardNetReturnByCardId ?? {},
+  rewardsByCardId: singleCardRewardsByCardId(recommendation),
+  recommendedCardId: firstDisplayCardId(recommendation, profile),
+  ptaxRate: recommendation.scoreLab?.ptaxRate ?? null,
+});
+
 /**
  * Returns the per-card modeled net return for the user's current profile.
+ *
+ * Composes `useRecommendation` so the comparator shares the same cache-first
+ * behavior as the results page: a fresh page load that already has a cached
+ * recommendation for this profile renders without hitting the API.
  *
  * The hook short-circuits to `idle` when there is no profile in session — by
  * design, the comparator hides the modeled-return row until the user runs the
  * recommender at least once (handoff §8.3).
  */
 export const useModeledReturns = (): ModeledReturnsState => {
-  const { profile, ptaxOverride } = useSession();
-  const [state, setState] = useState<ModeledReturnsState>({ status: "idle" });
+  const { profile } = useSession();
+  const result = useRecommendation();
 
-  useEffect(() => {
-    if (profile === null) {
-      setState({ status: "idle" });
-      return;
-    }
-    let cancelled = false;
-    setState({ status: "loading" });
-    void fetchRecommendation(profile, ptaxOverride ?? undefined).then((result) => {
-      if (cancelled) return;
-      if (!result.ok) {
-        setState({ status: "error", message: result.error.message });
-        return;
-      }
-      const map = result.value.scoreLab?.singleCardNetReturnByCardId ?? {};
-      setState({
-        status: "ready",
-        byCardId: map,
-        rewardsByCardId: singleCardRewardsByCardId(result.value),
-        recommendedCardId: firstDisplayCardId(result.value, profile),
-        ptaxRate: result.value.scoreLab?.ptaxRate ?? null,
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [profile, ptaxOverride]);
-
-  return state;
+  return useMemo<ModeledReturnsState>(() => {
+    if (profile === null) return { status: "idle" };
+    if (result === null) return { status: "loading" };
+    if (!result.ok) return { status: "error", message: result.error.message };
+    return buildReadyState(result.value, profile);
+  }, [profile, result]);
 };
