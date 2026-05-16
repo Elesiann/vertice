@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { vi } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 
 // jsdom ships neither IntersectionObserver nor matchMedia. Catalog lazy-loading
 // uses IntersectionObserver, and animation helpers can read matchMedia. Provide
@@ -29,3 +29,27 @@ if (typeof globalThis.matchMedia === "undefined") {
     dispatchEvent: vi.fn(() => false),
   }));
 }
+
+const allowedConsoleNoise = [
+  /UI error caught by boundary/u,
+  /The above error occurred/u,
+  /React will try to recreate this component tree/u,
+  /inside a test was not wrapped in act/u,
+];
+
+const failUnexpectedConsole = (method: "error" | "warn"): void => {
+  vi.spyOn(console, method).mockImplementation((...args: unknown[]) => {
+    const message = args.map((arg) => (typeof arg === "string" ? arg : String(arg))).join(" ");
+    if (allowedConsoleNoise.some((pattern) => pattern.test(message))) return;
+    throw new Error(`Unexpected console.${method}: ${message}`);
+  });
+};
+
+beforeEach(() => {
+  failUnexpectedConsole("error");
+  failUnexpectedConsole("warn");
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
