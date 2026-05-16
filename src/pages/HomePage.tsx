@@ -8,7 +8,6 @@ import { PageMeta } from "@/components/seo/PageMeta";
 import { fetchCardCatalog } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/routes";
-import packageJson from "../../package.json";
 
 const useCatalogSize = (): number | null => {
   const [count, setCount] = useState<number | null>(null);
@@ -54,7 +53,6 @@ export const HomePage = (): JSX.Element => {
             <Shortcuts />
           </RevealBlock>
         </RevealMain>
-        <SiteFooter />
       </div>
     </ErrorBoundary>
   );
@@ -229,15 +227,4 @@ const SectionHeading = ({ eyebrow, title, children }: SectionHeadingProps): JSX.
     {title !== undefined && <h2 className="text-display-3 text-ink max-w-2xl">{title}</h2>}
     {children}
   </div>
-);
-
-const SiteFooter = (): JSX.Element => (
-  <footer className="border-line border-t">
-    <div className="text-ink-subtle mx-auto flex max-w-5xl flex-col gap-2 p-6 text-xs sm:flex-row sm:items-center sm:justify-between">
-      <p>
-        Catálogo curado mas pode conter imprecisões. Verifique com o emissor antes de contratar.
-      </p>
-      <p>Vértice · v{packageJson.version}</p>
-    </div>
-  </footer>
 );

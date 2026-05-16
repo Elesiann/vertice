@@ -5,6 +5,7 @@ import { Menu, Moon, Sun } from "lucide-react";
 import { SWRConfig } from "swr";
 import { CompareFloatingBar } from "@/features/compare/CompareFloatingBar";
 import { MobileDrawer } from "@/components/ui/MobileDrawer";
+import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/routes-constants";
 
@@ -231,6 +232,7 @@ export const Layout = (): JSX.Element => {
         >
           <Outlet />
         </m.div>
+        <Footer />
         <CompareFloatingBar />
       </SWRConfig>
     </LazyMotion>

@@ -29,6 +29,15 @@ const CardDetailPage = lazy(() =>
 const ComparePage = lazy(() =>
   import("@/pages/ComparePage").then((module) => ({ default: module.ComparePage })),
 );
+const AboutPage = lazy(() =>
+  import("@/pages/AboutPage").then((module) => ({ default: module.AboutPage })),
+);
+const PrivacyPage = lazy(() =>
+  import("@/pages/PrivacyPage").then((module) => ({ default: module.PrivacyPage })),
+);
+const TermsPage = lazy(() =>
+  import("@/pages/TermsPage").then((module) => ({ default: module.TermsPage })),
+);
 
 const RouteFallback = (): JSX.Element => (
   <div className="mx-auto max-w-6xl px-4 py-10" aria-busy="true">
@@ -79,6 +88,13 @@ export const router = createBrowserRouter([
         element: routeElement(ComparePage),
         errorElement: <RouteErrorPage />,
       },
+      { path: ROUTES.ABOUT, element: routeElement(AboutPage), errorElement: <RouteErrorPage /> },
+      {
+        path: ROUTES.PRIVACY,
+        element: routeElement(PrivacyPage),
+        errorElement: <RouteErrorPage />,
+      },
+      { path: ROUTES.TERMS, element: routeElement(TermsPage), errorElement: <RouteErrorPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
