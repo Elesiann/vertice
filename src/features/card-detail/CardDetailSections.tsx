@@ -41,11 +41,11 @@ const formatRate = (value: number): string => `${value.toFixed(2).replace(".", "
 const formatPercent = (value: number): string => `${value.toFixed(2).replace(".", ",")}%`;
 
 const DetailRow = ({ label, value, note, tone = "ink" }: DetailRowProps): JSX.Element => (
-  <div className="grid grid-cols-[1fr_auto] items-baseline gap-x-8 gap-y-1.5 py-4">
-    <dt className="text-ink-muted text-sm">{label}</dt>
-    <dd className={cn("text-num tabular text-right text-sm font-semibold", TONE_CLASS[tone])}>
+  <li className="grid grid-cols-[1fr_auto] items-baseline gap-x-8 gap-y-1.5 py-4">
+    <span className="text-ink-muted text-sm">{label}</span>
+    <span className={cn("text-num tabular text-right text-sm font-semibold", TONE_CLASS[tone])}>
       {value}
-    </dd>
+    </span>
     {note !== undefined ? (
       <p
         className={cn(
@@ -56,7 +56,7 @@ const DetailRow = ({ label, value, note, tone = "ink" }: DetailRowProps): JSX.El
         {note}
       </p>
     ) : null}
-  </div>
+  </li>
 );
 
 const SectionShell = ({
@@ -83,7 +83,7 @@ const RowList = ({
 }: {
   children: ReactNode;
   className?: string;
-}): JSX.Element => <dl className={cn("divide-line divide-y", className)}>{children}</dl>;
+}): JSX.Element => <ul className={cn("divide-line list-none divide-y", className)}>{children}</ul>;
 
 const SubGroup = ({
   label,

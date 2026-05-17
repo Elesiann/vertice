@@ -3,7 +3,11 @@ import { expect, test, type Page } from "@playwright/test";
 import { cardDetailAlpha, cardOptionsResponse, catalogResponse, fulfillJson } from "./fixtures";
 
 // Stubs the network calls every "live data" route makes so axe scans against
-// the real rendered UI instead of skeleton/loading states.
+// the real rendered UI instead of skeleton/loading states. Patterns mirror
+// catalog-smoke (any host ending in the API path). Tests must navigate via
+// the catalog and click, never page.goto() directly to /cards/:id, because
+// the same glob matches browser navigation to that path and would return
+// JSON in place of the SPA shell.
 const stubCatalogApi = async (page: Page): Promise<void> => {
   await page.route("**/cards/options", async (route) => {
     await fulfillJson(route, { json: cardOptionsResponse });
@@ -16,16 +20,19 @@ const stubCatalogApi = async (page: Page): Promise<void> => {
   });
 };
 
-// Reports violations as a compact list (id + impact + node count) so the
-// playwright diff is readable. The default toEqual on the raw axe violations
-// array dumps the full node descriptors and is unreadable.
+// Reports violations as id + impact + per-node target/summary. Compact in
+// the passing case (assertion silent), informative in the failing case
+// (toEqual diff shows exactly which selectors and which failureSummary).
 const scanForA11yViolations = async (page: Page, label: string): Promise<void> => {
   const results = await new AxeBuilder({ page }).analyze();
   const summary = results.violations.map((violation) => ({
     id: violation.id,
     impact: violation.impact,
-    nodes: violation.nodes.length,
     help: violation.help,
+    nodes: violation.nodes.map((node) => ({
+      target: node.target.join(", "),
+      summary: node.failureSummary ?? "",
+    })),
   }));
   expect(summary, `axe violations on ${label}`).toEqual([]);
 };
@@ -61,13 +68,15 @@ test.describe("accessibility (axe-core)", () => {
     await scanForA11yViolations(page, "/cards");
   });
 
-  // TODO(a11y): /cards/:id has remaining axe violations in CardDetailHero /
-  // CardDetailSections — known issues, fix iteratively. Marked fixme so it
-  // documents intent without blocking CI. Flip to test() once resolved.
-  test.fixme("card detail renders accessibly", async ({ page }) => {
+  test("card detail renders accessibly", async ({ page }) => {
     await stubCatalogApi(page);
-    await page.goto("/cards/card-alpha");
-    await page.getByText("Cartão Alpha").first().waitFor({ timeout: 10_000 });
+    // Navigate through the catalog rather than page.goto("/cards/card-alpha"),
+    // because the **/cards/card-alpha route stub also matches the browser
+    // navigation request and returns JSON in place of the SPA shell.
+    await page.goto("/cards");
+    await page.getByText("Cartão Alpha").first().click();
+    await expect(page).toHaveURL(/\/cards\/card-alpha$/);
+    await expect(page.getByRole("heading", { name: "Cartão Alpha" })).toBeVisible();
     await scanForA11yViolations(page, "/cards/:id");
   });
 
