@@ -27,5 +27,5 @@ O perfil financeiro fica em `localStorage` neste navegador. O frontend envia ess
 O frontend valida respostas em runtime antes de renderizar dados vindos da API.
 Ao alterar `/cards/options`, `/cards/catalog`, `/cards/:id` ou
 `/score-lab/recommendations`, confira tambem o espelho em
-`src/lib/api-schemas.ts` e os DTOs do backend em
-`/home/gio/stackr-api/src/http/public-dto.ts`.
+`src/lib/api-schemas.ts` e os DTOs do backend no repositorio companion
+da API: `src/http/public-dto.ts`.

@@ -35,7 +35,6 @@ export const AboutPage = (): JSX.Element => (
 
       <section>
         <h2 className="text-heading text-ink mt-10 mb-3">Por que existe</h2>
-        {/* TODO: escrever motivação pessoal. Tom Mercury — calmo, denso, sem floreio. */}
         <p>
           Cartões brasileiros são otimizáveis e quase ninguém otimiza. As ferramentas que aparecem
           em busca são tomadas por sites com comissão de afiliado, então a recomendação não é

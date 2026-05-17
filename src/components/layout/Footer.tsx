@@ -10,7 +10,8 @@ export const Footer = (): JSX.Element => (
     <div className="text-ink-subtle mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 text-xs sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
       <p className="max-w-xl leading-relaxed">
         O Vértice não é serviço de consultoria financeira. Os cálculos são estimativas baseadas em
-        catálogo curado. Confirme com o emissor antes de contratar.
+        catálogo curado. Confirme com o emissor antes de contratar. Logos e nomes de cartões
+        pertencem aos respectivos emissores.
       </p>
       <nav aria-label="Rodapé" className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <Link to={ROUTES.ABOUT} className="hover:text-ink transition-colors">
