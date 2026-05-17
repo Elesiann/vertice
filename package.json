@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "tsx scripts/build-sitemap.mts",
     "build": "pnpm typecheck && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
@@ -66,6 +67,7 @@
     "prettier-plugin-tailwindcss": "^0.6.9",
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^4.2.4",
+    "tsx": "^4.22.1",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.18.2",
     "vite": "^8.0.13",
