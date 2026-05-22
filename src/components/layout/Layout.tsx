@@ -94,13 +94,18 @@ const AppHeader = (): JSX.Element => {
             className="focus-visible:ring-accent -ml-1 inline-flex min-w-0 items-center gap-2 rounded-md p-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
             aria-label="Ir para o início do Vértice"
           >
-            <img
-              src="/assets/vertice_logo.png"
-              alt="Vértice logo"
-              className="border-line bg-surface-raised size-10 rounded-md object-cover shadow-sm"
-              width={40}
-              height={40}
-            />
+            <picture>
+              <source srcSet="/assets/vertice_logo-80.webp" type="image/webp" />
+              <img
+                src="/assets/vertice_logo-80.png"
+                alt="Vértice logo"
+                className="border-line bg-surface-raised size-10 rounded-md object-cover shadow-sm"
+                width={40}
+                height={40}
+                decoding="async"
+                {...({ fetchpriority: "high" } as Record<string, string>)}
+              />
+            </picture>
             <span className="text-lg font-bold">Vértice</span>
           </Link>
 
