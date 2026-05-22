@@ -7,7 +7,7 @@
     "dev": "vite",
     "prebuild": "tsx scripts/build-sitemap.mts",
     "build": "pnpm typecheck && vite build && pnpm prerender",
-    "prerender": "tsx scripts/prerender.mts",
+    "prerender": "pnpm exec playwright install --with-deps chromium && tsx scripts/prerender.mts",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
