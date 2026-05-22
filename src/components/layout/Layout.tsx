@@ -236,7 +236,7 @@ export const Layout = (): JSX.Element => {
           initial={isInitialRender ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.12 }}
-          className="focus:outline-none"
+          className="min-h-screen focus:outline-none"
         >
           <Outlet />
         </m.div>
