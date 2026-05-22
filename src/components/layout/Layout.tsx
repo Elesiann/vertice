@@ -98,7 +98,7 @@ const AppHeader = (): JSX.Element => {
               <source srcSet="/assets/vertice_logo-80.webp" type="image/webp" />
               <img
                 src="/assets/vertice_logo-80.png"
-                alt="Vértice logo"
+                alt=""
                 className="border-line bg-surface-raised size-10 rounded-md object-cover shadow-sm"
                 width={40}
                 height={40}
