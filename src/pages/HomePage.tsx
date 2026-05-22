@@ -44,7 +44,7 @@ export const HomePage = (): JSX.Element => {
             <Hero catalogSize={catalogSize} />
           </RevealBlock>
           <RevealBlock>
-            <Trust catalogSize={catalogSize} />
+            <Trust />
           </RevealBlock>
           <RevealBlock>
             <HowItWorks />
@@ -138,11 +138,7 @@ const Differentiator = ({ title, body }: DifferentiatorProps): JSX.Element => (
   </div>
 );
 
-interface TrustProps {
-  catalogSize: number | null;
-}
-
-const Trust = ({ catalogSize }: TrustProps): JSX.Element => (
+const Trust = (): JSX.Element => (
   <section className="flex flex-col gap-6">
     <SectionHeading eyebrow="O método" title="Catálogo independente, score em sete dimensões">
       <p className="text-ink-muted max-w-2xl text-sm leading-relaxed">
@@ -152,11 +148,7 @@ const Trust = ({ catalogSize }: TrustProps): JSX.Element => (
     <div className="grid gap-5 sm:grid-cols-3 sm:gap-x-8 sm:gap-y-0">
       <Differentiator
         title="Catálogo curado"
-        body={
-          catalogSize !== null
-            ? `${String(catalogSize)} cartões verificados linha por linha contra sites dos bancos e regulamentos dos programas.`
-            : "Cartões verificados linha por linha contra sites dos bancos e regulamentos dos programas."
-        }
+        body="Cartões verificados linha por linha contra sites dos bancos e regulamentos dos programas."
       />
       <Differentiator
         title="Score em sete dimensões"

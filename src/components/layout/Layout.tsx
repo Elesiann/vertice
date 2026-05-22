@@ -92,7 +92,7 @@ const AppHeader = (): JSX.Element => {
             to={ROUTES.HOME}
             onClick={closeMobileMenu}
             className="focus-visible:ring-accent -ml-1 inline-flex min-w-0 items-center gap-2 rounded-md p-1 outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-            aria-label="Ir para o início do Vértice"
+            aria-label="Vértice — ir para o início"
           >
             <picture>
               <source srcSet="/assets/vertice_logo-80.webp" type="image/webp" />
