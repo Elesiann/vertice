@@ -9,7 +9,7 @@
     "build": "pnpm typecheck && vite build",
     "build:full": "pnpm typecheck && vite build && pnpm prerender",
     "prerender": "tsx scripts/prerender.mts",
-    "deploy": "pnpm build && wrangler pages deploy dist --project-name=vertice",
+    "deploy": "pnpm build:full && wrangler pages deploy dist --project-name=vertice",
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run --passWithNoTests",
