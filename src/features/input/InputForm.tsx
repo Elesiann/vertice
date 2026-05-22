@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX, type ReactNode } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch, type Control } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
 import { m } from "framer-motion";
@@ -18,7 +18,10 @@ import { clearRecommendationCache } from "@/hooks/useRecommendation";
 import { fetchCardOptions } from "@/lib/api";
 import { ROUTES } from "@/routes";
 import { CardCombobox } from "@/features/input/CardCombobox";
+import { CurrentCardsAnnualFeeList } from "@/features/input/CurrentCardsAnnualFeeList";
 import type { CardOption, ProgramId, RedemptionPreference, SpendingProfile } from "@/types";
+
+const MAX_CURRENT_CARDS = 4;
 
 const MILES_PROGRAMS = ["smiles", "latam-pass", "tudoazul"] as const satisfies ProgramId[];
 
@@ -42,7 +45,10 @@ const inputSchema = z.object({
   ),
   redemptionRaw: z.string().min(1, "Selecione uma preferência."),
   tripsPerYear: z.coerce.number().int().min(0).max(50),
-  currentCardIds: z.array(z.string()),
+  currentCardIds: z
+    .array(z.string())
+    .max(MAX_CURRENT_CARDS, `Selecione no máximo ${String(MAX_CURRENT_CARDS)} cartões.`),
+  currentCardAnnualFee: z.record(z.string(), z.boolean()),
 });
 
 type InputFormInput = z.input<typeof inputSchema>;
@@ -53,6 +59,7 @@ const FORM_DEFAULTS: Partial<InputFormInput> = {
   redemptionRaw: "any",
   tripsPerYear: 0,
   currentCardIds: [],
+  currentCardAnnualFee: {},
 };
 
 const isMilesProgram = (value: string): value is (typeof MILES_PROGRAMS)[number] =>
@@ -86,6 +93,7 @@ const profileToFormDefaults = (profile: SpendingProfile | null): Partial<InputFo
     redemptionRaw: redemptionToRaw(profile.redemption),
     tripsPerYear: profile.tripsPerYear ?? 0,
     currentCardIds: profile.currentCardIds ?? [],
+    currentCardAnnualFee: profile.currentCardAnnualFee ?? {},
   };
 };
 
@@ -154,6 +162,33 @@ const FieldGroup = ({
   );
 };
 
+interface CurrentCardsAnnualFeeListFieldProps {
+  control: Control<InputFormInput>;
+  options: CardOption[];
+}
+
+const CurrentCardsAnnualFeeListField = ({
+  control,
+  options,
+}: CurrentCardsAnnualFeeListFieldProps): JSX.Element | null => {
+  const selectedIds = useWatch({ control, name: "currentCardIds" });
+  if (selectedIds.length === 0) return null;
+  return (
+    <Controller
+      control={control}
+      name="currentCardAnnualFee"
+      render={({ field }) => (
+        <CurrentCardsAnnualFeeList
+          selectedIds={selectedIds}
+          options={options}
+          value={field.value}
+          onChange={field.onChange}
+        />
+      )}
+    />
+  );
+};
+
 export const InputForm = (): JSX.Element => {
   const { profile, setProfile, profileSavedAt, reset: sessionReset } = useSession();
   const navigate = useNavigate();
@@ -206,6 +241,18 @@ export const InputForm = (): JSX.Element => {
       redemption: parseRedemption(values.redemptionRaw),
       ...(values.tripsPerYear > 0 ? { tripsPerYear: values.tripsPerYear } : {}),
       ...(values.currentCardIds.length > 0 ? { currentCardIds: values.currentCardIds } : {}),
+      ...(values.currentCardIds.length > 0
+        ? {
+            currentCardAnnualFee: Object.fromEntries(
+              values.currentCardIds
+                .filter((id) => {
+                  const card = cardOptions.find((o) => o.id === id);
+                  return card !== undefined && card.annualFeeBrl > 0;
+                })
+                .map((id) => [id, values.currentCardAnnualFee[id] !== false]),
+            ),
+          }
+        : {}),
     };
     setProfile(next);
     void navigate(ROUTES.RESULTS);
@@ -347,7 +394,7 @@ export const InputForm = (): JSX.Element => {
               <FieldGroup
                 index="03"
                 title="Cartões atuais"
-                hint="Quando preenchido, o Vértice compara seu setup atual com a recomendação."
+                hint={`Quando preenchido, o Vértice compara seu setup atual com a recomendação. Até ${String(MAX_CURRENT_CARDS)} cartões.`}
                 columns={1}
               >
                 <Controller
@@ -357,12 +404,16 @@ export const InputForm = (): JSX.Element => {
                     <CardCombobox
                       options={cardOptions}
                       value={field.value}
-                      onChange={field.onChange}
+                      onChange={(next) => {
+                        field.onChange(next.slice(0, MAX_CURRENT_CARDS));
+                      }}
                       loading={cardOptionsLoading}
                       error={cardOptionsError}
+                      maxSelection={MAX_CURRENT_CARDS}
                     />
                   )}
                 />
+                <CurrentCardsAnnualFeeListField control={control} options={cardOptions} />
               </FieldGroup>
             </div>
 

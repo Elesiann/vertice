@@ -163,7 +163,7 @@ describe("publicCardDetailSchema", () => {
 describe("cardsOptionsResponseSchema", () => {
   it("parses a valid options response", () => {
     const parsed = cardsOptionsResponseSchema.safeParse({
-      cards: [{ id: "alpha", name: "Alpha", bank: "nubank" }],
+      cards: [{ id: "alpha", name: "Alpha", bank: "nubank", annualFeeBrl: 0 }],
       catalogVersion: "v-test",
     });
     expect(parsed.success).toBe(true);

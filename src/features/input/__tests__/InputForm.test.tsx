@@ -42,7 +42,7 @@ const mockCardsResponse = (): void => {
       ok: true,
       json: () =>
         Promise.resolve({
-          cards: [{ id: "sample-card", name: "Sample Card", bank: "other" }],
+          cards: [{ id: "sample-card", name: "Sample Card", bank: "other", annualFeeBrl: 0 }],
           catalogVersion: "test",
         }),
     }),

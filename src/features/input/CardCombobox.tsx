@@ -20,6 +20,7 @@ interface CardComboboxProps {
   loading?: boolean;
   error?: boolean;
   id?: string;
+  maxSelection?: number;
 }
 
 const normalize = (s: string): string =>
@@ -35,7 +36,9 @@ export const CardCombobox = ({
   loading = false,
   error = false,
   id,
+  maxSelection,
 }: CardComboboxProps): JSX.Element => {
+  const atLimit = maxSelection !== undefined && value.length >= maxSelection;
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(0);
@@ -72,6 +75,10 @@ export const CardCombobox = ({
   }, [filtered.length, highlighted]);
 
   useEffect(() => {
+    if (atLimit) setOpen(false);
+  }, [atLimit]);
+
+  useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent): void => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -89,10 +96,13 @@ export const CardCombobox = ({
       if (selectedSet.has(cardId)) {
         onChange(value.filter((v) => v !== cardId));
       } else {
+        if (maxSelection !== undefined && value.length >= maxSelection) return;
         onChange([...value, cardId]);
       }
+      setSearch("");
+      setHighlighted(0);
     },
-    [onChange, selectedSet, value],
+    [onChange, selectedSet, value, maxSelection],
   );
 
   const remove = useCallback(
@@ -135,7 +145,9 @@ export const CardCombobox = ({
       ? "Não foi possível carregar a lista de cartões."
       : showEmptyState
         ? "Nenhum cartão encontrado."
-        : `${String(filtered.length)} cartões disponíveis.`;
+        : atLimit
+          ? `Limite de ${String(maxSelection)} cartões atingido.`
+          : `${String(filtered.length)} cartões disponíveis.`;
 
   return (
     <div ref={containerRef} className="relative">
@@ -189,6 +201,7 @@ export const CardCombobox = ({
               : undefined
           }
           autoComplete="off"
+          disabled={atLimit}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -196,10 +209,17 @@ export const CardCombobox = ({
             setHighlighted(0);
           }}
           onFocus={() => {
+            if (atLimit) return;
             setOpen(true);
           }}
           onKeyDown={onKeyDown}
-          placeholder={selectedOptions.length === 0 ? "Buscar por nome ou banco" : ""}
+          placeholder={
+            selectedOptions.length === 0
+              ? "Buscar por nome ou banco"
+              : atLimit
+                ? `Limite de ${String(maxSelection)} atingido`
+                : ""
+          }
           className="text-ink placeholder:text-ink-subtle min-w-[10ch] flex-1 bg-transparent p-1 text-sm outline-none"
         />
       </div>
@@ -228,6 +248,7 @@ export const CardCombobox = ({
           {filtered.map((card, idx) => {
             const isSelected = selectedSet.has(card.id);
             const isHighlighted = idx === highlighted;
+            const isDisabled = atLimit && !isSelected;
             return (
               // eslint-disable-next-line jsx-a11y/interactive-supports-focus -- combobox uses aria-activedescendant; focus stays on the input and the highlighted option is signalled via aria-activedescendant, not focus.
               <div
@@ -235,16 +256,19 @@ export const CardCombobox = ({
                 id={`${listboxId}-${card.id}`}
                 role="option"
                 aria-selected={isSelected}
+                aria-disabled={isDisabled || undefined}
                 onMouseDown={(e) => {
                   e.preventDefault();
+                  if (isDisabled) return;
                   toggle(card.id);
                 }}
                 onMouseEnter={() => {
                   setHighlighted(idx);
                 }}
                 className={cn(
-                  "flex cursor-pointer items-center gap-3 px-3 py-2 text-sm transition",
-                  isHighlighted ? "bg-surface-sunken" : "",
+                  "flex items-center gap-3 px-3 py-2 text-sm transition",
+                  isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                  isHighlighted && !isDisabled ? "bg-surface-sunken" : "",
                 )}
               >
                 <span

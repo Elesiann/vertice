@@ -41,6 +41,7 @@ const StoredProfileSchema = z.object({
       z.object({ kind: z.literal("any") }),
     ]),
     currentCardIds: z.array(z.string()).optional(),
+    currentCardAnnualFee: z.record(z.string(), z.boolean()).optional(),
     tripsPerYear: z.number().int().min(0).optional(),
   }),
   savedAt: z.string(),

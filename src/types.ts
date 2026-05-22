@@ -51,6 +51,7 @@ export interface CardOption {
   name: string;
   imagePath?: string;
   bank: Bank;
+  annualFeeBrl: number;
   minInvestmentBrl?: number;
   minInvestmentUsd?: number;
   investmentFeeWaiverBrl?: number;
@@ -70,6 +71,10 @@ export interface SpendingProfile {
   availableToInvestBrl?: number;
   redemption: RedemptionPreference;
   currentCardIds?: string[];
+  // For each selected current card, whether the user declares they pay the annual fee today.
+  // Missing entry ⇒ assume "paga" (the conservative default; lets us bias against optimistic
+  // catalog-derived waiver inference, which can't be applied to multiple cards simultaneously).
+  currentCardAnnualFee?: Record<string, boolean>;
   tripsPerYear?: number;
 }
 

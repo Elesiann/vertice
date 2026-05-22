@@ -450,6 +450,7 @@ export const cardOptionSchema = z
     name: z.string().min(1),
     imagePath: z.string().optional(),
     bank: bankSchema,
+    annualFeeBrl: z.number().min(0),
     minInvestmentBrl: optionalNonNegative,
     minInvestmentUsd: optionalNonNegative,
     investmentFeeWaiverBrl: optionalNonNegative,
