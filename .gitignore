@@ -65,3 +65,12 @@ docs/
 # Operational notes, audits, claims, verifications, handoffs.
 tasks/
 audits/
+
+# Local scratch (lighthouse runs, debug dumps, etc.)
+tmp/
+
+# Lighthouse + WSL leak Windows-style user-data-dirs as literal folder names
+C:\\*
+
+# Wrangler / Cloudflare Pages local cache
+.wrangler/
