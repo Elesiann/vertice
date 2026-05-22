@@ -1,4 +1,9 @@
-# Cloudflare Pages SPA fallback — every unknown path returns index.html with
-# HTTP 200 so React Router can resolve the route on the client.
+# Cloudflare Pages SPA fallback — paths without a matching static file return
+# the home shell with HTTP 200 so React Router can resolve them on the client.
+# Prerendered routes (`/`, `/sobre`, `/cards/<id>`, etc.) match real files and
+# are served directly; this rule only fires for state-driven SPA routes like
+# /results, /compare, and unknown URLs. Note: catch-all `/*` rewrites override
+# static file matches in Cloudflare Pages — see the path-aware client logic in
+# src/main.tsx that decides hydrate vs createRoot based on window.location.
 # Reference: https://developers.cloudflare.com/pages/configuration/redirects/
 /*  /index.html  200

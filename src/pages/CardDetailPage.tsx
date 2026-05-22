@@ -81,7 +81,7 @@ export const CardDetailPage = (): JSX.Element => {
 
   if (state.status === "loading") {
     return (
-      <main className="bg-surface text-ink-muted min-h-screen">
+      <main className="bg-surface text-ink-muted min-h-screen" data-snapshot-status="loading">
         <div
           className="mx-auto flex max-w-5xl flex-col gap-6 px-5 py-8 sm:px-6 md:py-12 lg:px-10"
           aria-busy="true"
@@ -95,7 +95,7 @@ export const CardDetailPage = (): JSX.Element => {
 
   if (state.status === "not-found") {
     return (
-      <main className="bg-surface text-ink-muted min-h-screen">
+      <main className="bg-surface text-ink-muted min-h-screen" data-snapshot-status="not-found">
         <PageMeta
           title="Cartão não encontrado — Vértice"
           description="O cartão solicitado não consta no catálogo Vértice."
@@ -120,7 +120,7 @@ export const CardDetailPage = (): JSX.Element => {
 
   if (state.status === "error") {
     return (
-      <main className="bg-surface text-ink-muted min-h-screen">
+      <main className="bg-surface text-ink-muted min-h-screen" data-snapshot-status="error">
         <RevealGroup className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-6">
           <RevealBlock>
             <Panel tone="raised" className="p-8">
@@ -133,7 +133,7 @@ export const CardDetailPage = (): JSX.Element => {
   }
 
   return (
-    <main className="bg-surface text-ink-muted min-h-screen">
+    <main className="bg-surface text-ink-muted min-h-screen" data-snapshot-status="ok">
       <PageMeta
         title={`${state.card.name} — Vértice`}
         description={`Anuidade, retorno modelado, programa de pontos e benefícios do ${state.card.name}. Cálculo aberto, sem viés.`}

@@ -8,7 +8,15 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: ["dist", "coverage", "node_modules", ".vite", "playwright-report", "test-results"],
+    ignores: [
+      "dist",
+      "coverage",
+      "node_modules",
+      ".vite",
+      ".wrangler",
+      "playwright-report",
+      "test-results",
+    ],
   },
   js.configs.recommended,
   {

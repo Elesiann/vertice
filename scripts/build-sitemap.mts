@@ -11,24 +11,12 @@
 import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fetchCardIds } from "./lib/fetch-card-ids.mts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SITEMAP_PATH = join(__dirname, "..", "public", "sitemap.xml");
 
 const SITE_ORIGIN = "https://vertice.cards";
-const API_URL = process.env.VITE_API_URL ?? "https://api.vertice.cards";
-const FETCH_TIMEOUT_MS = 5000;
-
-interface CardOption {
-  id: string;
-  name: string;
-  bank: string;
-}
-
-interface CardsOptionsResponse {
-  cards: CardOption[];
-  catalogVersion?: string;
-}
 
 interface StaticUrl {
   loc: string;
@@ -55,30 +43,6 @@ const buildSitemap = (cardIds: readonly string[]): string => {
     ...cardIds.map((id) => urlEntry(`/cards/${id}`, "monthly", "0.5")),
   ];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries.join("\n")}\n</urlset>\n`;
-};
-
-const fetchCardIds = async (): Promise<readonly string[]> => {
-  const response = await fetch(`${API_URL}/cards/options`, {
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) throw new Error(`status ${String(response.status)}`);
-  const data = (await response.json()) as unknown;
-  if (
-    typeof data !== "object" ||
-    data === null ||
-    !("cards" in data) ||
-    !Array.isArray((data as CardsOptionsResponse).cards)
-  ) {
-    throw new Error("invalid /cards/options shape");
-  }
-  const cards = (data as CardsOptionsResponse).cards;
-  const ids = cards
-    .map((c) => c.id)
-    .filter((id): id is string => typeof id === "string" && id.length > 0)
-    .sort();
-  if (ids.length === 0) throw new Error("no cards returned");
-  return ids;
 };
 
 const main = async (): Promise<void> => {
