@@ -1,6 +1,5 @@
 import { type JSX, useEffect } from "react";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
-import * as Sentry from "@sentry/react";
 import { Button } from "@/components/ui/Button";
 import { ButtonLink } from "@/components/ui/ButtonLink";
 import { ROUTES } from "@/lib/routes-constants";
@@ -14,14 +13,16 @@ export const RouteErrorPage = (): JSX.Element => {
 
   useEffect(() => {
     if (isRouteErrorResponse(error) && error.status === 404) return;
-    if (isError(error)) {
-      Sentry.captureException(error, { tags: { surface: "route-error" } });
-    } else {
-      Sentry.captureMessage("Route error (non-Error thrown)", {
-        level: "error",
-        extra: { error: JSON.stringify(error) },
-      });
-    }
+    void import("@sentry/react").then((Sentry) => {
+      if (isError(error)) {
+        Sentry.captureException(error, { tags: { surface: "route-error" } });
+      } else {
+        Sentry.captureMessage("Route error (non-Error thrown)", {
+          level: "error",
+          extra: { error: JSON.stringify(error) },
+        });
+      }
+    });
   }, [error]);
 
   if (isRouteErrorResponse(error) && error.status === 404) {

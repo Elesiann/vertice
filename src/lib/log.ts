@@ -1,5 +1,3 @@
-import * as Sentry from "@sentry/react";
-
 interface LogContext {
   /**
    * Stable tag used to filter the Sentry Issues page. Keep low cardinality
@@ -30,9 +28,11 @@ export const log = {
     if (isDev) {
       console.error(`[${ctx.surface}]`, error, ctx.extra);
     }
-    Sentry.captureException(error, {
-      tags: { surface: ctx.surface },
-      ...(ctx.extra !== undefined ? { extra: ctx.extra } : {}),
+    void import("@sentry/react").then((Sentry) => {
+      Sentry.captureException(error, {
+        tags: { surface: ctx.surface },
+        ...(ctx.extra !== undefined ? { extra: ctx.extra } : {}),
+      });
     });
   },
 };

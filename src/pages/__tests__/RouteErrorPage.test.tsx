@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type * as ReactRouterDomNS from "react-router-dom";
 import * as Sentry from "@sentry/react";
@@ -46,7 +46,9 @@ describe("RouteErrorPage", () => {
       /esta página não carregou/i,
     );
     expect(screen.getByRole("button", { name: /tentar de novo/i })).toBeInTheDocument();
-    expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("falls back to the 404 page when the error is a 404 route response", async () => {

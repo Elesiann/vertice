@@ -1,9 +1,7 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { onCLS, onFCP, onINP, onLCP, onTTFB } from "web-vitals";
+import { StrictMode, useEffect } from "react";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import type { Metric } from "web-vitals";
 import { App } from "@/App";
-import * as Sentry from "@sentry/react";
 import "@/styles.css";
 
 const envValue = (key: string): string | undefined => {
@@ -40,7 +38,74 @@ const ensureAnonymousUserId = (): string => {
   }
 };
 
-if (isValidSentryDsn(sentryDsn)) {
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Root element #root not found");
+}
+
+/**
+ * Signals "first paint complete" to the Playwright prerender crawler. The
+ * crawler waits on `window.__PRERENDER_READY__ === true` before serializing
+ * the DOM. Setting it from an effect ensures React's first commit ran; the
+ * 50ms timeout gives downstream effects (data fetches, theme apply) a tick
+ * to start so `waitForLoadState('networkidle')` in the script can finish them
+ * off. No-op on real user sessions (the flag is just set and never read).
+ */
+const PrerenderReadySignal = (): null => {
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      (window as Window & { __PRERENDER_READY__?: boolean }).__PRERENDER_READY__ = true;
+    }, 50);
+    return () => {
+      window.clearTimeout(id);
+    };
+  }, []);
+  return null;
+};
+
+const tree = (
+  <StrictMode>
+    <App />
+    <PrerenderReadySignal />
+  </StrictMode>
+);
+
+/**
+ * Path-aware hydrate vs createRoot. We can't rely on `#root` being empty for
+ * SPA-only routes: Cloudflare Pages' `_redirects` catch-all overrides static
+ * matches, so /results and /compare receive the home page's prerendered HTML
+ * (which would mismatch). Instead, we check the URL against the set of paths
+ * we know we prerender. If the current path is one of them, hydrate; otherwise
+ * wipe `#root` and createRoot — the brief flash of stale home content on
+ * SPA-only routes is preferable to React 18 hydration warnings that would
+ * impact LCP attribution.
+ */
+const PRERENDERED_STATIC_PATHS = new Set<string>([
+  "/",
+  "/input",
+  "/sobre",
+  "/privacidade",
+  "/termos",
+]);
+const CARD_DETAIL_PATTERN = /^\/cards\/[^/]+\/?$/u;
+
+const isPrerenderedPath = (pathname: string): boolean =>
+  PRERENDERED_STATIC_PATHS.has(pathname) || CARD_DETAIL_PATTERN.test(pathname);
+
+if (rootElement.firstElementChild !== null && isPrerenderedPath(window.location.pathname)) {
+  hydrateRoot(rootElement, tree);
+} else {
+  // Either the shell is empty (no prerender for this build) or the SPA
+  // fallback served the wrong page's HTML. Discard whatever is there and
+  // mount fresh so React doesn't try to reconcile a stale tree.
+  rootElement.replaceChildren();
+  createRoot(rootElement).render(tree);
+}
+
+const loadSentry = async (): Promise<void> => {
+  const [Sentry, webVitals] = await Promise.all([import("@sentry/react"), import("web-vitals")]);
+  const { onCLS, onFCP, onINP, onLCP, onTTFB } = webVitals;
+
   Sentry.init({
     dsn: sentryDsn,
     release: appVersion,
@@ -103,15 +168,21 @@ if (isValidSentryDsn(sentryDsn)) {
   onINP(reportVital);
   onLCP(reportVital);
   onTTFB(reportVital);
-}
+};
 
-const rootElement = document.getElementById("root");
-if (!rootElement) {
-  throw new Error("Root element #root not found");
+if (isValidSentryDsn(sentryDsn)) {
+  const schedule = (): void => {
+    void loadSentry().catch(() => {
+      /* Sentry failure must never block the app. */
+    });
+  };
+  type IdleWindow = Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+  };
+  const w = window as IdleWindow;
+  if (typeof w.requestIdleCallback === "function") {
+    w.requestIdleCallback(schedule, { timeout: 2000 });
+  } else {
+    setTimeout(schedule, 2000);
+  }
 }
-
-createRoot(rootElement).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
