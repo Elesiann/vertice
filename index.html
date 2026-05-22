@@ -20,8 +20,23 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script>
+      (function () {
+        try {
+          var s = localStorage.getItem("vertice.theme.v1");
+          var t =
+            s === "dark" || s === "light"
+              ? s
+              : matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          if (t === "dark") document.documentElement.dataset.theme = "dark";
+        } catch (e) {}
+      })();
+    </script>
+
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/manrope-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/manrope-600.woff2" crossorigin />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://vertice.cards/" />

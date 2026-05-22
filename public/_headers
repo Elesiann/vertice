@@ -9,7 +9,7 @@
 # (e.g. https://o123.ingest.us.sentry.io).
 
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://vertice.cards; connect-src 'self' https://api.vertice.cards https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://cloudflareinsights.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-6HlHLFp+AXwW8lxjNTnyZKAdtpfKA9JZqqMlyJYdQpE=' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://vertice.cards; connect-src 'self' https://api.vertice.cards https://*.sentry.io https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://cloudflareinsights.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
@@ -26,9 +26,25 @@
 /card-images/*
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
 
-# HTML shell must always revalidate so deploys take effect immediately.
+# HTML must always revalidate so deploys take effect immediately.
+# Covers the SPA shell + every prerendered route (home, static, /cards/:id).
 /
   Cache-Control: public, max-age=0, must-revalidate
 
 /index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/input
+  Cache-Control: public, max-age=0, must-revalidate
+
+/sobre
+  Cache-Control: public, max-age=0, must-revalidate
+
+/privacidade
+  Cache-Control: public, max-age=0, must-revalidate
+
+/termos
+  Cache-Control: public, max-age=0, must-revalidate
+
+/cards/*
   Cache-Control: public, max-age=0, must-revalidate

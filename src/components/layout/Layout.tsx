@@ -28,12 +28,13 @@ type ThemeMode = "light" | "dark";
 const THEME_STORAGE_KEY = "vertice.theme.v1";
 
 const readInitialTheme = (): ThemeMode => {
-  if (typeof window === "undefined") return "light";
-
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
-
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  // Reads from `data-theme` on <html>, which is set synchronously by
+  // public/theme-bootstrap.js before the bundle loads. This keeps the very
+  // first React render deterministic across SSR/snapshot and the browser
+  // (both see whatever the bootstrap script applied — no hydration mismatch
+  // and no light-mode flash for dark-mode users).
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 };
 
 const applyTheme = (theme: ThemeMode): void => {
