@@ -181,8 +181,8 @@ if (isValidSentryDsn(sentryDsn)) {
   };
   const w = window as IdleWindow;
   if (typeof w.requestIdleCallback === "function") {
-    w.requestIdleCallback(schedule, { timeout: 2000 });
+    w.requestIdleCallback(schedule);
   } else {
-    setTimeout(schedule, 2000);
+    setTimeout(schedule, 5000);
   }
 }
