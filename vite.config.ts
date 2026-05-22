@@ -74,9 +74,14 @@ export default defineConfig({
               test: /node_modules[\\/](?:\.pnpm[\\/])?framer-motion(?:@|[\\/])/,
             },
             {
+              name: "vendor-zod",
+              priority: 26,
+              test: /node_modules[\\/](?:\.pnpm[\\/])?zod(?:@|[\\/])/,
+            },
+            {
               name: "vendor-form",
               priority: 25,
-              test: /node_modules[\\/](?:\.pnpm[\\/])?(?:zod|react-hook-form)(?:@|[\\/])/,
+              test: /node_modules[\\/](?:\.pnpm[\\/])?react-hook-form(?:@|[\\/])/,
             },
             {
               name: "vendor-form",
