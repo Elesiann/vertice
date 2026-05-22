@@ -32,6 +32,12 @@ export default defineConfig({
             sourcemaps: {
               filesToDeleteAfterUpload: ["*.js.map"],
             },
+            bundleSizeOptimizations: {
+              excludeDebugStatements: true,
+              excludeReplayIframe: true,
+              excludeReplayShadowDom: true,
+              excludeReplayWorker: true,
+            },
           }),
         ]
       : []),
@@ -47,6 +53,12 @@ export default defineConfig({
         ]
       : []),
   ],
+  define: {
+    __SENTRY_DEBUG__: JSON.stringify(false),
+    __RRWEB_EXCLUDE_IFRAME__: JSON.stringify(true),
+    __RRWEB_EXCLUDE_SHADOW_DOM__: JSON.stringify(true),
+    __SENTRY_EXCLUDE_REPLAY_WORKER__: JSON.stringify(true),
+  },
   resolve: {
     alias: {
       "@": path.resolve(here, "src"),

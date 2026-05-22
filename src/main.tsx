@@ -10,7 +10,6 @@ const envValue = (key: string): string | undefined => {
 };
 
 const sentryDsn = envValue("VITE_SENTRY_DSN");
-const sentryReplayEnabled = envValue("VITE_SENTRY_REPLAY") === "true";
 const sentryTracesSampleRate = Number(envValue("VITE_SENTRY_TRACES_SAMPLE_RATE"));
 const tracesSampleRate = Number.isFinite(sentryTracesSampleRate)
   ? sentryTracesSampleRate
@@ -103,28 +102,28 @@ if (rootElement.firstElementChild !== null && isPrerenderedPath(window.location.
 }
 
 const loadSentry = async (): Promise<void> => {
-  const [Sentry, webVitals] = await Promise.all([import("@sentry/react"), import("web-vitals")]);
+  const [{ init, browserTracingIntegration, addBreadcrumb, setUser }, webVitals] =
+    await Promise.all([import("./lib/sentry-loader"), import("web-vitals")]);
   const { onCLS, onFCP, onINP, onLCP, onTTFB } = webVitals;
 
-  Sentry.init({
+  type InitOptions = Parameters<typeof init>[0];
+  type Integrations = NonNullable<InitOptions["integrations"]>;
+  const integrations: Integrations = [browserTracingIntegration()];
+  if (import.meta.env.VITE_SENTRY_REPLAY === "true") {
+    const { replayIntegration } = await import("./lib/sentry-replay-loader");
+    integrations.push(
+      replayIntegration({ maskAllText: true, maskAllInputs: true, blockAllMedia: true }),
+    );
+  }
+
+  init({
     dsn: sentryDsn,
     release: appVersion,
     environment,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      ...(sentryReplayEnabled
-        ? [
-            Sentry.replayIntegration({
-              maskAllText: true,
-              maskAllInputs: true,
-              blockAllMedia: true,
-            }),
-          ]
-        : []),
-    ],
+    integrations,
     tracesSampleRate,
-    replaysSessionSampleRate: sentryReplayEnabled ? 0.01 : 0,
-    replaysOnErrorSampleRate: sentryReplayEnabled ? 1.0 : 0,
+    replaysSessionSampleRate: import.meta.env.VITE_SENTRY_REPLAY === "true" ? 0.01 : 0,
+    replaysOnErrorSampleRate: import.meta.env.VITE_SENTRY_REPLAY === "true" ? 1.0 : 0,
     beforeBreadcrumb(breadcrumb) {
       const rawData: unknown = breadcrumb.data;
       const url: unknown =
@@ -147,10 +146,10 @@ const loadSentry = async (): Promise<void> => {
     },
   });
 
-  Sentry.setUser({ id: ensureAnonymousUserId() });
+  setUser({ id: ensureAnonymousUserId() });
 
   const reportVital = (metric: Metric): void => {
-    Sentry.addBreadcrumb({
+    addBreadcrumb({
       category: "web-vitals",
       level: "info",
       message: `${metric.name} ${metric.rating}`,
@@ -181,8 +180,8 @@ if (isValidSentryDsn(sentryDsn)) {
   };
   const w = window as IdleWindow;
   if (typeof w.requestIdleCallback === "function") {
-    w.requestIdleCallback(schedule);
+    w.requestIdleCallback(schedule, { timeout: 6000 });
   } else {
-    setTimeout(schedule, 5000);
+    setTimeout(schedule, 6000);
   }
 }
