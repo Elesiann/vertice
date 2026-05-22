@@ -10,6 +10,8 @@ interface CardImageProps {
   bank?: string;
   size?: "xs" | "sm" | "md" | "lg";
   className?: string;
+  /** When true, image loads eagerly with high fetch priority — use for above-the-fold LCP candidates. */
+  priority?: boolean;
 }
 
 const SIZE: Record<NonNullable<CardImageProps["size"]>, string> = {
@@ -40,6 +42,7 @@ export const CardImage = ({
   bank,
   size = "md",
   className,
+  priority = false,
 }: CardImageProps): JSX.Element => {
   const [failed, setFailed] = useState(false);
 
@@ -63,13 +66,14 @@ export const CardImage = ({
       <img
         src={imagePath}
         alt={name}
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"}
         decoding="async"
         onError={() => {
           setFailed(true);
         }}
         className="block size-full object-cover"
         style={{ transform: `scale(${String(cardImageCrop(imagePath))})` }}
+        {...(priority ? ({ fetchpriority: "high" } as Record<string, string>) : {})}
       />
     </span>
   );

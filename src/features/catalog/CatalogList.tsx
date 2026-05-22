@@ -19,6 +19,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Button } from "@/components/ui/Button";
 import { CardImage } from "@/components/domain/CardImage";
 import { cn } from "@/lib/cn";
+import { useIsInitialRender } from "@/lib/initial-render";
 import { formatCashbackRate } from "@/lib/format";
 import { formatBankLabel, formatPointsProgram } from "@/lib/labels";
 import { useCompareActions } from "@/features/compare/useCompareActions";
@@ -141,10 +142,12 @@ const CatalogListRow = ({
   card,
   inCompare,
   onToggleCompare,
+  priority = false,
 }: {
   card: PublicCatalogCard;
   inCompare: boolean;
   onToggleCompare: (id: string) => void;
+  priority?: boolean;
 }): JSX.Element => {
   const details = listDetails(card);
 
@@ -159,6 +162,7 @@ const CatalogListRow = ({
           tier={card.tier}
           size="sm"
           className="w-full rounded-md"
+          priority={priority}
         />
         {/* Anuidade: mobile only */}
         <div className="text-center sm:hidden">
@@ -285,6 +289,8 @@ export const CatalogList = ({
   const { hasCard, toggleCard } = useCompareActions();
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const reduceMotion = useReducedMotion();
+  const isInitialRender = useIsInitialRender();
+  const skipStagger = reduceMotion === true || isInitialRender;
   const onResultCountRef = useRef(onResultCount);
   useEffect(() => {
     onResultCountRef.current = onResultCount;
@@ -417,11 +423,11 @@ export const CatalogList = ({
     <>
       {viewMode === "list" ? (
         <m.div
-          initial={reduceMotion ? false : "hidden"}
+          initial={skipStagger ? false : "hidden"}
           animate="visible"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
         >
-          {visibleCards.map((card) => (
+          {visibleCards.map((card, index) => (
             <m.div
               key={card.id}
               variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
@@ -430,23 +436,29 @@ export const CatalogList = ({
                 card={card}
                 inCompare={hasCard(card.id)}
                 onToggleCompare={toggleCard}
+                priority={index < 2}
               />
             </m.div>
           ))}
         </m.div>
       ) : (
         <m.div
-          initial={reduceMotion ? false : "hidden"}
+          initial={skipStagger ? false : "hidden"}
           animate="visible"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
           className={`${GRID} items-start`}
         >
-          {visibleCards.map((card) => (
+          {visibleCards.map((card, index) => (
             <m.div
               key={card.id}
               variants={{ hidden: { opacity: 0, y: 12 }, visible: { opacity: 1, y: 0 } }}
             >
-              <CatalogCard card={card} inCompare={hasCard(card.id)} onCompare={toggleCard} />
+              <CatalogCard
+                card={card}
+                inCompare={hasCard(card.id)}
+                onCompare={toggleCard}
+                priority={index < 4}
+              />
             </m.div>
           ))}
         </m.div>

@@ -31,6 +31,7 @@ interface CatalogCardProps {
   onCompare?: (id: string) => void;
   inCompare?: boolean;
   className?: string;
+  priority?: boolean;
 }
 
 // No máximo este número de benefícios na fileira (≈ 2 linhas). O resto fica
@@ -111,6 +112,7 @@ export const CatalogCard = ({
   onCompare,
   inCompare = false,
   className,
+  priority = false,
 }: CatalogCardProps): JSX.Element => {
   const { profile } = useSession();
   const isCurrentCard = profile?.currentCardIds?.includes(card.id) === true;
@@ -142,6 +144,7 @@ export const CatalogCard = ({
           brand={card.brand}
           tier={card.tier}
           className="!w-full border-0"
+          priority={priority}
         />
 
         {barrier !== null && (

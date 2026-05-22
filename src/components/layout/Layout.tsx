@@ -7,6 +7,7 @@ import { CompareFloatingBar } from "@/features/compare/CompareFloatingBar";
 import { MobileDrawer } from "@/components/ui/MobileDrawer";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/cn";
+import { useIsInitialRender } from "@/lib/initial-render";
 import { ROUTES } from "@/lib/routes-constants";
 
 const NAV_ITEMS = [
@@ -217,6 +218,7 @@ const SkipLink = (): JSX.Element => (
 
 export const Layout = (): JSX.Element => {
   const location = useLocation();
+  const isInitialRender = useIsInitialRender();
   return (
     <LazyMotion features={domAnimation}>
       <SWRConfig value={{ revalidateOnFocus: false, dedupingInterval: 10 * 60 * 1000 }}>
@@ -226,7 +228,7 @@ export const Layout = (): JSX.Element => {
           id="main-content"
           tabIndex={-1}
           key={location.pathname}
-          initial={{ opacity: 0 }}
+          initial={isInitialRender ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.12 }}
           className="focus:outline-none"
