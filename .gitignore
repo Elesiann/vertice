@@ -68,6 +68,7 @@ audits/
 
 # Local scratch (lighthouse runs, debug dumps, etc.)
 tmp/
+.lh-reports/
 
 # Lighthouse + WSL leak Windows-style user-data-dirs as literal folder names
 C:\\*
