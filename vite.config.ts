@@ -11,6 +11,42 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const shouldUploadSourcemaps = Boolean(process.env.SENTRY_AUTH_TOKEN);
 const shouldEmitSourcemaps = shouldUploadSourcemaps || process.env.VITE_BUILD_SOURCEMAP === "true";
 
+/**
+ * Inlines the main CSS bundle into index.html and removes the `<link
+ * rel="stylesheet">`. Tailwind 4 emits a single ~12kB-gzip stylesheet, which
+ * currently render-blocks every route for ~155ms on mobile (Lighthouse). At
+ * that size, inlining wins: HTML grows ~12kB on the wire but one critical
+ * round-trip disappears from FCP/LCP. The prerender step then bakes the
+ * inline `<style>` into each per-route HTML, so cold visits to /, /cards/*,
+ * etc. all benefit.
+ */
+const inlineCss = (): Plugin => ({
+  name: "inline-main-css",
+  apply: "build",
+  enforce: "post",
+  transformIndexHtml: {
+    order: "post",
+    handler(html, ctx) {
+      const bundle = ctx.bundle;
+      if (!bundle) return html;
+      const cssAsset = Object.values(bundle).find(
+        (chunk): chunk is typeof chunk & { type: "asset"; source: string | Uint8Array } =>
+          chunk.type === "asset" && chunk.fileName.endsWith(".css"),
+      );
+      if (!cssAsset) return html;
+      const css =
+        typeof cssAsset.source === "string"
+          ? cssAsset.source
+          : Buffer.from(cssAsset.source).toString("utf8");
+      const linkRe = new RegExp(
+        `\\s*<link[^>]*href="[^"]*${cssAsset.fileName.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}"[^>]*>`,
+        "g",
+      );
+      return html.replace(linkRe, "").replace("</head>", `<style>${css}</style></head>`);
+    },
+  },
+});
+
 // Stamp the build with a release identifier. Priority:
 // 1. Explicit VITE_APP_VERSION (CI / manual override).
 // 2. Cloudflare Pages commit SHA (set automatically on Pages builds).
@@ -22,6 +58,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    inlineCss(),
     ...(process.env.SENTRY_AUTH_TOKEN
       ? [
           sentryVitePlugin({
