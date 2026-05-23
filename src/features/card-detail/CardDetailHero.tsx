@@ -117,6 +117,7 @@ export const CardDetailHero = ({ card, profile }: CardDetailHeroProps): JSX.Elem
             bank={card.bank}
             size="md"
             className="w-full max-w-[240px]"
+            priority
           />
         </div>
       </div>
