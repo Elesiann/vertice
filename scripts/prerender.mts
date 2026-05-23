@@ -30,8 +30,25 @@ import { fetchCardIds } from "./lib/fetch-card-ids.mts";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DIST = resolve(__dirname, "..", "dist");
 
-// Static routes safe to prerender (deterministic, no required URL state).
-const STATIC_ROUTES = ["/", "/input", "/sobre", "/privacidade", "/termos"] as const;
+// Static routes safe to prerender.
+//
+// First group is fully deterministic (no required URL state, no API call).
+// Second group (/results, /compare) renders a meaningful empty-state panel
+// when its required state is absent — that's what we ship in the static
+// HTML. Real users who arrive with state (session for /results, ids for
+// /compare) get the empty panel as a first paint, then React swaps it for
+// the real view; this is fine because the path-aware hydrate logic in
+// src/main.tsx leaves these routes on the createRoot path (not in
+// PRERENDERED_STATIC_PATHS), so there's no hydration mismatch.
+const STATIC_ROUTES = [
+  "/",
+  "/input",
+  "/sobre",
+  "/privacidade",
+  "/termos",
+  "/results",
+  "/compare",
+] as const;
 
 // Default to 2 because hitting /cards/<id> across 126 cards from 4 contexts at
 // once trips backpressure on the API and silently degrades card pages to the
