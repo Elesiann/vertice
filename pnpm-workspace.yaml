@@ -1,0 +1,5 @@
+# Isola este repo do workspace implícito em $HOME (~/pnpm-workspace.yaml
+# criado pelo opencode faz o pnpm v10 resolver /home/gio como raiz e
+# instalar fora do repo). Sem membros além da raiz.
+packages:
+  - .
